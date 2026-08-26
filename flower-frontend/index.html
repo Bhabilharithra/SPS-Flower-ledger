@@ -4360,6 +4360,37 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 </style>
 
 
+
+<style id="forgot-password-contrast-fix">
+/* Forgot password — high contrast */
+.lc-forgot,
+#btnShowResetPassword {
+  color: #263653 !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  border-radius: 5px !important;
+}
+.lc-forgot:hover,
+#btnShowResetPassword:hover {
+  color: #8f2455 !important;
+  background: rgba(255,255,255,.72) !important;
+  text-decoration: underline !important;
+}
+.lc-forgot:focus,
+#btnShowResetPassword:focus {
+  color: #263653 !important;
+  background: rgba(255,255,255,.9) !important;
+  outline: 2px solid #4d83b8 !important;
+  outline-offset: 2px !important;
+}
+</style>
+
 </head>
 <body>
 <div id="toastHolder"></div>
@@ -4717,7 +4748,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 // requests must go to the backend on :4000. If the backend itself serves
 // the page on :4000, same-origin requests are used automatically.
 const API_BASE = window.FLOWER_API_BASE ||
-  (window.location.port === "4000" ? "" : "https://sps-flower-ledger.onrender.com");
+  (window.location.port === "4000" ? "" : "http://localhost:4000");
 
 // ------------------------------------------------------------
 // AUTH SESSION
