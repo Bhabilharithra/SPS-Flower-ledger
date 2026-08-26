@@ -12,7 +12,7 @@
 <header class="top"><div class="brand">🌸 Flower Ledger</div><div class="top-right"><div class="usertext"><b id="name">User</b><span id="username">@user</span></div><div class="avatar" id="avatar">?</div></div></header>
 <main class="wrap"><button class="back" onclick="history.back()">← Back to ledger</button><section class="hero"><h1 id="title">Profile</h1><div class="muted" id="sub">Account overview</div><div class="stats"><div class="stat"><div class="label">Name</div><div class="value" id="nameStat">—</div></div><div class="stat"><div class="label">Username</div><div class="value" id="userStat">—</div></div><div class="stat"><div class="label">Total entries</div><div class="value" id="entryStat">0</div></div><div class="stat"><div class="label">Total suppliers</div><div class="value" id="supplierStat">0</div></div></div></section><div class="section-title">Overall supplier summary</div><section class="suppliers" id="suppliers"></section></main>
 <script>
-const API_BASE=window.FLOWER_API_BASE||'';
+const API_BASE=window.FLOWER_API_BASE||'https://sps-flower-ledger.onrender.com';
 function getSession(){const token=sessionStorage.getItem('poo_kanakku_token')||localStorage.getItem('poo_kanakku_token');const raw=sessionStorage.getItem('poo_kanakku_user')||localStorage.getItem('poo_kanakku_user');let user=null;try{user=raw?JSON.parse(raw):null}catch(e){}return{token,user}}
 const session=getSession();
 if(!session.token||!session.user){window.location.href='index.html';}
