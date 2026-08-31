@@ -4748,7 +4748,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 // requests must go to the backend on :4000. If the backend itself serves
 // the page on :4000, same-origin requests are used automatically.
 const API_BASE = window.FLOWER_API_BASE ||
-  (window.location.port === "4000" ? "" : "http://localhost:4000");
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:4000"
+    : "https://sps-flower-ledger.onrender.com");
 
 // ------------------------------------------------------------
 // AUTH SESSION
