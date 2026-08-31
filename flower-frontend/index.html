@@ -5423,7 +5423,7 @@ async function loadData(showError = true){
   }catch(e){
     console.error("Load entries error:", e);
     if(showError){
-      showToast("Connection issue", "Could not reach the backend at http://localhost:4000. Check that server.js is running.", "error");
+      showToast("Connection issue", "Could not reach the backend server. It may be waking up — please try again in a moment.", "error");
     }
     return false;
   }
@@ -5462,7 +5462,7 @@ async function dbAddOrUpdate(entry, updateId = null){
     return true;
   }catch(e){
     console.error("Save entry error:", e);
-    const message = e && e.message ? e.message : "Could not save/read the server. Make sure the backend is running on port 4000.";
+    const message = e && e.message ? e.message : "Could not save/read the server. It may be waking up — please try again in a moment.";
     showToast("Entry not saved", message, "error");
     return false;
   }
