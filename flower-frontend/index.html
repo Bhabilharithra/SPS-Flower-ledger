@@ -6050,7 +6050,7 @@ function fillMultiRateInputs(optionsByFlower){
     }));
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
-      if(input) input.value = rates[index]?.price ?? '';
+      if(input) input.value = '';
     });
   });
 }
