@@ -3491,7 +3491,9 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-  vertical-align:middle !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -4484,7 +4486,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
         <div class="input-wrap password-wrap">
           <span>🔒</span>
           <input type="password" id="inpPassword" placeholder="Enter password" autocomplete="current-password">
-          <button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password" title="Show password">👁</button>
+          <button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password">👁</button>
         </div>
       </div>
 
@@ -4510,8 +4512,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
     <p>Create a separate login for a staff/admin user. The main shop admin username remains protected by the server .env settings.</p>
     <div class="account-field"><label for="newAccountName">Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun"></div>
     <div class="account-field"><label for="newAccountUsername">Username</label><input id="newAccountUsername" type="text" placeholder="e.g. arun"></div>
-    <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password" title="Show password">👁</button></div></div>
-    <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password" title="Show password">👁</button></div></div>
+    <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password">👁</button></div></div>
+    <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password">👁</button></div></div>
     <div class="account-message" id="accountMessage"></div>
     <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelCreateAccount">Cancel</button><button type="button" class="account-submit" id="btnCreateAccount">Create account</button></div>
   </div>
@@ -4541,8 +4543,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
     <h3 id="resetPasswordTitle">Reset password</h3>
     <p>Enter your username and choose a new password. You can then sign in normally.</p>
     <div class="account-field"><label for="resetUsername">Username</label><input id="resetUsername" type="text" placeholder="Enter username" autocomplete="username"></div>
-    <div class="account-field"><label for="resetNewPassword">New password</label><div class="password-view-wrap"><input id="resetNewPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetNewPassword" aria-label="Show password" title="Show password">👁</button></div></div>
-    <div class="account-field"><label for="resetConfirmPassword">Confirm new password</label><div class="password-view-wrap"><input id="resetConfirmPassword" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetConfirmPassword" aria-label="Show password" title="Show password">👁</button></div></div>
+    <div class="account-field"><label for="resetNewPassword">New password</label><div class="password-view-wrap"><input id="resetNewPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetNewPassword" aria-label="Show password">👁</button></div></div>
+    <div class="account-field"><label for="resetConfirmPassword">Confirm new password</label><div class="password-view-wrap"><input id="resetConfirmPassword" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetConfirmPassword" aria-label="Show password">👁</button></div></div>
     <div class="account-message" id="resetPasswordMessage"></div>
     <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelResetPassword">Cancel</button><button type="button" class="account-submit" id="btnResetPassword">Reset password</button></div>
   </div>
@@ -5152,9 +5154,10 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
     if(!input) return;
     const showing = input.type === "text";
     input.type = showing ? "password" : "text";
-    button.textContent = showing ? "👁" : "🙈";
+    // Keep the icon button dimensions fixed; only accessibility text changes.
+    button.textContent = showing ? "👁" : "👁";
     button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
-    button.title = showing ? "Show password" : "Hide password";
+    button.removeAttribute("title");
   });
 });
 
@@ -5862,7 +5865,9 @@ function populateRateDropdown(keepValue = true){
   }
 
   select.disabled = false;
-  select.innerHTML = '<option value="">Select rate / time</option>';
+  // Always start with the placeholder. Never keep a previous rate from another
+  // flower/date and never auto-select the 3rd/latest option.
+  select.innerHTML = '<option value="" selected>Select rate / time</option>';
 
   options.forEach((rate,index)=>{
     const opt = document.createElement('option');
@@ -5876,11 +5881,12 @@ function populateRateDropdown(keepValue = true){
     select.appendChild(opt);
   });
 
-  if(previous && [...select.options].some(o=>o.value===previous)){
+  // Keep a value only when this exact flower/date dropdown still contains it.
+  // On a flower/date refresh, populateRateDropdown(false) forces the placeholder.
+  if(keepValue && previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
   }else{
-    // Do not automatically jump to the 3rd/latest rate.
-    // The user must explicitly choose 1st, 2nd or 3rd time.
+    select.selectedIndex = 0;
     select.value = '';
   }
 
@@ -5909,6 +5915,12 @@ async function loadFlowerRates(dateOverride = null){
     // Clear immediately so rates from another date are never shown.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
+    const rateSelect = document.getElementById('inpRateSelect');
+    if(rateSelect){
+      rateSelect.disabled = true;
+      rateSelect.innerHTML = '<option value="">No saved rate for this date</option>';
+      rateSelect.value = '';
+    }
     populateRateDropdown(false);
     applyFlowerRate();
 
@@ -6312,22 +6324,31 @@ document.querySelectorAll('.rate-card-save').forEach(button=>{
   date refreshes the displayed rates for that day.
 */
 ['rateDateMullai','rateDatePichi','rateDateMalli'].forEach(id=>{
-  document.getElementById(id)?.addEventListener('change',async (e)=>{
+  const dateInput = document.getElementById(id);
+  if(!dateInput) return;
+  let loadingDate = false;
+  const refreshForDate = async (e)=>{
+    if(loadingDate) return;
+    loadingDate = true;
     const date=e.target.value || todayStr();
+    try{
+      ['rateDateMullai','rateDatePichi','rateDateMalli'].forEach(otherId=>{
+        const other=document.getElementById(otherId);
+        if(other) other.value=date;
+      });
 
-    ['rateDateMullai','rateDatePichi','rateDateMalli'].forEach(otherId=>{
-      const other=document.getElementById(otherId);
-      if(other) other.value=date;
-    });
-
-    // Clear the old date immediately. The selected date's rates are loaded next.
-    displayFlowerRates = normalizeFlowerRates(null);
-    lastRatePayload = [];
-    fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
-    renderFlowerRates();
-
-    await loadRateCards(date);
-  });
+      // Clear EVERY old price/status/current-rate immediately before loading.
+      displayFlowerRates = normalizeFlowerRates(null);
+      lastRatePayload = [];
+      fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
+      renderFlowerRates();
+      await loadRateCards(date);
+    } finally {
+      loadingDate = false;
+    }
+  };
+  dateInput.addEventListener('change', refreshForDate);
+  dateInput.addEventListener('input', refreshForDate);
 });
 
 
@@ -6339,20 +6360,20 @@ function applyFlowerRate(){
   const selectedRate = getSelectedRateOption();
 
   if(ALLOWED_FLOWERS.includes(flower)){
-    const data = selectedRate || flowerRates[flower] || {price:'',date:'',time:''};
-    const rate = data.price;
+    // IMPORTANT: never fall back to a previous/last rate. The entry price must
+    // come only from the rate explicitly selected for the current entry date.
+    const data = selectedRate || null;
+    const rate = data ? data.price : '';
 
     priceInput.value = rate === '' || rate == null ? '' : rate;
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
     priceInput.placeholder = '₹';
 
-    if(rate === '' || rate == null){
+    if(!selectedRate){
       note.textContent = `⚠️ Select a saved ${flower} rate/time for ${fmtDate(selectedDate)} before adding this entry.`;
-    }else if(selectedRate){
-      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
     }else{
-      note.textContent = `Rate for ${fmtDate(selectedDate)}: ${fmtMoney(rate)} / kg`;
+      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
@@ -7535,6 +7556,30 @@ window.addEventListener('load',()=>{
     }
   },300);
 });
+</script>
+
+<script id="final-rate-and-eye-fixes">
+(() => {
+  // Remove browser "Show password" tooltip and lock all eye buttons in place.
+  document.querySelectorAll('.password-view-btn,.password-toggle').forEach(btn => {
+    btn.removeAttribute('title');
+    btn.style.top='50%'; btn.style.bottom='auto';
+    btn.style.transform='translateY(-50%)';
+    btn.style.margin='0';
+  });
+
+  // If browser form restoration selects an old option, reset it whenever the
+  // flower or entry date changes.
+  const resetRateChoice = () => {
+    const s=document.getElementById('inpRateSelect');
+    if(!s) return;
+    if(s.options.length){ s.selectedIndex=0; s.value=''; }
+    const price=document.getElementById('inpPrice');
+    if(price) price.value='';
+  };
+  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+  document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+})();
 </script>
 </body>
 </html>
