@@ -6275,7 +6275,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
   const unit = 'kg';
-  const price = parseFloat(document.getElementById('inpPrice').value);
+  const price = selectedRate ? Number(selectedRate.price) : parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
   if(!name) missing.push("Supplier name");
@@ -6300,19 +6300,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       showToast("Edit failed", "The original entry could not be found. Please reload the page and try again.", "error");
       return;
     }
-    const updated = {
-      ...existing,
-      id: idBeingEdited,
-      name,
-      date,
-      time,
-      flower,
-      qty,
-      unit,
-      price,
-      amount: qty * price,
-      rate_time: selectedRate ? selectedRate.time : undefined
-    };
+    const updated = { ...existing, id: idBeingEdited, name, date, time, flower, qty, unit, price, amount: qty*price, rate_time: selectedRate ? selectedRate.time : undefined };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
     showToast("Entry updated", `${name}'s entry on ${fmtDate(date)} was updated.`, "success");
@@ -6320,13 +6308,8 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   } else {
     const entry = {
       id: uid(),
-      name,
-      date,
-      time: time || "",
-      flower,
-      qty,
-      unit,
-      price,
+      name, date, time: time || "",
+      flower, qty, unit, price,
       amount: qty * price,
       paid: false,
       paidDate: null,
