@@ -4670,6 +4670,15 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <input type="text" id="inpOtherFlower" class="other-flower-input" placeholder="Enter flower name" autocomplete="off" maxlength="80">
           </div>
 
+          <!-- RATE TIME DROPDOWN: shows every saved rate for the selected flower/date -->
+          <div class="field" id="entryRateChoiceField" style="display:none;">
+            <label for="inpRateSelect">Rate / Time</label>
+            <select id="inpRateSelect" disabled>
+              <option value="">Select saved rate</option>
+            </select>
+            <div class="price-note" id="rateChoiceNote"></div>
+          </div>
+
           <div class="field">
             <label for="inpQty">Quantity (kg)</label>
             <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter kg" autocomplete="off">
@@ -5622,6 +5631,158 @@ function ratesResponseToMap(payload){
   return result;
 }
 
+/*
+  All saved rates for the selected ENTRY DATE are kept separately so the
+  user can choose 1st time, 2nd time, 3rd time, etc. in New Flower Entry.
+*/
+let entryRateOptions = {
+  'முல்லை': [],
+  'பிச்சி': [],
+  'மல்லி': []
+};
+
+function emptyEntryRateOptions(){
+  return {
+    'முல்லை': [],
+    'பிச்சி': [],
+    'மல்லி': []
+  };
+}
+
+function ratesResponseToListByFlower(payload){
+  const result = emptyEntryRateOptions();
+  let source = payload;
+
+  if(payload && typeof payload === 'object' && !Array.isArray(payload)){
+    if(Array.isArray(payload.rates)) source = payload.rates;
+    else if(Array.isArray(payload.data)) source = payload.data;
+  }
+
+  if(!Array.isArray(source)) return result;
+
+  source.forEach((item, index)=>{
+    if(!item) return;
+
+    const flower = canonicalFlowerKey(
+      item.flower ?? item.name ?? item.english_name
+    );
+    if(!flower) return;
+
+    const price = item.price ?? item.rate ?? '';
+    const date = String(item.rate_date ?? item.date ?? '').slice(0,10);
+    const time = String(item.rate_time ?? item.time ?? '').slice(0,8);
+
+    if(price === '' || price == null) return;
+
+    result[flower].push({
+      id: item.id ?? `rate-${flower}-${date}-${time}-${index}`,
+      price: Number(price),
+      date,
+      time,
+      updated_at: item.updated_at ?? item.created_at ?? '',
+      _index: index
+    });
+  });
+
+  // Oldest saved rate first = 1st time, newest = latest time.
+  Object.keys(result).forEach(flower=>{
+    result[flower].sort((a,b)=>{
+      const ta = localRateTimestamp(a);
+      const tb = localRateTimestamp(b);
+      const sa = Number.isFinite(ta) ? ta : a._index;
+      const sb = Number.isFinite(tb) ? tb : b._index;
+      return sa - sb;
+    });
+  });
+
+  return result;
+}
+
+function ordinalLabel(index){
+  const n = index + 1;
+  const mod100 = n % 100;
+  if(mod100 >= 11 && mod100 <= 13) return `${n}th time`;
+  if(n % 10 === 1) return `${n}st time`;
+  if(n % 10 === 2) return `${n}nd time`;
+  if(n % 10 === 3) return `${n}rd time`;
+  return `${n}th time`;
+}
+
+function rateOptionKey(rate, index){
+  return `${rate.id ?? ''}|${rate.date ?? ''}|${rate.time ?? ''}|${index}`;
+}
+
+function getSelectedEntryRate(){
+  const flower = getFlowerValue();
+  const select = document.getElementById('inpRateSelect');
+  const rates = entryRateOptions[flower] || [];
+
+  if(!select || !select.value) return null;
+
+  return rates.find((rate,index)=>
+    rateOptionKey(rate,index) === select.value
+  ) || null;
+}
+
+function updateEntryRateDropdown(preferredKey = ''){
+  const flower = getFlowerValue();
+  const field = document.getElementById('entryRateChoiceField');
+  const select = document.getElementById('inpRateSelect');
+  const note = document.getElementById('rateChoiceNote');
+
+  if(!field || !select) return;
+
+  if(!ALLOWED_FLOWERS.includes(flower)){
+    field.style.display = 'none';
+    select.innerHTML = '<option value="">Select saved rate</option>';
+    select.value = '';
+    select.disabled = true;
+    if(note) note.textContent = '';
+    return;
+  }
+
+  field.style.display = '';
+  const rates = entryRateOptions[flower] || [];
+  const previous = preferredKey || select.value;
+
+  select.innerHTML = '';
+
+  if(rates.length === 0){
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No saved rate for this date';
+    select.appendChild(option);
+    select.disabled = true;
+    if(note) note.textContent = 'Save a rate for this flower and date first.';
+    return;
+  }
+
+  rates.forEach((rate,index)=>{
+    const option = document.createElement('option');
+    option.value = rateOptionKey(rate,index);
+    const timeText = rateTimeLabel(rate.time);
+    option.textContent =
+      `${ordinalLabel(index)} — ₹${Number(rate.price).toLocaleString('en-IN')} / kg` +
+      (timeText ? ` (${timeText})` : '');
+    select.appendChild(option);
+  });
+
+  select.disabled = false;
+
+  const hasPrevious = rates.some((rate,index)=>
+    rateOptionKey(rate,index) === previous
+  );
+
+  // Default to the latest saved rate, but preserve a manual selection.
+  select.value = hasPrevious
+    ? previous
+    : rateOptionKey(rates[rates.length-1], rates.length-1);
+
+  if(note){
+    note.textContent = `${rates.length} saved rate${rates.length === 1 ? '' : 's'} available for this date.`;
+  }
+}
+
 let flowerRates = normalizeFlowerRates(null);
 
 /*
@@ -5677,6 +5838,8 @@ async function loadFlowerRates(dateOverride = null){
 
     // Clear immediately so a previous date can never remain in the entry form.
     flowerRates = normalizeFlowerRates(null);
+    entryRateOptions = emptyEntryRateOptions();
+    updateEntryRateDropdown();
     applyFlowerRate();
 
     const res = await fetch(
@@ -5696,13 +5859,20 @@ async function loadFlowerRates(dateOverride = null){
       throw new Error('Could not load flower rates for this date');
     }
 
-    // Pick the latest saved rate for each flower on this date.
-    flowerRates = ratesResponseToMap(await res.json());
+    const payload = await res.json();
+
+    // Keep ALL saved rates for the dropdown and the latest rate for fallback.
+    entryRateOptions = ratesResponseToListByFlower(payload);
+    flowerRates = ratesResponseToMap(payload);
+
+    updateEntryRateDropdown();
     applyFlowerRate();
 
   }catch(error){
     console.error('Load entry flower rates error:', error);
     flowerRates = normalizeFlowerRates(null);
+    entryRateOptions = emptyEntryRateOptions();
+    updateEntryRateDropdown();
     applyFlowerRate();
 
     showToast(
@@ -6039,6 +6209,25 @@ async function saveSingleFlowerRate(flower,priceId,dateId,statusId){
         time:savedTime
       };
 
+      if(!Array.isArray(entryRateOptions[flower])){
+        entryRateOptions[flower] = [];
+      }
+
+      entryRateOptions[flower].push({
+        id: serverRate?.id ?? `new-${flower}-${normalizedSavedDate}-${savedTime}-${Date.now()}`,
+        price: Number(savedPrice),
+        date: normalizedSavedDate,
+        time: savedTime,
+        updated_at: serverRate?.updated_at ?? serverRate?.created_at ?? ''
+      });
+
+      entryRateOptions[flower].sort((a,b)=>{
+        const ta = localRateTimestamp(a);
+        const tb = localRateTimestamp(b);
+        return (Number.isFinite(ta) ? ta : 0) - (Number.isFinite(tb) ? tb : 0);
+      });
+
+      updateEntryRateDropdown();
       applyFlowerRate();
     }
 
@@ -6116,10 +6305,13 @@ function applyFlowerRate(){
   const selectedDate = document.getElementById('inpDate').value || todayStr();
 
   if(ALLOWED_FLOWERS.includes(flower)){
-    const data = flowerRates[flower] || {price:'',date:''};
-    const rate = data.price;
+    // Ensure the dropdown matches the currently selected flower.
+    updateEntryRateDropdown();
 
-    // Never carry a previous date's rate forward.
+    const selectedRate = getSelectedEntryRate();
+    const fallback = flowerRates[flower] || {price:'',date:''};
+    const rate = selectedRate ? selectedRate.price : fallback.price;
+
     priceInput.value = rate === '' || rate == null ? '' : rate;
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
@@ -6127,15 +6319,26 @@ function applyFlowerRate(){
 
     if(rate === '' || rate == null){
       note.textContent = `⚠️ Enter the ${flower} rate for ${fmtDate(selectedDate)} before adding this entry.`;
+    }else if(selectedRate){
+      const rates = entryRateOptions[flower] || [];
+      const selectedIndex = rates.findIndex(rate =>
+        String(rate.id) === String(selectedRate.id) &&
+        String(rate.time) === String(selectedRate.time)
+      );
+      note.textContent =
+        `${ordinalLabel(Math.max(selectedIndex,0))}: ${fmtMoney(rate)} / kg` +
+        (selectedRate.time ? ` (${rateTimeLabel(selectedRate.time)})` : '');
     }else{
       note.textContent = `Rate for ${fmtDate(selectedDate)}: ${fmtMoney(rate)} / kg`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
+    updateEntryRateDropdown();
     priceInput.readOnly = false;
     priceInput.classList.remove('price-managed');
     priceInput.placeholder = 'Enter price / kg';
     note.textContent = '';
   }else{
+    updateEntryRateDropdown();
     priceInput.value = '';
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
@@ -6178,14 +6381,25 @@ function setFlowerValue(flowerName){
     otherInput.value = '';
   }
   updateOtherFlowerField();
+  updateEntryRateDropdown();
 }
 
-document.getElementById('inpFlowerSelect').addEventListener('change', ()=>{ updateOtherFlowerField(); applyFlowerRate(); });
+document.getElementById('inpFlowerSelect').addEventListener('change', ()=>{
+  updateOtherFlowerField();
+  updateEntryRateDropdown();
+  applyFlowerRate();
+});
+
+document.getElementById('inpRateSelect').addEventListener('change', ()=>{
+  applyFlowerRate();
+});
 
 // The price always follows the selected ENTRY DATE.
 document.getElementById('inpDate').addEventListener('change', async ()=>{
   // Never carry the previous entry-date rate forward.
   flowerRates = normalizeFlowerRates(null);
+  entryRateOptions = emptyEntryRateOptions();
+  updateEntryRateDropdown();
   applyFlowerRate();
 
   const date =
@@ -6212,6 +6426,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const qty = parseFloat(document.getElementById('inpQty').value);
   const unit = 'kg';
   const price = parseFloat(document.getElementById('inpPrice').value);
+  const selectedRate = getSelectedEntryRate();
 
   const missing = [];
   if(!name) missing.push("Supplier name");
@@ -6236,7 +6451,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       showToast("Edit failed", "The original entry could not be found. Please reload the page and try again.", "error");
       return;
     }
-    const updated = { ...existing, id: idBeingEdited, name, date, time, flower, qty, unit, price, amount: qty*price };
+    const updated = { ...existing, id: idBeingEdited, name, date, time, flower, qty, unit, price, amount: qty*price, rate_time: selectedRate?.time || existing.rate_time || '' };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
     showToast("Entry updated", `${name}'s entry on ${fmtDate(date)} was updated.`, "success");
@@ -6247,6 +6462,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       name, date, time: time || "",
       flower, qty, unit, price,
       amount: qty * price,
+      rate_time: selectedRate?.time || '',
       paid: false,
       paidDate: null
     };
@@ -6258,6 +6474,8 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   document.getElementById('inpName').value = "";
   document.getElementById('inpFlowerSelect').value = "";
   document.getElementById('inpOtherFlower').value = "";
+  document.getElementById('inpRateSelect').innerHTML = '<option value="">Select saved rate</option>';
+  document.getElementById('entryRateChoiceField').style.display = 'none';
   updateOtherFlowerField();
   applyFlowerRate();
   document.getElementById('inpQty').value = "";
