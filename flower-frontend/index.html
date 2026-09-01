@@ -3741,12 +3741,21 @@ canvas{
 .current-rate-empty{margin:auto 0;padding:12px 8px;text-align:center;font-size:11px;line-height:1.45;color:#9a7181;}
 .current-rate-footer{margin-top:10px;padding-top:9px;border-top:1px solid #f0dbe4;font-size:10px;color:#9a7181;}
 
+
+.inline-rate-slots{display:flex;flex-direction:column;gap:5px;flex:1;}
+.inline-rate-slot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 0;}
+.inline-rate-slot span{font-size:11px;font-weight:800;color:#8B6575;text-transform:uppercase;}
+.rate-current-inline .inline-rate-slot strong{font-size:16px;color:#B43C6F;}
+
 /* ================================================================
    INLINE CURRENT RATE DISPLAY
    Each flower card shows its own latest rate for 24 hours.
    ================================================================ */
 .rate-current-inline{
-  display:block;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
   min-height:42px;
   margin:2px 0 10px;
   padding:9px 11px;
@@ -3761,10 +3770,12 @@ canvas{
   text-transform:uppercase;
   letter-spacing:.07em;
 }
-.current-rate-list{display:flex;flex-direction:column;gap:5px;margin-top:5px;}
-.current-rate-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.55);}
-.current-rate-slot{color:#8B6575;font-size:10px;font-weight:800;white-space:nowrap;}
-.current-rate-value{color:#B43C6F;font-size:16px;font-weight:900;white-space:nowrap;}
+.rate-current-inline strong{
+  color:#B43C6F;
+  font-size:18px;
+  font-weight:900;
+  white-space:nowrap;
+}
 .rate-current-inline.is-empty strong{
   color:#B58D9C;
   font-size:12px;
@@ -4459,7 +4470,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       </div>
 
       <div class="lc-row-between">
-        <label class="remember-me"><input type="checkbox" id="chkRemember" checked> <span>Keep me signed in</span></label>
+        <label class="remember-me"><input type="checkbox" id="chkRemember"> <span>Keep me signed in for this browser tab</span></label>
         <button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button>
       </div>
 
@@ -4781,28 +4792,14 @@ const API_BASE = window.FLOWER_API_BASE ||
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
 function readStoredSession(){
-  const sessionToken = sessionStorage.getItem("poo_kanakku_token");
-  const localToken = localStorage.getItem("poo_kanakku_token");
-
-  // Prefer the session token, otherwise use the remembered local token.
-  const token = sessionToken || localToken || null;
-  const userRaw = sessionToken
-    ? sessionStorage.getItem("poo_kanakku_user")
-    : localStorage.getItem("poo_kanakku_user");
-
-  let user = null;
-  try{
-    user = userRaw ? JSON.parse(userRaw) : null;
-  }catch(e){
-    user = null;
-  }
-
-  return { token, user };
+  // IMPORTANT: This app must NEVER automatically sign in when the page opens.
+  // Clear any token left from an earlier visit and always require manual sign-in.
+  sessionStorage.removeItem("poo_kanakku_token");
+  sessionStorage.removeItem("poo_kanakku_user");
+  localStorage.removeItem("poo_kanakku_token");
+  localStorage.removeItem("poo_kanakku_user");
+  return { token: null, user: null };
 }
-
-const storedSession = readStoredSession();
-let authToken = storedSession.token;
-let currentUser = storedSession.user;
 
 // During the first page load, a stale saved token should be cleared silently.
 // We only show “Session expired” when a session expires AFTER the user was
@@ -4810,72 +4807,63 @@ let currentUser = storedSession.user;
 // on first opening and disappears after reloading.
 let initialSessionCheck = true;
 
-// ------------------------------------------------------------
-// INACTIVITY LOGOUT — 1 hour
-// After one full hour with no user activity, clear every saved token
-// and return to the login screen. The user must sign in manually again.
-const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
-let inactivityTimer = null;
-
-function stopInactivityLogout(){
-  if(inactivityTimer){
-    clearTimeout(inactivityTimer);
-    inactivityTimer = null;
-  }
-}
-
-function logoutForInactivity(){
-  if(!authToken) return;
-  clearSession();
-  if(pollTimer){
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-  document.getElementById('appWrap').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('userMenu')?.classList.remove('show');
-  showLoginError('You were signed out after 1 hour of inactivity. Please sign in again.');
-}
-
-function resetInactivityLogout(){
-  if(!authToken) return;
-  stopInactivityLogout();
-  inactivityTimer = setTimeout(logoutForInactivity, INACTIVITY_LIMIT_MS);
-}
-
-['click','keydown','input','change','touchstart','mousemove','scroll'].forEach(eventName=>{
-  document.addEventListener(eventName, ()=>{
-    if(authToken && document.getElementById('appWrap')?.style.display !== 'none'){
-      resetInactivityLogout();
-    }
-  }, {passive:eventName==='touchstart'||eventName==='mousemove'||eventName==='scroll'});
-});
-
 function authHeaders(){
   return authToken ? { "Authorization": "Bearer " + authToken } : {};
 }
 
 function persistSession(token, user, remember){
-  // Always remove both copies first so an old session token cannot win over
-  // the newly saved token on the next page load.
+  // Never store a persistent login in localStorage.
+  // A new page visit always requires manual sign-in.
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
 
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem("poo_kanakku_token", token);
-  store.setItem("poo_kanakku_user", JSON.stringify(user));
+  sessionStorage.setItem("poo_kanakku_token", token);
+  sessionStorage.setItem("poo_kanakku_user", JSON.stringify(user));
 }
 
+// ------------------------------------------------------------
+// 1-HOUR INACTIVITY LOGOUT
+// ------------------------------------------------------------
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+let inactivityTimer = null;
+
+function logoutForInactivity(){
+  if(!authToken) return;
+  const oldToken = authToken;
+  clearSession();
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  document.getElementById("appWrap").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+  const u = document.getElementById("inpUsername");
+  const pw = document.getElementById("inpPassword");
+  if(u) u.value = "";
+  if(pw) pw.value = "";
+  showLoginError("You were logged out after 1 hour of inactivity. Please sign in again.");
+  if(oldToken){
+    fetch(API_BASE + "/api/logout", { method:"POST", headers:{"Authorization":"Bearer " + oldToken} }).catch(()=>{});
+  }
+}
+
+function resetInactivityTimer(){
+  if(!authToken) return;
+  if(inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(logoutForInactivity, INACTIVITY_LIMIT_MS);
+}
+
+["click","keydown","input","change","scroll","touchstart","mousemove"].forEach(evt=>{
+  document.addEventListener(evt, resetInactivityTimer, { passive:true });
+});
+
 function clearSession(){
-  stopInactivityLogout();
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
   authToken = null;
   currentUser = null;
+  if(inactivityTimer){ clearTimeout(inactivityTimer); inactivityTimer = null; }
 }
 
 function showApp(user, alreadyLoaded=false){
@@ -4883,13 +4871,13 @@ function showApp(user, alreadyLoaded=false){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appWrap").style.display = "block";
   renderUserChip();
+  resetInactivityTimer();
 
   if(!alreadyLoaded){
     loadData();
   }
 
   startPolling();
-  resetInactivityLogout();
   loadFlowerRates();
   loadCurrentRateDisplay();
 }
@@ -5809,21 +5797,11 @@ function populateRateDropdown(keepValue = true){
     return;
   }
 
-  // IMPORTANT: keep ALL saved rates for this flower/date.
-  // Do not collapse 1st, 2nd and 3rd rates into only one "latest" rate.
-  const rawOptions = flowerRateOptions[flower] || [];
-  const seen = new Set();
-  const options = rawOptions.filter(rate=>{
-    const key = String(rate.id ?? `${rate.date}-${rate.time}-${rate.price}`);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
+  const options = flowerRateOptions[flower] || [];
   if(!options.length){
     select.disabled = true;
     select.innerHTML = '<option value="">No saved rate for this date</option>';
-    if(note) note.textContent = 'No saved rate exists for this flower on the selected date.';
+    if(note) note.textContent = 'Save a rate for the selected date first.';
     return;
   }
 
@@ -5832,10 +5810,8 @@ function populateRateDropdown(keepValue = true){
 
   options.forEach((rate,index)=>{
     const opt = document.createElement('option');
-    opt.value = String(rate.id);
-    opt.textContent =
-      `${ordinal(index + 1)} time — ${fmtMoney(rate.price)} / kg` +
-      `${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
+    opt.value = rate.id;
+    opt.textContent = `${ordinal(index+1)} time — ${fmtMoney(rate.price)} / kg${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
     opt.dataset.price = String(rate.price);
     opt.dataset.time = rate.time || '';
     opt.dataset.date = rate.date || '';
@@ -5844,18 +5820,14 @@ function populateRateDropdown(keepValue = true){
 
   if(previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
-  }else{
-    // Default to the latest saved rate, while keeping every rate selectable.
-    select.value = String(options[options.length - 1].id);
+  } else {
+    // Default to the latest saved rate, while still allowing the user
+    // to choose any earlier rate/time from the dropdown.
+    select.value = options[options.length - 1].id;
   }
 
-  if(note){
-    note.textContent =
-      `${options.length} saved rate${options.length===1?'':'s'} available for ` +
-      `${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
-  }
+  if(note) note.textContent = `${options.length} saved rate${options.length===1?'':'s'} available for ${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
 }
-
 
 function getSelectedRateOption(){
   const flower = getFlowerValue();
@@ -5871,20 +5843,14 @@ async function loadFlowerRates(dateOverride = null){
       document.getElementById('inpDate')?.value ||
       todayStr();
 
-    // Clear immediately so rates from another date are never shown.
+    // Clear immediately so a previous date can never remain in the entry form.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
     populateRateDropdown(false);
     applyFlowerRate();
 
-    /*
-      IMPORTANT FIX:
-      Load ALL rates from the server and filter the selected date in the
-      browser. This guarantees that all 1st / 2nd / 3rd saved rates are
-      available even if the backend does not support a specific date query.
-    */
     const res = await fetch(
-      API_BASE + '/api/rates',
+      API_BASE + '/api/rates?from=' + encodeURIComponent(selectedDate) + '&to=' + encodeURIComponent(selectedDate),
       {
         headers: authHeaders(),
         cache: 'no-store'
@@ -5897,40 +5863,25 @@ async function loadFlowerRates(dateOverride = null){
     }
 
     if(!res.ok){
-      throw new Error('Could not load flower rates');
+      throw new Error('Could not load flower rates for this date');
     }
 
-    const allPayload = await res.json();
-
-    const selectedDateRates = getRatesArray(allPayload).filter(item=>{
-      const itemDate = String(
-        item?.rate_date ?? item?.date ?? ''
-      ).slice(0,10);
-
-      return itemDate === selectedDate;
-    });
-
-    // Keep every saved rate for the selected date and group them by flower.
-    flowerRateOptions = ratesResponseToOptions(selectedDateRates);
-
-    // The latest saved rate remains the default price.
-    flowerRates = ratesResponseToMap(selectedDateRates);
-
+    // Load every saved rate for this date so the entry form can show
+    // 1st time / 2nd time / 3rd time choices in its dropdown.
+    const ratePayload = await res.json();
+    flowerRateOptions = ratesResponseToOptions(ratePayload);
+    flowerRates = ratesResponseToMap(ratePayload);
     populateRateDropdown(false);
     applyFlowerRate();
 
   }catch(error){
     console.error('Load entry flower rates error:', error);
-
     flowerRates = normalizeFlowerRates(null);
-    flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
-
-    populateRateDropdown(false);
     applyFlowerRate();
 
     showToast(
       'Rate loading failed',
-      'Could not load the flower rates from the server.',
+      'Could not load the flower rate for this date.',
       'error'
     );
   }
@@ -5946,9 +5897,6 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
-  // CURRENT RATE must always show the latest saved rate for each flower,
-  // even when the date picker is changed to a date with no saved rate.
-  // The selected date is only used for the editable 1st/2nd/3rd time inputs.
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
@@ -5957,11 +5905,10 @@ async function loadRateCards(rateDate = null){
   try{
     displayFlowerRates = normalizeFlowerRates(null);
 
-    // Load all saved rates. ratesResponseToMap() chooses the latest rate
-    // for each flower, so Mullai, Royal Jasmine and Malli can all show
-    // their latest CURRENT RATE independently of the selected date.
     const res = await fetch(
-      API_BASE + '/api/rates',
+      API_BASE +
+      '/api/rates?date=' +
+      encodeURIComponent(selectedDate),
       {
         headers: authHeaders(),
         cache:'no-store'
@@ -5978,23 +5925,17 @@ async function loadRateCards(rateDate = null){
     }
 
     const ratePayload = await res.json();
-
-    // Keep the complete response available for CURRENT RATE rendering.
-    // Do NOT collapse the response to only the latest rate: each flower can
-    // have 1st, 2nd and 3rd rates and all of them must be displayed.
-    window.__allSavedRatePayload = ratePayload;
-
     displayFlowerRates = ratesResponseToMap(ratePayload);
-
-    // Only put rates from the currently selected date into the editable
-    // 1st time / 2nd time / 3rd time input boxes.
-    const selectedDateRates = getRatesArray(ratePayload).filter(item =>
-      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
-    );
-    const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
-    fillMultiRateInputs(selectedDateOptions);
-
+    const allOptions = ratesResponseToOptions(ratePayload);
+    fillMultiRateInputs(allOptions);
     renderFlowerRates();
+
+    // The visible CURRENT RATE box must follow the selected rate date.
+    // Do not limit this display to the last 24 hours: old dates are valid
+    // and the user may save/change rates for any date.
+    // CURRENT RATE must show all saved slots (1st, 2nd, 3rd), not only
+    // the latest one. Pass the grouped options directly to the renderer.
+    renderInlineCurrentRates(allOptions);
 
   }catch(error){
     console.error('Load rate cards error:',error);
@@ -6008,6 +5949,7 @@ async function loadRateCards(rateDate = null){
     );
   }
 }
+
 function fillMultiRateInputs(optionsByFlower){
   const config=[
     ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
@@ -6051,12 +5993,10 @@ function renderFlowerRates(){
     }
   });
 
-  // CURRENT RATE must show all saved rates (1st, 2nd and 3rd) for
-  // each flower. ratePayload is local to loadRateCards(), so read the full
-  // response saved above. This prevents the ReferenceError that previously
-  // stopped the first and second rates from rendering.
-  renderInlineCurrentRates(getRatesArray(window.__allSavedRatePayload || []));
+  // The multi-rate inputs and CURRENT RATE display are refreshed by
+  // loadRateCards() using allOptions, so do not collapse the 3 slots here.
 }
+
 function selectedRateCardDate(){
   return document.getElementById('rateDateMullai')?.value || todayStr();
 }
@@ -6088,72 +6028,65 @@ function renderInlineCurrentRates(rates){
     'மல்லி':'currentRateMalli'
   };
 
-  const grouped={ 'முல்லை':[], 'பிச்சி':[], 'மல்லி':[] };
+  // Accept either the grouped result from ratesResponseToOptions() or a flat array.
+  let grouped={ 'முல்லை':[], 'பிச்சி':[], 'மல்லி':[] };
+  if(Array.isArray(rates)){
+    rates.forEach(rate=>{
+      const flower=canonicalFlowerKey(rate?.flower ?? rate?.name ?? rate?.english_name);
+      if(!flower) return;
+      const price=rate.price ?? rate.rate;
+      if(price === '' || price == null) return;
+      grouped[flower].push({
+        price:Number(price),
+        time:String(rate.rate_time ?? rate.time ?? '').slice(0,8),
+        date:String(rate.rate_date ?? rate.date ?? '').slice(0,10),
+        id:String(rate.id ?? '')
+      });
+    });
+  }else if(rates && typeof rates==='object'){
+    Object.keys(grouped).forEach(flower=>{
+      grouped[flower]=Array.isArray(rates[flower]) ? rates[flower].slice() : [];
+    });
+  }
 
-  (rates || []).forEach(raw=>{
-    if(!raw) return;
-    const flower=canonicalFlowerKey(raw.flower ?? raw.name ?? raw.english_name);
-    if(!flower) return;
-    const price=raw.price ?? raw.rate;
-    const date=String(raw.rate_date ?? raw.date ?? '').slice(0,10);
-    const time=String(raw.rate_time ?? raw.time ?? '').slice(0,8);
-    if(price === '' || price == null || !date) return;
-    grouped[flower].push({
-      id:String(raw.id ?? ''), price:Number(price), date, time,
-      updated_at:raw.updated_at ?? raw.created_at ?? ''
+  Object.keys(grouped).forEach(flower=>{
+    grouped[flower].sort((a,b)=>{
+      const ta=String(a.time || '00:00:00');
+      const tb=String(b.time || '00:00:00');
+      if(ta!==tb) return ta.localeCompare(tb);
+      return String(a.id||'').localeCompare(String(b.id||''));
     });
   });
 
-  Object.keys(map).forEach(flower=>{
-    const el=document.getElementById(map[flower]);
+  Object.entries(map).forEach(([flower,id])=>{
+    const el=document.getElementById(id);
     if(!el) return;
+    const list=(grouped[flower] || []).slice(0,3);
 
-    const all=grouped[flower];
-    if(!all.length){
+    if(!list.length){
       el.classList.add('is-empty');
       el.innerHTML='<span class="rate-current-label">Current rates</span><strong>Not set</strong>';
       return;
     }
 
-    // Use the latest DATE that has rates for this flower, then keep up to
-    // the latest three rates from that date. This guarantees 1st/2nd/3rd
-    // are shown side-by-side in the same flower card as separate rows.
-    const latestDate=all.map(r=>r.date).sort().at(-1);
-    const latestDay=all
-      .filter(r=>r.date===latestDate)
-      .sort((a,b)=>{
-        const ta=`${a.date}T${a.time||'00:00:00'}`;
-        const tb=`${b.date}T${b.time||'00:00:00'}`;
-        if(ta!==tb) return ta.localeCompare(tb);
-        return String(a.id).localeCompare(String(b.id));
-      })
-      .slice(-3);
-
     el.classList.remove('is-empty');
-    el.innerHTML='<span class="rate-current-label">Current rates</span>';
+    // Make the box taller only when more than one rate exists.
+    el.style.minHeight = list.length > 1 ? (44 + (list.length-1)*28) + 'px' : '';
+    el.style.alignItems = list.length > 1 ? 'stretch' : '';
 
-    const list=document.createElement('div');
-    list.className='current-rate-list';
-    latestDay.forEach((rate,index)=>{
-      const row=document.createElement('div');
-      row.className='current-rate-row';
-      const slot=document.createElement('span');
-      slot.className='current-rate-slot';
-      // Show the saved slots clearly as 1st / 2nd / 3rd.
-      slot.textContent=`${ordinal(index+1)} rate`;
-      const value=document.createElement('span');
-      value.className='current-rate-value';
-      value.textContent=`${fmtMoney(rate.price)} / kg`;
-      row.append(slot,value);
-      list.appendChild(row);
-    });
-    el.appendChild(list);
+    const rows=list.map((rate,index)=>{
+      const label=ordinal(index+1)+' rate';
+      return `<div class="inline-rate-slot"><span>${label}</span><strong>${fmtMoney(rate.price)} / kg</strong></div>`;
+    }).join('');
+
+    el.innerHTML=`<span class="rate-current-label">Current rates</span><div class="inline-rate-slots">${rows}</div>`;
   });
 }
 async function loadCurrentRateDisplay(){
-  // Refresh the three current-rate cards from the server so all 1st/2nd/3rd
-  // saved rates remain visible after login, save, or a page refresh.
-  await loadRateCards(document.getElementById('rateDateMullai')?.value || todayStr());
+  // Current-rate boxes are now driven by the selected RATE DATE.
+  // Intentionally do not use a 24-hour cutoff here, because old saved
+  // dates must remain viewable whenever the user selects them.
+  renderFlowerRates();
 }
 
 async function saveFlowerRates(flower, priceIds, dateId, button){
@@ -7447,9 +7380,11 @@ document.getElementById('btnExport').addEventListener('click', ()=>{
 
 updateAmountPreview();
 
-// Validate any saved browser session before showing the dashboard.
-// If it is stale, the user simply sees the normal login page.
-restoreSavedSession();
+// Always start on the login screen. No automatic sign-in from old browser data.
+clearSession();
+document.getElementById("appWrap").style.display = "none";
+document.getElementById("loginScreen").style.display = "flex";
+initialSessionCheck = false;
 
 /* Initial rate-card load: cards and entry price use the latest saved rate for today. */
 window.addEventListener('load',()=>{
