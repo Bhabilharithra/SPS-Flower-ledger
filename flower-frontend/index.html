@@ -3491,7 +3491,7 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-  
+  vertical-align:middle !important;
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -5181,7 +5181,7 @@ document.getElementById('btnTogglePassword').addEventListener('click', ()=>{
   input.type = showing ? 'password' : 'text';
   button.textContent = showing ? '👁' : '🙈';
   button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-  button.removeAttribute('title');
+  button.title = showing ? 'Show password' : 'Hide password';
 });
 document.getElementById('inpUsername').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
 
@@ -5903,81 +5903,64 @@ function getSelectedRateOption(){
   return (flowerRateOptions[flower] || []).find(r=>String(r.id)===String(select.value)) || null;
 }
 
-async function loadFlowerRates(dateOverride = null){
-  try{
-    const selectedDate =
-      dateOverride ||
-      document.getElementById('inpDate')?.value ||
-      todayStr();
+let __entryRateLoadVersion = 0;
+let __cardRateLoadVersion = 0;
 
-    // Clear immediately so rates from another date are never shown.
+async function loadFlowerRates(dateOverride = null){
+  const requestVersion = ++__entryRateLoadVersion;
+  const selectedDate =
+    dateOverride ||
+    document.getElementById('inpDate')?.value ||
+    todayStr();
+
+  try{
+    // Clear immediately so another date can never remain visible.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
-    const rateSelect = document.getElementById('inpRateSelect');
-    if(rateSelect){
-      rateSelect.disabled = true;
-      rateSelect.innerHTML = '<option value="">No saved rate for this date</option>';
-      rateSelect.value = '';
-    }
     populateRateDropdown(false);
     applyFlowerRate();
 
-    /*
-      IMPORTANT FIX:
-      Load ALL rates from the server and filter the selected date in the
-      browser. This guarantees that all 1st / 2nd / 3rd saved rates are
-      available even if the backend does not support a specific date query.
-    */
-    const res = await fetch(
-      API_BASE + '/api/rates',
-      {
-        headers: authHeaders(),
-        cache: 'no-store'
-      }
-    );
+    const res = await fetch(API_BASE + '/api/rates', {
+      headers: authHeaders(),
+      cache: 'no-store'
+    });
+
+    if(requestVersion !== __entryRateLoadVersion) return;
 
     if(res.status === 401){
       handleAuthFailure();
       return;
     }
-
-    if(!res.ok){
-      throw new Error('Could not load flower rates');
-    }
+    if(!res.ok) throw new Error('Could not load flower rates');
 
     const allPayload = await res.json();
+    if(requestVersion !== __entryRateLoadVersion) return;
 
-    const selectedDateRates = getRatesArray(allPayload).filter(item=>{
-      const itemDate = String(
-        item?.rate_date ?? item?.date ?? ''
-      ).slice(0,10);
+    // Use ONLY the currently requested date.
+    const selectedDateRates = getRatesArray(allPayload).filter(item =>
+      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
+    );
 
-      return itemDate === String(selectedDate).slice(0,10);
-    });
+    // Ignore stale responses if the user changed the date while loading.
+    const currentDate =
+      document.getElementById('inpDate')?.value || todayStr();
+    if(requestVersion !== __entryRateLoadVersion || currentDate !== selectedDate) return;
 
-    // Keep every saved rate for the selected date and group them by flower.
     flowerRateOptions = ratesResponseToOptions(selectedDateRates);
-
-    // The latest saved rate remains the default price.
     flowerRates = ratesResponseToMap(selectedDateRates);
 
+    // Always stay on the placeholder after flower/date loading.
     populateRateDropdown(false);
     applyFlowerRate();
 
   }catch(error){
+    if(requestVersion !== __entryRateLoadVersion) return;
     console.error('Load entry flower rates error:', error);
-
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
-
     populateRateDropdown(false);
     applyFlowerRate();
-
-    showToast(
-      'Rate loading failed',
-      'Could not load the flower rates from the server.',
-      'error'
-    );
+    showToast('Rate loading failed', 'Could not load the flower rates from the server.', 'error');
   }
 }
 
@@ -5991,63 +5974,60 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
-  // CURRENT RATE and editable inputs must always follow the selected rate date.
-  // When the date changes, rates from the previous date are cleared.
+  const requestVersion = ++__cardRateLoadVersion;
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
     todayStr();
 
+  // Clear immediately before the request starts.
+  displayFlowerRates = normalizeFlowerRates(null);
+  lastRatePayload = [];
+  fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
+  renderFlowerRates();
+
   try{
-    displayFlowerRates = normalizeFlowerRates(null);
+    const res = await fetch(API_BASE + '/api/rates', {
+      headers: authHeaders(),
+      cache: 'no-store'
+    });
 
-    // Load all saved rates from the server, then filter them to the selected date.
-    const res = await fetch(
-      API_BASE + '/api/rates',
-      {
-        headers: authHeaders(),
-        cache:'no-store'
-      }
-    );
+    if(requestVersion !== __cardRateLoadVersion) return;
 
-    if(res.status===401){
+    if(res.status === 401){
       handleAuthFailure();
       return;
     }
-
-    if(!res.ok){
-      throw new Error('Could not load saved rates');
-    }
+    if(!res.ok) throw new Error('Could not load saved rates');
 
     const ratePayload = await res.json();
+    if(requestVersion !== __cardRateLoadVersion) return;
 
-    // Use ONLY the selected card date everywhere in the cards. When the date
-    // changes, old prices from another day must never remain visible.
     const selectedDateRates = getRatesArray(ratePayload).filter(item =>
-      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === String(selectedDate).slice(0,10)
+      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
     );
+
+    // Ignore a response for an old date.
+    const currentDate =
+      document.getElementById('rateDateMullai')?.value || todayStr();
+    if(requestVersion !== __cardRateLoadVersion || currentDate !== selectedDate) return;
+
     lastRatePayload = selectedDateRates;
     displayFlowerRates = ratesResponseToMap(selectedDateRates);
-
-    // Only put rates from the currently selected date into the editable
-    // 1st time / 2nd time / 3rd time input boxes.
-    const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
-    fillMultiRateInputs(selectedDateOptions);
-
+    fillMultiRateInputs(ratesResponseToOptions(selectedDateRates));
     renderFlowerRates();
 
   }catch(error){
-    console.error('Load rate cards error:',error);
+    if(requestVersion !== __cardRateLoadVersion) return;
+    console.error('Load rate cards error:', error);
     displayFlowerRates = normalizeFlowerRates(null);
+    lastRatePayload = [];
+    fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
     renderFlowerRates();
-
-    showToast(
-      'Rates not loaded',
-      'Could not load the saved flower rates from the server.',
-      'error'
-    );
+    showToast('Rates not loaded', 'Could not load the saved flower rates from the server.', 'error');
   }
 }
+
 function fillMultiRateInputs(optionsByFlower){
   const config=[
     ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
@@ -6166,7 +6146,7 @@ function renderInlineCurrentRates(rates){
     // `rates` is already filtered by loadRateCards(), but filter once more
     // against the date currently selected in the cards. This prevents an old
     // date's values from remaining visible while the new date is loading.
-    const selectedDate=String(selectedRateCardDate()).slice(0,10);
+    const selectedDate=selectedRateCardDate();
     const selectedDay=all
       .filter(r=>r.date===selectedDate)
       .sort((a,b)=>{
@@ -7575,14 +7555,8 @@ window.addEventListener('load',()=>{
     const price=document.getElementById('inpPrice');
     if(price) price.value='';
   };
-  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => {
-    resetRateChoice();
-    setTimeout(resetRateChoice, 0);
-  });
-  document.getElementById('inpDate')?.addEventListener('change', () => {
-    resetRateChoice();
-    setTimeout(resetRateChoice, 0);
-  });
+  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+  document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
 })();
 </script>
 </body>
