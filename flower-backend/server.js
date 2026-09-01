@@ -1199,17 +1199,26 @@ app.get(
 // GET FLOWER RATES
 // ============================================================
 //
-// If date + time are provided:
+// If date is provided (with or without "at"):
 //
-// Returns the latest rate active at that time.
+// Returns EVERY saved rate row for that date (all time slots),
+// optionally limited to rates at-or-before the given "at" time.
+//
+// This intentionally does NOT collapse to a single "latest" row
+// per flower, because the flower-ledger UI shows up to three
+// saved rate slots (1st / 2nd / 3rd) per flower per day and needs
+// all of them, not just the most recent one.
 //
 // Example:
 //
-// 08:00 ₹80
-// 13:00 ₹100
+// 08:00 -> ₹80
+// 13:00 -> ₹100
 //
-// Asking for 10:00 -> ₹80
-// Asking for 15:00 -> ₹100
+// GET /api/rates?date=2026-08-25
+//   -> returns BOTH rows for that date.
+//
+// GET /api/rates?date=2026-08-25&at=10:00
+//   -> returns rows with rate_time <= 10:00 (so just the ₹80 row).
 //
 // ============================================================
 
@@ -1239,19 +1248,33 @@ app.get(
         );
 
       // ------------------------------------------------------
-      // EXACT DATE + TIME
+      // EXACT DATE (optionally filtered by time-of-day)
+      // ------------------------------------------------------
+      //
+      // IMPORTANT: previously this branch used
+      // "SELECT DISTINCT ON (flower) ... ORDER BY flower, rate_time DESC"
+      // which collapsed the result to a single row per flower —
+      // only the latest rate at-or-before the requested time.
+      // That silently dropped the 1st/2nd/3rd rate slots the
+      // frontend rate cards rely on. Now every matching row is
+      // returned; the caller can pick "latest per flower" itself
+      // if that's ever what it needs.
       // ------------------------------------------------------
 
       if (date) {
-        const atTime =
-          at ||
-          "23:59:59";
+        const params = [date];
+
+        let timeCondition = "";
+
+        if (at) {
+          params.push(at);
+          timeCondition = `AND rate_time <= $${params.length}::time`;
+        }
 
         const result =
           await pool.query(
             `
-            SELECT DISTINCT ON (flower)
-
+            SELECT
               id,
               flower,
               name,
@@ -1267,25 +1290,21 @@ app.get(
             WHERE
               rate_date = $1
 
-              AND
-              rate_time <= $2::time
+              ${timeCondition}
 
             ORDER BY
               flower,
-              rate_time DESC,
-              id DESC
+              rate_time ASC,
+              id ASC
             `,
-            [
-              date,
-              atTime,
-            ]
+            params
           );
 
         return res.json({
           success: true,
           date,
           at:
-            atTime,
+            at || null,
           rates:
             result.rows,
         });
@@ -1375,6 +1394,14 @@ app.get(
 
 // ============================================================
 // GET ONE FLOWER RATE
+// ============================================================
+//
+// This endpoint intentionally DOES still return only the single
+// latest rate at-or-before the given time for one named flower —
+// that is its documented purpose (e.g. "what rate applies right
+// now for Malli"), unlike the list endpoint above which now
+// returns every saved slot for a date.
+//
 // ============================================================
 
 app.get(
