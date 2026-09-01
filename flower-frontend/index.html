@@ -5978,6 +5978,12 @@ async function loadRateCards(rateDate = null){
     }
 
     const ratePayload = await res.json();
+
+    // Keep the complete response available for CURRENT RATE rendering.
+    // Do NOT collapse the response to only the latest rate: each flower can
+    // have 1st, 2nd and 3rd rates and all of them must be displayed.
+    window.__allSavedRatePayload = ratePayload;
+
     displayFlowerRates = ratesResponseToMap(ratePayload);
 
     // Only put rates from the currently selected date into the editable
@@ -6046,9 +6052,10 @@ function renderFlowerRates(){
   });
 
   // CURRENT RATE must show all saved rates (1st, 2nd and 3rd) for
-  // each flower. Pass the complete server response instead of collapsing
-  // every flower to one latest price.
-  renderInlineCurrentRates(getRatesArray(ratePayload));
+  // each flower. ratePayload is local to loadRateCards(), so read the full
+  // response saved above. This prevents the ReferenceError that previously
+  // stopped the first and second rates from rendering.
+  renderInlineCurrentRates(getRatesArray(window.__allSavedRatePayload || []));
 }
 function selectedRateCardDate(){
   return document.getElementById('rateDateMullai')?.value || todayStr();
@@ -6132,6 +6139,7 @@ function renderInlineCurrentRates(rates){
       row.className='current-rate-row';
       const slot=document.createElement('span');
       slot.className='current-rate-slot';
+      // Show the saved slots clearly as 1st / 2nd / 3rd.
       slot.textContent=`${ordinal(index+1)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
