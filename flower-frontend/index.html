@@ -3466,7 +3466,8 @@ body{
 .lc-forgot:focus{outline:2px solid rgba(177,59,105,.25);outline-offset:2px;border-radius:4px}
 .password-view-wrap{position:relative;width:100%;}
 .password-view-wrap input{width:100%;padding-right:52px;}
-.password-view-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#8b6478;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.password-view-btn{position:absolute !important;right:10px !important;top:50% !important;bottom:auto !important;left:auto !important;transform:translateY(-50%) !important;margin:0 !important;width:38px !important;height:38px !important;min-height:38px !important;border:0 !important;border-radius:10px !important;background:transparent !important;color:#8b6478 !important;cursor:pointer !important;font-size:18px !important;line-height:1 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:0 !important;z-index:10 !important;}
+.password-view-wrap{min-height:48px !important;display:block !important;}
 .password-view-btn:hover{background:rgba(177,48,102,.08);}
 .password-view-btn:focus{outline:2px solid rgba(177,48,102,.25);outline-offset:1px;}
 .account-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(46,24,37,.42);backdrop-filter:blur(5px);z-index:250000;padding:20px}
@@ -5849,8 +5850,9 @@ function populateRateDropdown(keepValue = true){
   if(previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
   }else{
-    // Default to the latest saved rate, while keeping every rate selectable.
-    select.value = String(options[options.length - 1].id);
+    // Do not automatically jump to the 3rd/latest rate.
+    // The user must explicitly choose 1st, 2nd or 3rd time.
+    select.value = '';
   }
 
   if(note){
@@ -5950,9 +5952,8 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
-  // CURRENT RATE must always show the latest saved rate for each flower,
-  // even when the date picker is changed to a date with no saved rate.
-  // The selected date is only used for the editable 1st/2nd/3rd time inputs.
+  // CURRENT RATE and editable inputs must always follow the selected rate date.
+  // When the date changes, rates from the previous date are cleared.
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
@@ -5961,9 +5962,7 @@ async function loadRateCards(rateDate = null){
   try{
     displayFlowerRates = normalizeFlowerRates(null);
 
-    // Load all saved rates. ratesResponseToMap() chooses the latest rate
-    // for each flower, so Mullai, Royal Jasmine and Malli can all show
-    // their latest CURRENT RATE independently of the selected date.
+    // Load all saved rates from the server, then filter them to the selected date.
     const res = await fetch(
       API_BASE + '/api/rates',
       {
@@ -5982,14 +5981,17 @@ async function loadRateCards(rateDate = null){
     }
 
     const ratePayload = await res.json();
-    lastRatePayload = ratePayload;
-    displayFlowerRates = ratesResponseToMap(ratePayload);
 
-    // Only put rates from the currently selected date into the editable
-    // 1st time / 2nd time / 3rd time input boxes.
+    // Use ONLY the selected card date everywhere in the cards. When the date
+    // changes, old prices from another day must never remain visible.
     const selectedDateRates = getRatesArray(ratePayload).filter(item =>
       String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
     );
+    lastRatePayload = selectedDateRates;
+    displayFlowerRates = ratesResponseToMap(selectedDateRates);
+
+    // Only put rates from the currently selected date into the editable
+    // 1st time / 2nd time / 3rd time input boxes.
     const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
     fillMultiRateInputs(selectedDateOptions);
 
@@ -6116,7 +6118,9 @@ function renderInlineCurrentRates(rates){
     const all=grouped[flower];
     if(!all.length){
       el.classList.add('is-empty');
-      el.innerHTML='<span class="rate-current-label">Current rates</span><strong>Not set</strong>';
+      // Keep the card clean when the selected date has no saved rates.
+      // Do not show the old price and do not show the words "Not set".
+      el.innerHTML='<span class="rate-current-label">Current rates</span>';
       return;
     }
 
