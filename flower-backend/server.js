@@ -1716,10 +1716,14 @@ app.post(
           req.body.date
         );
 
+      // IMPORTANT:
+      // Frontend sends the time as req.body.time.
+      // Accept all supported time field names.
       const entryTime =
         formatTimeOnly(
           req.body.entry_time ||
-          req.body.entryTime
+          req.body.entryTime ||
+          req.body.time
         ) ||
         currentServerTime();
 
@@ -2406,10 +2410,14 @@ app.put(
           req.body.date
         );
 
+      // IMPORTANT:
+      // Frontend sends the time as req.body.time.
+      // Accept all supported time field names.
       const entryTime =
         formatTimeOnly(
           req.body.entry_time ||
-          req.body.entryTime
+          req.body.entryTime ||
+          req.body.time
         ) ||
         currentServerTime();
 
