@@ -5771,11 +5771,21 @@ function populateRateDropdown(keepValue = true){
     return;
   }
 
-  const options = flowerRateOptions[flower] || [];
+  // IMPORTANT: keep ALL saved rates for this flower/date.
+  // Do not collapse 1st, 2nd and 3rd rates into only one "latest" rate.
+  const rawOptions = flowerRateOptions[flower] || [];
+  const seen = new Set();
+  const options = rawOptions.filter(rate=>{
+    const key = String(rate.id ?? `${rate.date}-${rate.time}-${rate.price}`);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   if(!options.length){
     select.disabled = true;
     select.innerHTML = '<option value="">No saved rate for this date</option>';
-    if(note) note.textContent = 'Save a rate for the selected date first.';
+    if(note) note.textContent = 'No saved rate exists for this flower on the selected date.';
     return;
   }
 
@@ -5784,8 +5794,10 @@ function populateRateDropdown(keepValue = true){
 
   options.forEach((rate,index)=>{
     const opt = document.createElement('option');
-    opt.value = rate.id;
-    opt.textContent = `${ordinal(index+1)} time — ${fmtMoney(rate.price)} / kg${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
+    opt.value = String(rate.id);
+    opt.textContent =
+      `${ordinal(index + 1)} time — ${fmtMoney(rate.price)} / kg` +
+      `${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
     opt.dataset.price = String(rate.price);
     opt.dataset.time = rate.time || '';
     opt.dataset.date = rate.date || '';
@@ -5794,14 +5806,18 @@ function populateRateDropdown(keepValue = true){
 
   if(previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
-  } else {
-    // Default to the latest saved rate, while still allowing the user
-    // to choose any earlier rate/time from the dropdown.
-    select.value = options[options.length - 1].id;
+  }else{
+    // Default to the latest saved rate, while keeping every rate selectable.
+    select.value = String(options[options.length - 1].id);
   }
 
-  if(note) note.textContent = `${options.length} saved rate${options.length===1?'':'s'} available for ${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
+  if(note){
+    note.textContent =
+      `${options.length} saved rate${options.length===1?'':'s'} available for ` +
+      `${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
+  }
 }
+
 
 function getSelectedRateOption(){
   const flower = getFlowerValue();
@@ -5817,14 +5833,20 @@ async function loadFlowerRates(dateOverride = null){
       document.getElementById('inpDate')?.value ||
       todayStr();
 
-    // Clear immediately so a previous date can never remain in the entry form.
+    // Clear immediately so rates from another date are never shown.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
     populateRateDropdown(false);
     applyFlowerRate();
 
+    /*
+      IMPORTANT FIX:
+      Load ALL rates from the server and filter the selected date in the
+      browser. This guarantees that all 1st / 2nd / 3rd saved rates are
+      available even if the backend does not support a specific date query.
+    */
     const res = await fetch(
-      API_BASE + '/api/rates?from=' + encodeURIComponent(selectedDate) + '&to=' + encodeURIComponent(selectedDate),
+      API_BASE + '/api/rates',
       {
         headers: authHeaders(),
         cache: 'no-store'
@@ -5837,25 +5859,40 @@ async function loadFlowerRates(dateOverride = null){
     }
 
     if(!res.ok){
-      throw new Error('Could not load flower rates for this date');
+      throw new Error('Could not load flower rates');
     }
 
-    // Load every saved rate for this date so the entry form can show
-    // 1st time / 2nd time / 3rd time choices in its dropdown.
-    const ratePayload = await res.json();
-    flowerRateOptions = ratesResponseToOptions(ratePayload);
-    flowerRates = ratesResponseToMap(ratePayload);
+    const allPayload = await res.json();
+
+    const selectedDateRates = getRatesArray(allPayload).filter(item=>{
+      const itemDate = String(
+        item?.rate_date ?? item?.date ?? ''
+      ).slice(0,10);
+
+      return itemDate === selectedDate;
+    });
+
+    // Keep every saved rate for the selected date and group them by flower.
+    flowerRateOptions = ratesResponseToOptions(selectedDateRates);
+
+    // The latest saved rate remains the default price.
+    flowerRates = ratesResponseToMap(selectedDateRates);
+
     populateRateDropdown(false);
     applyFlowerRate();
 
   }catch(error){
     console.error('Load entry flower rates error:', error);
+
     flowerRates = normalizeFlowerRates(null);
+    flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
+
+    populateRateDropdown(false);
     applyFlowerRate();
 
     showToast(
       'Rate loading failed',
-      'Could not load the flower rate for this date.',
+      'Could not load the flower rates from the server.',
       'error'
     );
   }
