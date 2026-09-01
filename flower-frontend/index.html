@@ -4405,6 +4405,13 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
   outline: 2px solid #4d83b8 !important;
   outline-offset: 2px !important;
 }
+
+/* Three-rate flower card inputs */
+.multi-rate-card .multi-rate-input{margin:12px 0;}
+.multi-rate-card .multi-rate-input>span{display:block;font-size:14px;font-weight:700;margin:0 0 6px;color:#5b5360;text-transform:none;letter-spacing:0;}
+.multi-rate-card .rate-input-row{margin-bottom:0;}
+.multi-rate-card .rate-current-inline{margin-bottom:14px;}
+.multi-rate-card .rate-card-save{width:100%;margin-top:12px;}
 </style>
 
 </head>
@@ -4613,42 +4620,39 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
           <div class="rate-status" id="rateStatus">Rates saved to server</div>
         </div>
         <div class="rate-grid">
-          <div class="rate-card">
-            <label for="rateMullai">Mullai</label>
+          <div class="rate-card multi-rate-card">
+            <label>Mullai</label>
             <div class="rate-flower-name">முல்லை</div>
-            <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Current rate</span><strong>—</strong></div>
-            <div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai" min="0" step="0.01" placeholder="Price / kg"></div>
-            <div class="rate-date-row">
-              <span>Rate date</span>
-              <input type="date" id="rateDateMullai">
-            </div>
-            <button type="button" class="rate-card-save" data-flower="முல்லை" data-price="rateMullai" data-date="rateDateMullai">Save Mullai</button>
+            <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMullai"></div>
+            <button type="button" class="rate-card-save" data-flower="முல்லை" data-date="rateDateMullai" data-prices="rateMullai1,rateMullai2,rateMullai3">Save Mullai rates</button>
             <div class="rate-card-status" id="rateStatusMullai">Not saved</div>
           </div>
 
-          <div class="rate-card">
-            <label for="ratePichi">Royal Jasmine</label>
+          <div class="rate-card multi-rate-card">
+            <label>Royal Jasmine</label>
             <div class="rate-flower-name">பிச்சி</div>
-            <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Current rate</span><strong>—</strong></div>
-            <div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi" min="0" step="0.01" placeholder="Price / kg"></div>
-            <div class="rate-date-row">
-              <span>Rate date</span>
-              <input type="date" id="rateDatePichi">
-            </div>
-            <button type="button" class="rate-card-save" data-flower="பிச்சி" data-price="ratePichi" data-date="rateDatePichi">Save Royal Jasmine</button>
+            <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDatePichi"></div>
+            <button type="button" class="rate-card-save" data-flower="பிச்சி" data-date="rateDatePichi" data-prices="ratePichi1,ratePichi2,ratePichi3">Save Royal Jasmine rates</button>
             <div class="rate-card-status" id="rateStatusPichi">Not saved</div>
           </div>
 
-          <div class="rate-card">
-            <label for="rateMalli">Malli</label>
+          <div class="rate-card multi-rate-card">
+            <label>Malli</label>
             <div class="rate-flower-name">மல்லி</div>
-            <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Current rate</span><strong>—</strong></div>
-            <div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli" min="0" step="0.01" placeholder="Price / kg"></div>
-            <div class="rate-date-row">
-              <span>Rate date</span>
-              <input type="date" id="rateDateMalli">
-            </div>
-            <button type="button" class="rate-card-save" data-flower="மல்லி" data-price="rateMalli" data-date="rateDateMalli">Save Malli</button>
+            <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMalli"></div>
+            <button type="button" class="rate-card-save" data-flower="மல்லி" data-date="rateDateMalli" data-prices="rateMalli1,rateMalli2,rateMalli3">Save Malli rates</button>
             <div class="rate-card-status" id="rateStatusMalli">Not saved</div>
           </div>
         </div>
@@ -5894,7 +5898,10 @@ async function loadRateCards(rateDate = null){
       throw new Error('Could not load saved rates');
     }
 
-    displayFlowerRates = ratesResponseToMap(await res.json());
+    const ratePayload = await res.json();
+    displayFlowerRates = ratesResponseToMap(ratePayload);
+    const allOptions = ratesResponseToOptions(ratePayload);
+    fillMultiRateInputs(allOptions);
     renderFlowerRates();
 
     // The visible CURRENT RATE box must follow the selected rate date.
@@ -5924,11 +5931,26 @@ async function loadRateCards(rateDate = null){
   }
 }
 
+function fillMultiRateInputs(optionsByFlower){
+  const config=[
+    ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
+    ['பிச்சி',['ratePichi1','ratePichi2','ratePichi3']],
+    ['மல்லி',['rateMalli1','rateMalli2','rateMalli3']]
+  ];
+  config.forEach(([flower,ids])=>{
+    const rates=(optionsByFlower[flower] || []).slice(-3);
+    ids.forEach((id,index)=>{
+      const input=document.getElementById(id);
+      if(input) input.value = rates[index]?.price ?? '';
+    });
+  });
+}
+
 function renderFlowerRates(){
   const map=[
-    ['முல்லை','rateMullai','rateDateMullai','rateStatusMullai'],
-    ['பிச்சி','ratePichi','rateDatePichi','rateStatusPichi'],
-    ['மல்லி','rateMalli','rateDateMalli','rateStatusMalli']
+    ['முல்லை',null,'rateDateMullai','rateStatusMullai'],
+    ['பிச்சி',null,'rateDatePichi','rateStatusPichi'],
+    ['மல்லி',null,'rateDateMalli','rateStatusMalli']
   ];
 
   map.forEach(([flower,priceId,dateId,statusId])=>{
@@ -5938,6 +5960,7 @@ function renderFlowerRates(){
 
     // Keep the rate-entry box empty after saving. The saved value is shown
     // in CURRENT RATE and in the saved-status line instead.
+    // Multi-rate inputs are populated by fillMultiRateInputs().
     if(p) p.value = '';
 
     if(st){
@@ -6033,208 +6056,90 @@ async function loadCurrentRateDisplay(){
   renderFlowerRates();
 }
 
-async function saveSingleFlowerRate(flower,priceId,dateId,statusId){
-  const rawPrice=document.getElementById(priceId).value.trim();
-  const date=document.getElementById(dateId).value;
-
-  if(rawPrice===''){
-    showToast('Price required',`Enter a price for ${flower}.`,'error');
-    return;
-  }
-
-  const price=parseFloat(rawPrice);
-
-  if(Number.isNaN(price)||price<0){
-    showToast('Invalid rate',`Enter a valid price for ${flower}.`,'error');
-    return;
-  }
+async function saveFlowerRates(flower, priceIds, dateId, button){
+  const date = document.getElementById(dateId)?.value;
+  const statusId = flower === 'முல்லை' ? 'rateStatusMullai' : flower === 'பிச்சி' ? 'rateStatusPichi' : 'rateStatusMalli';
+  const status = document.getElementById(statusId);
+  const values = priceIds.map(id => document.getElementById(id)?.value.trim() || '');
+  const entered = values.map((v,i)=>({v,i})).filter(x=>x.v !== '');
 
   if(!date){
-    showToast(
-      'Rate date required',
-      `Please select the date for ${flower}'s rate.`,
-      'error'
-    );
+    showToast('Rate date required', `Please select the date for ${flower}.`, 'error');
+    return;
+  }
+  if(!entered.length){
+    showToast('Price required', `Enter at least one rate for ${flower}.`, 'error');
     return;
   }
 
-  try{
-    const button=document.querySelector(
-      `.rate-card-save[data-flower="${CSS.escape(flower)}"]`
-    );
-
-    const originalText=button?.textContent||'';
-
-    if(button){
-      button.disabled=true;
-      button.textContent='Saving...';
-    }
-
-    const nowTime=new Date();
-    const rateTime=
-      String(nowTime.getHours()).padStart(2,'0')+':' +
-      String(nowTime.getMinutes()).padStart(2,'0')+':' +
-      String(nowTime.getSeconds()).padStart(2,'0');
-
-    const res=await fetch(
-      API_BASE+'/api/rates',
-      {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          ...authHeaders()
-        },
-        body:JSON.stringify({
-          flower,
-          name:
-            flower==='முல்லை'
-              ? 'Mullai'
-              : flower==='பிச்சி'
-                ? 'Royal Jasmine'
-                : 'Malli',
-          englishName:
-            flower==='முல்லை'
-              ? 'Mullai'
-              : flower==='பிச்சி'
-                ? 'Royal Jasmine'
-                : 'Malli',
-          price,
-          date,
-          rate_time: rateTime
-        })
-      }
-    );
-
-    if(res.status===401){
-      handleAuthFailure();
+  const rates=[];
+  for(const item of entered){
+    const price=Number(item.v);
+    if(!Number.isFinite(price) || price < 0){
+      showToast('Invalid rate', `Enter a valid price for ${flower}.`, 'error');
       return;
     }
+    rates.push({price, slot:item.i});
+  }
 
-    const data=await res.json().catch(()=>({}));
+  const originalText=button.textContent;
+  button.disabled=true;
+  button.textContent='Saving...';
 
-    if(!res.ok){
-      throw new Error(
-        data.message ||
-        data.error ||
-        'Could not save flower rate.'
-      );
+  try{
+    const baseSeconds = Date.now() % 100000;
+    const saved=[];
+
+    // Save every filled slot as a separate rate. Each slot gets a unique
+    // rate_time so Supabase/backend can store 1st, 2nd and 3rd rates.
+    for(const item of rates){
+      const now = new Date(Date.now() + (item.slot * 1000) + baseSeconds % 500);
+      const rateTime = [now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map(n=>String(n).padStart(2,'0')).join(':');
+
+      const res=await fetch(API_BASE+'/api/rates',{
+        method:'POST',
+        headers:{'Content-Type':'application/json', ...authHeaders()},
+        body:JSON.stringify({
+          flower,
+          name: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
+          englishName: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
+          price:item.price,
+          date,
+          rate_time:rateTime
+        })
+      });
+
+      if(res.status===401){ handleAuthFailure(); return; }
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.message || data.error || 'Could not save flower rate.');
+      saved.push(data.rate || data.data || data || {price:item.price, rate_date:date, rate_time:rateTime});
     }
 
-    /*
-      IMPORTANT FRONTEND FIX:
-      Immediately show the rate that the server accepted.
+    if(status) status.textContent = `${saved.length} rate${saved.length===1?'':'s'} saved for ${date}`;
 
-      Do not wait for the entry-time lookup, because the flower card
-      should show the latest saved rate for its own selected date.
-    */
-    const serverRate =
-      data.rate ||
-      data.data ||
-      data;
-
-    const savedPrice =
-      serverRate?.price ??
-      data?.price ??
-      price;
-
-    const savedDate =
-      serverRate?.rate_date ??
-      data?.rate_date ??
-      date;
-
-    const savedTime =
-      serverRate?.rate_time ??
-      data?.rate_time ??
-      '';
-
-    /*
-      FRONTEND RATE SYNC FIX
-
-      Keep BOTH frontend rate maps in sync immediately after Supabase
-      confirms the save:
-
-      - displayFlowerRates -> flower rate cards
-      - flowerRates        -> New Flower Entry price field
-
-      This avoids the problem where the card shows the saved price but
-      the New Flower Entry form still says that the rate is missing.
-    */
-    const normalizedSavedDate = String(savedDate || date).slice(0,10);
-
-    displayFlowerRates[flower]={
-      price:savedPrice,
-      date:normalizedSavedDate,
-      time:savedTime
-    };
-
-    /*
-      If New Flower Entry is currently using the same date, update the
-      entry-rate map immediately. Do not wait for another GET request,
-      because that request can return later and temporarily leave the
-      frontend with an empty rate after a successful save.
-    */
-    const entryDate =
-      document.getElementById('inpDate')?.value || todayStr();
-
-    if(String(entryDate).slice(0,10) === normalizedSavedDate){
-      flowerRates[flower]={
-        price:savedPrice,
-        date:normalizedSavedDate,
-        time:savedTime
-      };
-
-      applyFlowerRate();
-    }
-
-    /* Update the flower cards immediately. */
-    renderFlowerRates();
-
-    /*
-      Refresh only the DISPLAY cards from the server for persistence
-      confirmation. The New Flower Entry map is intentionally not
-      reloaded here, so the value just saved cannot be overwritten by
-      a delayed/stale GET response.
-    */
-    await loadRateCards(normalizedSavedDate);
+    // Refresh both the cards and New Flower Entry dropdown from the server.
+    await loadRateCards(date);
+    await loadFlowerRates(date);
     await loadCurrentRateDisplay();
 
-    showToast(
-      `${flower} rate saved`,
-      `Saved ₹${price}/kg for ${date}.`,
-      'success'
-    );
-
-    if(button){
-      button.disabled=false;
-      button.textContent=originalText;
-    }
-
+    showToast(`${flower} rates saved`, `${saved.length} rate${saved.length===1?'':'s'} saved successfully.`, 'success');
   }catch(error){
     console.error(error);
-
-    showToast(
-      'Rate save failed',
-      error.message || 'Could not save flower rate.',
-      'error'
-    );
-
-    const button=document.querySelector(
-      `.rate-card-save[data-flower="${CSS.escape(flower)}"]`
-    );
-
-    if(button){
-      button.disabled=false;
-      button.textContent=
-        flower==='முல்லை'
-          ? 'Save Mullai'
-          : flower==='பிச்சி'
-            ? 'Save Royal Jasmine'
-            : 'Save Malli';
-    }
+    showToast('Rate save failed', error.message || 'Could not save flower rates.', 'error');
+  }finally{
+    button.disabled=false;
+    button.textContent=originalText;
   }
 }
 
-document.querySelectorAll('.rate-card-save').forEach(button=>button.addEventListener('click',()=>saveSingleFlowerRate(button.dataset.flower,button.dataset.price,button.dataset.date,button.parentElement.querySelector('.rate-card-status').id)));
+document.querySelectorAll('.rate-card-save').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const ids=(button.dataset.prices || '').split(',').filter(Boolean);
+    saveFlowerRates(button.dataset.flower, ids, button.dataset.date, button);
+  });
+});
+
 /*
   All three rate cards use the same selected day. Changing one card's
   date refreshes the displayed rates for that day.
