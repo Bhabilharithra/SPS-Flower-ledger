@@ -5871,6 +5871,9 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
+  // CURRENT RATE must always show the latest saved rate for each flower,
+  // even when the date picker is changed to a date with no saved rate.
+  // The selected date is only used for the editable 1st/2nd/3rd time inputs.
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
@@ -5879,16 +5882,11 @@ async function loadRateCards(rateDate = null){
   try{
     displayFlowerRates = normalizeFlowerRates(null);
 
-    // Use the DATE-RANGE endpoint for the selected day.
-    // This returns every saved rate for Mullai, Royal Jasmine and Malli.
-    // The /api/rates?date= endpoint returns only one latest row per flower,
-    // while the range endpoint preserves all saved rows for the card refresh.
+    // Load all saved rates. ratesResponseToMap() chooses the latest rate
+    // for each flower, so Mullai, Royal Jasmine and Malli can all show
+    // their latest CURRENT RATE independently of the selected date.
     const res = await fetch(
-      API_BASE +
-      '/api/rates?from=' +
-      encodeURIComponent(selectedDate) +
-      '&to=' +
-      encodeURIComponent(selectedDate),
+      API_BASE + '/api/rates',
       {
         headers: authHeaders(),
         cache:'no-store'
@@ -5906,23 +5904,16 @@ async function loadRateCards(rateDate = null){
 
     const ratePayload = await res.json();
     displayFlowerRates = ratesResponseToMap(ratePayload);
-    const allOptions = ratesResponseToOptions(ratePayload);
-    fillMultiRateInputs(allOptions);
-    renderFlowerRates();
 
-    // The visible CURRENT RATE box must follow the selected rate date.
-    // Do not limit this display to the last 24 hours: old dates are valid
-    // and the user may save/change rates for any date.
-    renderInlineCurrentRates(
-      ALLOWED_FLOWERS
-        .map(flower => {
-          const r = displayFlowerRates[flower];
-          return r && r.price !== '' && r.price != null
-            ? { flower, price: r.price, rate_date: r.date, rate_time: r.time }
-            : null;
-        })
-        .filter(Boolean)
+    // Only put rates from the currently selected date into the editable
+    // 1st time / 2nd time / 3rd time input boxes.
+    const selectedDateRates = getRatesArray(ratePayload).filter(item =>
+      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
     );
+    const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
+    fillMultiRateInputs(selectedDateOptions);
+
+    renderFlowerRates();
 
   }catch(error){
     console.error('Load rate cards error:',error);
@@ -5936,7 +5927,6 @@ async function loadRateCards(rateDate = null){
     );
   }
 }
-
 function fillMultiRateInputs(optionsByFlower){
   const config=[
     ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
