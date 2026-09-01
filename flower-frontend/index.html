@@ -5712,6 +5712,8 @@ let flowerRateOptions = {
   cards were using the entry-time lookup.
 */
 let displayFlowerRates = normalizeFlowerRates(null);
+let lastRatePayload = null;
+window.__rateSlotCache = window.__rateSlotCache || {};
 
 function currentTimeStr(){
   const d = new Date();
@@ -5978,6 +5980,7 @@ async function loadRateCards(rateDate = null){
     }
 
     const ratePayload = await res.json();
+    lastRatePayload = ratePayload;
     displayFlowerRates = ratesResponseToMap(ratePayload);
 
     // Only put rates from the currently selected date into the editable
@@ -6008,8 +6011,14 @@ function fillMultiRateInputs(optionsByFlower){
     ['பிச்சி',['ratePichi1','ratePichi2','ratePichi3']],
     ['மல்லி',['rateMalli1','rateMalli2','rateMalli3']]
   ];
+  const selectedDate = selectedRateCardDate();
   config.forEach(([flower,ids])=>{
     const rates=(optionsByFlower[flower] || []).slice(-3);
+    const cacheKey=`${flower}|${selectedDate}`;
+    window.__rateSlotCache[cacheKey]=rates.map(rate=>({
+      price:Number(rate.price),
+      time:String(rate.time || rate.rate_time || '').slice(0,8)
+    }));
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
       if(input) input.value = rates[index]?.price ?? '';
@@ -6048,7 +6057,7 @@ function renderFlowerRates(){
   // CURRENT RATE must show all saved rates (1st, 2nd and 3rd) for
   // each flower. Pass the complete server response instead of collapsing
   // every flower to one latest price.
-  renderInlineCurrentRates(getRatesArray(ratePayload));
+  renderInlineCurrentRates(getRatesArray(lastRatePayload || []));
 }
 function selectedRateCardDate(){
   return document.getElementById('rateDateMullai')?.value || todayStr();
@@ -6153,25 +6162,50 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
   const statusId = flower === 'முல்லை' ? 'rateStatusMullai' : flower === 'பிச்சி' ? 'rateStatusPichi' : 'rateStatusMalli';
   const status = document.getElementById(statusId);
   const values = priceIds.map(id => document.getElementById(id)?.value.trim() || '');
-  const entered = values.map((v,i)=>({v,i})).filter(x=>x.v !== '');
 
   if(!date){
     showToast('Rate date required', `Please select the date for ${flower}.`, 'error');
     return;
   }
-  if(!entered.length){
-    showToast('Price required', `Enter at least one rate for ${flower}.`, 'error');
+
+  const cacheKey=`${flower}|${date}`;
+  const previous=window.__rateSlotCache?.[cacheKey] || [];
+  const fallbackTimes=['08:00:00','12:00:00','16:00:00'];
+  const changed=[];
+
+  values.forEach((value,slot)=>{
+    const old=previous[slot];
+    const oldPrice=old && old.price !== undefined && old.price !== null ? Number(old.price) : null;
+
+    if(value==='') return;
+
+    const price=Number(value);
+    if(!Number.isFinite(price) || price < 0){
+      changed.push({invalid:true});
+      return;
+    }
+
+    // Save ONLY a new or changed slot. This prevents all three rows from
+    // being inserted again when the user changes just one rate.
+    if(oldPrice === null || Number(price) !== oldPrice){
+      changed.push({
+        price,
+        slot,
+        // Reuse the exact existing rate_time whenever possible so PostgreSQL
+        // ON CONFLICT updates that row instead of creating a duplicate.
+        rateTime: String(old?.time || fallbackTimes[slot]).slice(0,8)
+      });
+    }
+  });
+
+  if(changed.some(x=>x.invalid)){
+    showToast('Invalid rate', `Enter a valid price for ${flower}.`, 'error');
     return;
   }
 
-  const rates=[];
-  for(const item of entered){
-    const price=Number(item.v);
-    if(!Number.isFinite(price) || price < 0){
-      showToast('Invalid rate', `Enter a valid price for ${flower}.`, 'error');
-      return;
-    }
-    rates.push({price, slot:item.i});
+  if(!changed.length){
+    showToast('No changes', `No rate was changed for ${flower}.`, 'info');
+    return;
   }
 
   const originalText=button.textContent;
@@ -6179,16 +6213,9 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
   button.textContent='Saving...';
 
   try{
-    const baseSeconds = Date.now() % 100000;
     const saved=[];
 
-    // Save every filled slot as a separate rate. Each slot gets a unique
-    // rate_time so Supabase/backend can store 1st, 2nd and 3rd rates.
-    for(const item of rates){
-      const now = new Date(Date.now() + (item.slot * 1000) + baseSeconds % 500);
-      const rateTime = [now.getHours(), now.getMinutes(), now.getSeconds()]
-        .map(n=>String(n).padStart(2,'0')).join(':');
-
+    for(const item of changed){
       const res=await fetch(API_BASE+'/api/rates',{
         method:'POST',
         headers:{'Content-Type':'application/json', ...authHeaders()},
@@ -6198,24 +6225,24 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
           englishName: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           price:item.price,
           date,
-          rate_time:rateTime
+          rate_time:item.rateTime
         })
       });
 
       if(res.status===401){ handleAuthFailure(); return; }
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.message || data.error || 'Could not save flower rate.');
-      saved.push(data.rate || data.data || data || {price:item.price, rate_date:date, rate_time:rateTime});
+      saved.push(data.rate || data.data || data);
     }
 
-    if(status) status.textContent = `${saved.length} rate${saved.length===1?'':'s'} saved for ${date}`;
+    if(status) status.textContent = `${saved.length} rate${saved.length===1?'':'s'} updated for ${date}`;
 
-    // Refresh both the cards and New Flower Entry dropdown from the server.
+    // Reload from the server so the cache, cards and entry dropdown all use
+    // the exact saved rate_time values after an update.
     await loadRateCards(date);
     await loadFlowerRates(date);
-    await loadCurrentRateDisplay();
 
-    showToast(`${flower} rates saved`, `${saved.length} rate${saved.length===1?'':'s'} saved successfully.`, 'success');
+    showToast(`${flower} rates saved`, `${saved.length} changed rate${saved.length===1?'':'s'} saved successfully.`, 'success');
   }catch(error){
     console.error(error);
     showToast('Rate save failed', error.message || 'Could not save flower rates.', 'error');
