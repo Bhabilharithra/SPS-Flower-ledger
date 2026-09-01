@@ -3491,7 +3491,7 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-  vertical-align:middle !important;
+  
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -5181,7 +5181,7 @@ document.getElementById('btnTogglePassword').addEventListener('click', ()=>{
   input.type = showing ? 'password' : 'text';
   button.textContent = showing ? '👁' : '🙈';
   button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-  button.title = showing ? 'Show password' : 'Hide password';
+  button.removeAttribute('title');
 });
 document.getElementById('inpUsername').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
 
@@ -5952,7 +5952,7 @@ async function loadFlowerRates(dateOverride = null){
         item?.rate_date ?? item?.date ?? ''
       ).slice(0,10);
 
-      return itemDate === selectedDate;
+      return itemDate === String(selectedDate).slice(0,10);
     });
 
     // Keep every saved rate for the selected date and group them by flower.
@@ -6024,7 +6024,7 @@ async function loadRateCards(rateDate = null){
     // Use ONLY the selected card date everywhere in the cards. When the date
     // changes, old prices from another day must never remain visible.
     const selectedDateRates = getRatesArray(ratePayload).filter(item =>
-      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
+      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === String(selectedDate).slice(0,10)
     );
     lastRatePayload = selectedDateRates;
     displayFlowerRates = ratesResponseToMap(selectedDateRates);
@@ -6093,7 +6093,7 @@ function renderFlowerRates(){
           `Saved ₹${Number(data.price).toLocaleString('en-IN')} / kg` +
           ` • ${data.date || selectedRateCardDate()}`;
       }else{
-        st.textContent = 'Not saved for this date';
+        st.textContent = '';
       }
     }
   });
@@ -6166,7 +6166,7 @@ function renderInlineCurrentRates(rates){
     // `rates` is already filtered by loadRateCards(), but filter once more
     // against the date currently selected in the cards. This prevents an old
     // date's values from remaining visible while the new date is loading.
-    const selectedDate=selectedRateCardDate();
+    const selectedDate=String(selectedRateCardDate()).slice(0,10);
     const selectedDay=all
       .filter(r=>r.date===selectedDate)
       .sort((a,b)=>{
@@ -7575,8 +7575,14 @@ window.addEventListener('load',()=>{
     const price=document.getElementById('inpPrice');
     if(price) price.value='';
   };
-  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
-  document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => {
+    resetRateChoice();
+    setTimeout(resetRateChoice, 0);
+  });
+  document.getElementById('inpDate')?.addEventListener('change', () => {
+    resetRateChoice();
+    setTimeout(resetRateChoice, 0);
+  });
 })();
 </script>
 </body>
