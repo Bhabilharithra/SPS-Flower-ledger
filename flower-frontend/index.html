@@ -5879,9 +5879,15 @@ async function loadRateCards(rateDate = null){
   try{
     displayFlowerRates = normalizeFlowerRates(null);
 
+    // Use the DATE-RANGE endpoint for the selected day.
+    // This returns every saved rate for Mullai, Royal Jasmine and Malli.
+    // The /api/rates?date= endpoint returns only one latest row per flower,
+    // while the range endpoint preserves all saved rows for the card refresh.
     const res = await fetch(
       API_BASE +
-      '/api/rates?date=' +
+      '/api/rates?from=' +
+      encodeURIComponent(selectedDate) +
+      '&to=' +
       encodeURIComponent(selectedDate),
       {
         headers: authHeaders(),
@@ -6275,7 +6281,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
   const unit = 'kg';
-  const price = selectedRate ? Number(selectedRate.price) : parseFloat(document.getElementById('inpPrice').value);
+  const price = parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
   if(!name) missing.push("Supplier name");
@@ -6300,7 +6306,19 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       showToast("Edit failed", "The original entry could not be found. Please reload the page and try again.", "error");
       return;
     }
-    const updated = { ...existing, id: idBeingEdited, name, date, time, flower, qty, unit, price, amount: qty*price, rate_time: selectedRate ? selectedRate.time : undefined };
+    const updated = {
+      ...existing,
+      id: idBeingEdited,
+      name,
+      date,
+      time,
+      flower,
+      qty,
+      unit,
+      price,
+      amount: qty * price,
+      rate_time: selectedRate ? selectedRate.time : undefined
+    };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
     showToast("Entry updated", `${name}'s entry on ${fmtDate(date)} was updated.`, "success");
@@ -6308,8 +6326,13 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   } else {
     const entry = {
       id: uid(),
-      name, date, time: time || "",
-      flower, qty, unit, price,
+      name,
+      date,
+      time: time || "",
+      flower,
+      qty,
+      unit,
+      price,
       amount: qty * price,
       paid: false,
       paidDate: null,
