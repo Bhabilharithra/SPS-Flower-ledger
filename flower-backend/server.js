@@ -1786,11 +1786,55 @@ app.post(
       }
 
       // ======================================================
-      // FIND LATEST RATE ACTIVE AT ENTRY TIME
+      // FIND THE RATE SELECTED FROM THE RATE / TIME DROPDOWN
       // ======================================================
 
-      const rateResult =
-        await pool.query(
+      // Frontend sends the selected flower rate time.
+      const selectedRateTime =
+        formatTimeOnly(
+          req.body.rate_time ||
+          req.body.rateTime
+        );
+
+      // If a rate is selected from the dropdown, find that exact rate.
+      // Otherwise, fall back to the normal entry-time lookup.
+      let rateResult;
+
+      if (selectedRateTime) {
+
+        rateResult = await pool.query(
+          `
+          SELECT
+            price,
+            rate_date,
+            rate_time
+
+          FROM flower_rates
+
+          WHERE
+            flower = $1
+
+            AND
+            rate_date = $2
+
+            AND
+            rate_time = $3::time
+
+          ORDER BY
+            id DESC
+
+          LIMIT 1
+          `,
+          [
+            flower,
+            entryDate,
+            selectedRateTime,
+          ]
+        );
+
+      } else {
+
+        rateResult = await pool.query(
           `
           SELECT
             price,
@@ -1820,6 +1864,8 @@ app.post(
             entryTime,
           ]
         );
+
+      }
 
       if (
         rateResult.rows.length ===
