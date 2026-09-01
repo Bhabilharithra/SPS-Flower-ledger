@@ -3464,12 +3464,41 @@ body{
 .lc-forgot{border:0;background:transparent;padding:0;color:var(--brass);font:inherit;font-weight:600;cursor:pointer}
 .lc-forgot:hover{text-decoration:underline}
 .lc-forgot:focus{outline:2px solid rgba(177,59,105,.25);outline-offset:2px;border-radius:4px}
-.password-view-wrap{position:relative;width:100%;}
-.password-view-wrap input{width:100%;padding-right:52px;}
-.password-view-btn{position:absolute !important;right:10px !important;top:50% !important;bottom:auto !important;left:auto !important;transform:translateY(-50%) !important;margin:0 !important;width:38px !important;height:38px !important;min-height:38px !important;border:0 !important;border-radius:10px !important;background:transparent !important;color:#8b6478 !important;cursor:pointer !important;font-size:18px !important;line-height:1 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:0 !important;z-index:10 !important;}
-.password-view-wrap{min-height:48px !important;display:block !important;}
-.password-view-btn:hover{background:rgba(177,48,102,.08);}
-.password-view-btn:focus{outline:2px solid rgba(177,48,102,.25);outline-offset:1px;}
+.password-view-wrap{position:relative !important;width:100% !important;height:54px !important;min-height:54px !important;display:block !important;}
+.password-view-wrap input{width:100% !important;height:54px !important;box-sizing:border-box !important;padding-right:58px !important;}
+/* Keep the eye button permanently fixed inside the input. */
+.account-field .password-view-wrap .password-view-btn{
+  position:absolute !important;
+  right:10px !important;
+  left:auto !important;
+  top:50% !important;
+  bottom:auto !important;
+  transform:translateY(-50%) !important;
+  width:38px !important;
+  min-width:38px !important;
+  max-width:38px !important;
+  height:38px !important;
+  min-height:38px !important;
+  max-height:38px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:10px !important;
+  background:transparent !important;
+  color:#8b6478 !important;
+  cursor:pointer !important;
+  font-size:18px !important;
+  line-height:38px !important;
+  text-align:center !important;
+  vertical-align:middle !important;
+  display:block !important;
+  z-index:100 !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+}
+.account-field .password-view-wrap .password-view-btn:hover{background:rgba(177,48,102,.08) !important;}
+.account-field .password-view-wrap .password-view-btn:focus{outline:2px solid rgba(177,48,102,.25) !important;outline-offset:1px !important;}
 .account-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(46,24,37,.42);backdrop-filter:blur(5px);z-index:250000;padding:20px}
 .account-modal.show{display:flex}
 .account-card{width:min(420px,100%);background:#fff;border:1px solid #e9c8d7;border-radius:22px;padding:26px;box-shadow:0 24px 70px rgba(70,25,48,.22)}
@@ -6124,26 +6153,33 @@ function renderInlineCurrentRates(rates){
       return;
     }
 
-    // Use the latest DATE that has rates for this flower, then keep up to
-    // the latest three rates from that date. This guarantees 1st/2nd/3rd
-    // are shown side-by-side in the same flower card as separate rows.
-    const latestDate=all.map(r=>r.date).sort().at(-1);
-    const latestDay=all
-      .filter(r=>r.date===latestDate)
+    // `rates` is already filtered by loadRateCards(), but filter once more
+    // against the date currently selected in the cards. This prevents an old
+    // date's values from remaining visible while the new date is loading.
+    const selectedDate=selectedRateCardDate();
+    const selectedDay=all
+      .filter(r=>r.date===selectedDate)
       .sort((a,b)=>{
         const ta=`${a.date}T${a.time||'00:00:00'}`;
         const tb=`${b.date}T${b.time||'00:00:00'}`;
         if(ta!==tb) return ta.localeCompare(tb);
         return String(a.id).localeCompare(String(b.id));
       })
-      .slice(-3);
+      .slice(0,3);
+
+    // Never show rates from another date. A date with no saved rates stays blank.
+    if(!selectedDay.length){
+      el.classList.add('is-empty');
+      el.innerHTML='<span class="rate-current-label">Current rates</span>';
+      return;
+    }
 
     el.classList.remove('is-empty');
     el.innerHTML='<span class="rate-current-label">Current rates</span>';
 
     const list=document.createElement('div');
     list.className='current-rate-list';
-    latestDay.forEach((rate,index)=>{
+    selectedDay.forEach((rate,index)=>{
       const row=document.createElement('div');
       row.className='current-rate-row';
       const slot=document.createElement('span');
@@ -6283,6 +6319,12 @@ document.querySelectorAll('.rate-card-save').forEach(button=>{
       const other=document.getElementById(otherId);
       if(other) other.value=date;
     });
+
+    // Clear the old date immediately. The selected date's rates are loaded next.
+    displayFlowerRates = normalizeFlowerRates(null);
+    lastRatePayload = [];
+    fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
+    renderFlowerRates();
 
     await loadRateCards(date);
   });
