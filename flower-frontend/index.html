@@ -6003,31 +6003,56 @@ async function saveSingleFlowerRate(flower,priceId,dateId,statusId){
       data?.rate_time ??
       '';
 
+    /*
+      FRONTEND RATE SYNC FIX
+
+      Keep BOTH frontend rate maps in sync immediately after Supabase
+      confirms the save:
+
+      - displayFlowerRates -> flower rate cards
+      - flowerRates        -> New Flower Entry price field
+
+      This avoids the problem where the card shows the saved price but
+      the New Flower Entry form still says that the rate is missing.
+    */
+    const normalizedSavedDate = String(savedDate || date).slice(0,10);
+
     displayFlowerRates[flower]={
       price:savedPrice,
-      date:savedDate,
+      date:normalizedSavedDate,
       time:savedTime
     };
 
-    renderFlowerRates();
-
     /*
-      Refresh the cards from the server too. This confirms the database
-      value and also makes the UI correct after logout/login.
-    */
-    await loadRateCards(date);
-    await loadCurrentRateDisplay();
-
-    /*
-      If the entry form is currently on the same date, refresh its
-      time-aware price as well.
+      If New Flower Entry is currently using the same date, update the
+      entry-rate map immediately. Do not wait for another GET request,
+      because that request can return later and temporarily leave the
+      frontend with an empty rate after a successful save.
     */
     const entryDate =
       document.getElementById('inpDate')?.value || todayStr();
 
-    if(entryDate === date){
-      await loadFlowerRates(entryDate);
+    if(String(entryDate).slice(0,10) === normalizedSavedDate){
+      flowerRates[flower]={
+        price:savedPrice,
+        date:normalizedSavedDate,
+        time:savedTime
+      };
+
+      applyFlowerRate();
     }
+
+    /* Update the flower cards immediately. */
+    renderFlowerRates();
+
+    /*
+      Refresh only the DISPLAY cards from the server for persistence
+      confirmation. The New Flower Entry map is intentionally not
+      reloaded here, so the value just saved cannot be overwritten by
+      a delayed/stale GET response.
+    */
+    await loadRateCards(normalizedSavedDate);
+    await loadCurrentRateDisplay();
 
     showToast(
       `${flower} rate saved`,
@@ -7245,10 +7270,12 @@ restoreSavedSession();
 /* Initial rate-card load: cards and entry price use the latest saved rate for today. */
 window.addEventListener('load',()=>{
   setTimeout(()=>{
-    loadRateCards(todayStr());
-    loadFlowerRates(
-      document.getElementById('inpDate')?.value || todayStr()
-    );
+    if(authToken){
+      loadRateCards(todayStr());
+      loadFlowerRates(
+        document.getElementById('inpDate')?.value || todayStr()
+      );
+    }
   },300);
 });
 </script>
