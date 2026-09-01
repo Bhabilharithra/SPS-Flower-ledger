@@ -3499,6 +3499,8 @@ body{
 }
 .account-field .password-view-wrap .password-view-btn:hover{background:rgba(177,48,102,.08) !important;}
 .account-field .password-view-wrap .password-view-btn:focus{outline:2px solid rgba(177,48,102,.25) !important;outline-offset:1px !important;}
+.account-field .password-view-wrap .password-view-btn:active{top:50% !important;bottom:auto !important;transform:translateY(-50%) !important;margin:0 !important;padding:0 !important;outline:none !important;box-shadow:none !important;}
+.account-field .password-view-wrap .password-view-btn:focus:active{top:50% !important;transform:translateY(-50%) !important;}
 .account-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(46,24,37,.42);backdrop-filter:blur(5px);z-index:250000;padding:20px}
 .account-modal.show{display:flex}
 .account-card{width:min(420px,100%);background:#fff;border:1px solid #e9c8d7;border-radius:22px;padding:26px;box-shadow:0 24px 70px rgba(70,25,48,.22)}
@@ -4717,7 +4719,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 
           <div class="field" id="rateSelectField">
             <label for="inpRateSelect">Rate / Time</label>
-            <select id="inpRateSelect" disabled>
+            <select id="inpRateSelect" disabled autocomplete="off" data-lpignore="true" data-1p-ignore="true">
               <option value="">Select flower first</option>
             </select>
             <div class="price-note" id="rateSelectNote">Choose the saved rate/time for this entry.</div>
@@ -5952,6 +5954,9 @@ async function loadFlowerRates(dateOverride = null){
     // Always stay on the placeholder after flower/date loading.
     populateRateDropdown(false);
     applyFlowerRate();
+    if(typeof window.resetEntryRateSelection === 'function'){
+      window.resetEntryRateSelection();
+    }
 
   }catch(error){
     if(requestVersion !== __entryRateLoadVersion) return;
@@ -6415,7 +6420,9 @@ document.getElementById('inpRateSelect').addEventListener('change', ()=>{
 
 // The price always follows the selected ENTRY DATE.
 document.getElementById('inpDate').addEventListener('change', async ()=>{
-  // Never carry the previous entry-date rate forward.
+  // The entry date is the single source of truth for both the entry-rate
+  // dropdown and the Current rates cards. Never leave a previous day's
+  // price visible while either request is loading.
   flowerRates = normalizeFlowerRates(null);
   flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
   populateRateDropdown(false);
@@ -6424,7 +6431,22 @@ document.getElementById('inpDate').addEventListener('change', async ()=>{
   const date =
     document.getElementById('inpDate').value || todayStr();
 
-  await loadFlowerRates(date);
+  // Keep all three rate-card date inputs synchronized with the entry date
+  // without dispatching another change event.
+  ['rateDateMullai','rateDatePichi','rateDateMalli'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value=date;
+  });
+
+  // Refresh both views for exactly the same date.
+  await Promise.all([
+    loadFlowerRates(date),
+    loadRateCards(date)
+  ]);
+
+  // Re-assert the placeholder after asynchronous option rebuilding.
+  // This prevents browser form restoration from selecting an old option.
+  resetEntryRateSelection();
 });
 
 applyFlowerRate();
@@ -7538,25 +7560,69 @@ window.addEventListener('load',()=>{
 
 <script id="final-rate-and-eye-fixes">
 (() => {
-  // Remove browser "Show password" tooltip and lock all eye buttons in place.
-  document.querySelectorAll('.password-view-btn,.password-toggle').forEach(btn => {
-    btn.removeAttribute('title');
-    btn.style.top='50%'; btn.style.bottom='auto';
-    btn.style.transform='translateY(-50%)';
-    btn.style.margin='0';
-  });
+  // Lock all password-eye buttons in the exact center on hover, focus and touch.
+  const lockEyeButtons = () => {
+    document.querySelectorAll('.password-view-btn,.password-toggle').forEach(btn => {
+      btn.removeAttribute('title');
+      btn.style.top='50%';
+      btn.style.bottom='auto';
+      btn.style.transform='translateY(-50%)';
+      btn.style.margin='0';
+      btn.style.padding='0';
+      btn.addEventListener('pointerdown', () => {
+        btn.style.top='50%';
+        btn.style.bottom='auto';
+        btn.style.transform='translateY(-50%)';
+        btn.style.margin='0';
+        btn.style.padding='0';
+      }, {passive:true});
+      btn.addEventListener('touchstart', () => {
+        btn.style.top='50%';
+        btn.style.bottom='auto';
+        btn.style.transform='translateY(-50%)';
+      }, {passive:true});
+    });
+  };
 
-  // If browser form restoration selects an old option, reset it whenever the
-  // flower or entry date changes.
-  const resetRateChoice = () => {
-    const s=document.getElementById('inpRateSelect');
-    if(!s) return;
-    if(s.options.length){ s.selectedIndex=0; s.value=''; }
+  // Always force the entry-rate select back to its placeholder.
+  // This is deliberately callable from async loaders as well as events,
+  // because browser form restoration can occur after options are rebuilt.
+  window.resetEntryRateSelection = () => {
+    const select=document.getElementById('inpRateSelect');
+    if(!select) return;
+    select.setAttribute('autocomplete','off');
+    select.setAttribute('data-lpignore','true');
+    select.setAttribute('data-1p-ignore','true');
+    if(select.options.length){
+      select.selectedIndex=0;
+      select.value='';
+    }
     const price=document.getElementById('inpPrice');
     if(price) price.value='';
+    if(typeof updateAmountPreview==='function') updateAmountPreview();
   };
-  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
-  document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+
+  lockEyeButtons();
+
+  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => {
+    setTimeout(window.resetEntryRateSelection, 0);
+  });
+
+  document.getElementById('inpDate')?.addEventListener('change', () => {
+    setTimeout(window.resetEntryRateSelection, 0);
+  });
+
+  // Handle Chrome/Edge bfcache and form-state restoration on refresh/back.
+  window.addEventListener('pageshow', () => {
+    setTimeout(window.resetEntryRateSelection, 0);
+    setTimeout(window.resetEntryRateSelection, 150);
+  });
+
+  // Also reset after the initial asynchronous rate fetch has rebuilt options.
+  window.addEventListener('load', () => {
+    setTimeout(window.resetEntryRateSelection, 0);
+    setTimeout(window.resetEntryRateSelection, 450);
+  });
 })();
 </script>
 </body>
