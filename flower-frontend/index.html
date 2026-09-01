@@ -3746,10 +3746,7 @@ canvas{
    Each flower card shows its own latest rate for 24 hours.
    ================================================================ */
 .rate-current-inline{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  display:block;
   min-height:42px;
   margin:2px 0 10px;
   padding:9px 11px;
@@ -3764,12 +3761,10 @@ canvas{
   text-transform:uppercase;
   letter-spacing:.07em;
 }
-.rate-current-inline strong{
-  color:#B43C6F;
-  font-size:18px;
-  font-weight:900;
-  white-space:nowrap;
-}
+.current-rate-list{display:flex;flex-direction:column;gap:5px;margin-top:5px;}
+.current-rate-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.55);}
+.current-rate-slot{color:#8B6575;font-size:10px;font-weight:800;white-space:nowrap;}
+.current-rate-value{color:#B43C6F;font-size:16px;font-weight:900;white-space:nowrap;}
 .rate-current-inline.is-empty strong{
   color:#B58D9C;
   font-size:12px;
@@ -4815,6 +4810,47 @@ let currentUser = storedSession.user;
 // on first opening and disappears after reloading.
 let initialSessionCheck = true;
 
+// ------------------------------------------------------------
+// INACTIVITY LOGOUT — 1 hour
+// After one full hour with no user activity, clear every saved token
+// and return to the login screen. The user must sign in manually again.
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+let inactivityTimer = null;
+
+function stopInactivityLogout(){
+  if(inactivityTimer){
+    clearTimeout(inactivityTimer);
+    inactivityTimer = null;
+  }
+}
+
+function logoutForInactivity(){
+  if(!authToken) return;
+  clearSession();
+  if(pollTimer){
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('userMenu')?.classList.remove('show');
+  showLoginError('You were signed out after 1 hour of inactivity. Please sign in again.');
+}
+
+function resetInactivityLogout(){
+  if(!authToken) return;
+  stopInactivityLogout();
+  inactivityTimer = setTimeout(logoutForInactivity, INACTIVITY_LIMIT_MS);
+}
+
+['click','keydown','input','change','touchstart','mousemove','scroll'].forEach(eventName=>{
+  document.addEventListener(eventName, ()=>{
+    if(authToken && document.getElementById('appWrap')?.style.display !== 'none'){
+      resetInactivityLogout();
+    }
+  }, {passive:eventName==='touchstart'||eventName==='mousemove'||eventName==='scroll'});
+});
+
 function authHeaders(){
   return authToken ? { "Authorization": "Bearer " + authToken } : {};
 }
@@ -4833,6 +4869,7 @@ function persistSession(token, user, remember){
 }
 
 function clearSession(){
+  stopInactivityLogout();
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
@@ -4852,6 +4889,7 @@ function showApp(user, alreadyLoaded=false){
   }
 
   startPolling();
+  resetInactivityLogout();
   loadFlowerRates();
   loadCurrentRateDisplay();
 }
@@ -6007,20 +6045,11 @@ function renderFlowerRates(){
     }
   });
 
-  // Always render the selected-date rates in the visible CURRENT RATE
-  // boxes. This works for today, yesterday, or any old date.
-  const currentRates = ALLOWED_FLOWERS
-    .map(flower=>{
-      const r=displayFlowerRates[flower];
-      return r && r.price !== '' && r.price != null
-        ? {flower, price:r.price, rate_date:r.date, rate_time:r.time}
-        : null;
-    })
-    .filter(Boolean);
-
-  renderInlineCurrentRates(currentRates);
+  // CURRENT RATE must show all saved rates (1st, 2nd and 3rd) for
+  // each flower. Pass the complete server response instead of collapsing
+  // every flower to one latest price.
+  renderInlineCurrentRates(getRatesArray(ratePayload));
 }
-
 function selectedRateCardDate(){
   return document.getElementById('rateDateMullai')?.value || todayStr();
 }
@@ -6052,41 +6081,71 @@ function renderInlineCurrentRates(rates){
     'மல்லி':'currentRateMalli'
   };
 
-  Object.values(map).forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.classList.add('is-empty');
-    el.innerHTML='<span class="rate-current-label">Current rate</span><strong>Not set</strong>';
+  const grouped={ 'முல்லை':[], 'பிச்சி':[], 'மல்லி':[] };
+
+  (rates || []).forEach(raw=>{
+    if(!raw) return;
+    const flower=canonicalFlowerKey(raw.flower ?? raw.name ?? raw.english_name);
+    if(!flower) return;
+    const price=raw.price ?? raw.rate;
+    const date=String(raw.rate_date ?? raw.date ?? '').slice(0,10);
+    const time=String(raw.rate_time ?? raw.time ?? '').slice(0,8);
+    if(price === '' || price == null || !date) return;
+    grouped[flower].push({
+      id:String(raw.id ?? ''), price:Number(price), date, time,
+      updated_at:raw.updated_at ?? raw.created_at ?? ''
+    });
   });
 
-  (rates || []).forEach(rate=>{
-    const id=map[canonicalFlowerKey(rate.flower ?? rate.name ?? rate.english_name)];
-    const el=document.getElementById(id);
+  Object.keys(map).forEach(flower=>{
+    const el=document.getElementById(map[flower]);
     if(!el) return;
 
-    const price=rate.price ?? rate.rate;
-    if(price === '' || price == null) return;
+    const all=grouped[flower];
+    if(!all.length){
+      el.classList.add('is-empty');
+      el.innerHTML='<span class="rate-current-label">Current rates</span><strong>Not set</strong>';
+      return;
+    }
+
+    // Use the latest DATE that has rates for this flower, then keep up to
+    // the latest three rates from that date. This guarantees 1st/2nd/3rd
+    // are shown side-by-side in the same flower card as separate rows.
+    const latestDate=all.map(r=>r.date).sort().at(-1);
+    const latestDay=all
+      .filter(r=>r.date===latestDate)
+      .sort((a,b)=>{
+        const ta=`${a.date}T${a.time||'00:00:00'}`;
+        const tb=`${b.date}T${b.time||'00:00:00'}`;
+        if(ta!==tb) return ta.localeCompare(tb);
+        return String(a.id).localeCompare(String(b.id));
+      })
+      .slice(-3);
 
     el.classList.remove('is-empty');
-    el.innerHTML='';
+    el.innerHTML='<span class="rate-current-label">Current rates</span>';
 
-    const label=document.createElement('span');
-    label.className='rate-current-label';
-    label.textContent='Current rate';
-
-    const value=document.createElement('strong');
-    value.textContent=fmtMoney(price) + ' / kg';
-
-    el.appendChild(label);
-    el.appendChild(value);
+    const list=document.createElement('div');
+    list.className='current-rate-list';
+    latestDay.forEach((rate,index)=>{
+      const row=document.createElement('div');
+      row.className='current-rate-row';
+      const slot=document.createElement('span');
+      slot.className='current-rate-slot';
+      slot.textContent=`${ordinal(index+1)} rate`;
+      const value=document.createElement('span');
+      value.className='current-rate-value';
+      value.textContent=`${fmtMoney(rate.price)} / kg`;
+      row.append(slot,value);
+      list.appendChild(row);
+    });
+    el.appendChild(list);
   });
 }
-
 async function loadCurrentRateDisplay(){
-  // Current-rate boxes are now driven by the selected RATE DATE.
-  // Intentionally do not use a 24-hour cutoff here, because old saved
-  // dates must remain viewable whenever the user selects them.
-  renderFlowerRates();
+  // Refresh the three current-rate cards from the server so all 1st/2nd/3rd
+  // saved rates remain visible after login, save, or a page refresh.
+  await loadRateCards(document.getElementById('rateDateMullai')?.value || todayStr());
 }
 
 async function saveFlowerRates(flower, priceIds, dateId, button){
