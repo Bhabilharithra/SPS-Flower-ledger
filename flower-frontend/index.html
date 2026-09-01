@@ -5650,13 +5650,13 @@ function ratesResponseToMap(payload){
     if(!item) return;
 
     const canonical = canonicalFlowerKey(
-      item.flower ?? item.name ?? item.english_name
+      item.flower ?? item.name ?? item.english_name ?? item.englishName
     );
     if(!canonical) return;
 
     const price = item.price ?? item.rate ?? '';
-    const date = item.rate_date ?? item.date ?? '';
-    const time = item.rate_time ?? item.time ?? '';
+    const date = item.rate_date ?? item.rateDate ?? item.date ?? '';
+    const time = item.rate_time ?? item.rateTime ?? item.time ?? '';
 
     if(price === '' || price == null) return;
 
@@ -5736,8 +5736,8 @@ function localRateTimestamp(rate){
   const updated = Date.parse(rate.updated_at ?? rate.created_at ?? '');
   if(Number.isFinite(updated)) return updated;
 
-  const date = String(rate.rate_date ?? rate.date ?? '').slice(0,10);
-  const time = String(rate.rate_time ?? rate.time ?? '').slice(0,8);
+  const date = String(rate.rate_date ?? rate.rateDate ?? rate.date ?? '').slice(0,10);
+  const time = String(rate.rate_time ?? rate.rateTime ?? rate.time ?? '').slice(0,8);
   if(!date) return NaN;
 
   const ts = new Date(`${date}T${time || '00:00:00'}`).getTime();
@@ -5745,10 +5745,12 @@ function localRateTimestamp(rate){
 }
 
 function getRatesArray(payload){
+  // Accept every response shape used by the backend/server versions.
   if(Array.isArray(payload)) return payload;
   if(payload && typeof payload === 'object'){
-    if(Array.isArray(payload.rates)) return payload.rates;
-    if(Array.isArray(payload.data)) return payload.data;
+    const candidates = [payload.rates,payload.data,payload.payload,payload.result,payload.rows,payload.items];
+    for(const candidate of candidates){ if(Array.isArray(candidate)) return candidate; }
+    if(payload.flower !== undefined || payload.name !== undefined || payload.english_name !== undefined || payload.englishName !== undefined) return [payload];
   }
   return [];
 }
@@ -5758,12 +5760,12 @@ function ratesResponseToOptions(payload){
 
   getRatesArray(payload).forEach(item=>{
     if(!item) return;
-    const flower = canonicalFlowerKey(item.flower ?? item.name ?? item.english_name);
+    const flower = canonicalFlowerKey(item.flower ?? item.name ?? item.english_name ?? item.englishName);
     if(!flower) return;
 
     const price = item.price ?? item.rate;
-    const date = String(item.rate_date ?? item.date ?? '').slice(0,10);
-    const time = String(item.rate_time ?? item.time ?? '').slice(0,8);
+    const date = String(item.rate_date ?? item.rateDate ?? item.date ?? '').slice(0,10);
+    const time = String(item.rate_time ?? item.rateTime ?? item.time ?? '').slice(0,8);
     if(price === '' || price == null || !date) return;
 
     grouped[flower].push({
@@ -6016,8 +6018,9 @@ function fillMultiRateInputs(optionsByFlower){
     const rates=(optionsByFlower[flower] || []).slice(-3);
     const cacheKey=`${flower}|${selectedDate}`;
     window.__rateSlotCache[cacheKey]=rates.map(rate=>({
+      id: rate.id ?? '',
       price:Number(rate.price),
-      time:String(rate.time || rate.rate_time || '').slice(0,8)
+      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8)
     }));
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
@@ -6075,8 +6078,8 @@ function localRateTimestamp(rate){
     if(Number.isFinite(updated)) return updated;
   }
 
-  const date=String(rate.rate_date ?? rate.date ?? '').slice(0,10);
-  const time=String(rate.rate_time ?? rate.time ?? '').slice(0,8);
+  const date=String(rate.rate_date ?? rate.rateDate ?? rate.date ?? '').slice(0,10);
+  const time=String(rate.rate_time ?? rate.rateTime ?? rate.time ?? '').slice(0,8);
   if(!date) return NaN;
 
   const ts=new Date(`${date}T${time || '00:00:00'}`).getTime();
@@ -6094,11 +6097,11 @@ function renderInlineCurrentRates(rates){
 
   (rates || []).forEach(raw=>{
     if(!raw) return;
-    const flower=canonicalFlowerKey(raw.flower ?? raw.name ?? raw.english_name);
+    const flower=canonicalFlowerKey(raw.flower ?? raw.name ?? raw.english_name ?? raw.englishName);
     if(!flower) return;
     const price=raw.price ?? raw.rate;
-    const date=String(raw.rate_date ?? raw.date ?? '').slice(0,10);
-    const time=String(raw.rate_time ?? raw.time ?? '').slice(0,8);
+    const date=String(raw.rate_date ?? raw.rateDate ?? raw.date ?? '').slice(0,10);
+    const time=String(raw.rate_time ?? raw.rateTime ?? raw.time ?? '').slice(0,8);
     if(price === '' || price == null || !date) return;
     grouped[flower].push({
       id:String(raw.id ?? ''), price:Number(price), date, time,
@@ -6220,12 +6223,17 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
         method:'POST',
         headers:{'Content-Type':'application/json', ...authHeaders()},
         body:JSON.stringify({
+          // Send ONE changed slot only. The other two rates are never sent.
+          id: previous[item.slot]?.id || undefined,
           flower,
           name: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           englishName: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           price:item.price,
           date,
-          rate_time:item.rateTime
+          rate_date:date,
+          rateDate:date,
+          rate_time:item.rateTime,
+          rateTime:item.rateTime
         })
       });
 
