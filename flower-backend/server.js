@@ -143,6 +143,7 @@ async function syncEntriesJson() {
         price,
         amount,
         rate_slot,
+        user_id,
         paid,
         paid_date,
         created_at,
@@ -495,7 +496,7 @@ async function initializeDatabase() {
         entry_time TEXT,
         flower TEXT NOT NULL,
         qty NUMERIC(12,3) NOT NULL DEFAULT 0,
-        unit TEXT DEFAULT 'kg',
+        unit TEXT DEFAULT '',
         price NUMERIC(12,2) NOT NULL DEFAULT 0,
         amount NUMERIC(14,2) NOT NULL DEFAULT 0,
         paid BOOLEAN DEFAULT FALSE,
@@ -534,6 +535,60 @@ async function initializeDatabase() {
 
     await client.query(`
       ALTER TABLE entries ALTER COLUMN amount DROP DEFAULT;
+    `);
+
+    // ========================================================
+    // STOP DEFAULTING / LABELING UNIT AS "kg"
+    // ========================================================
+    //
+    // Quantity is not measured in kg for this ledger, so the
+    // "kg" default/wording is removed. Existing rows that were
+    // previously stamped with the old default are cleared too.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE entries
+      ALTER COLUMN unit
+      SET DEFAULT '';
+    `);
+
+    await client.query(`
+      UPDATE entries
+      SET unit = ''
+      WHERE unit = 'kg';
+    `);
+
+    // ========================================================
+    // USER OWNERSHIP ON ENTRIES
+    // ========================================================
+    //
+    // SECURITY FIX:
+    //
+    // Entries previously had no owner column at all, so every
+    // logged-in user could see and query every other user's
+    // entries (GET /api/entries, /api/summary, supplier search,
+    // etc. returned the whole table to anyone with a valid
+    // token). user_id now records which account created the
+    // entry, and every entries route below filters by
+    // req.user.id so each login only ever sees its own data.
+    //
+    // NOTE: entries created before this fix have user_id = NULL
+    // and will not appear for ANY user until they are manually
+    // reassigned - this is intentional, since we cannot safely
+    // guess which account they used to belong to, and showing
+    // them to everyone would repeat the original leak.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE entries
+      ADD COLUMN IF NOT EXISTS
+      user_id BIGINT;
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS
+      idx_entries_user_id
+      ON entries(user_id);
     `);
 
     // ========================================================
@@ -1981,9 +2036,14 @@ app.post(
       // rate is saved first for that date, later rate saves for
       // other slots on the same date will not re-overwrite it.
       //
-      // NOTE: entries has no user_id column in this schema, so
-      // this is not scoped per-user - it matches on flower +
-      // entry_date (+ rate_slot when set) only.
+      // NOTE: this backfill intentionally matches on flower +
+      // entry_date (+ rate_slot when set) ONLY, regardless of
+      // which login owns the entry or the rate. Flower rates are
+      // shared/global (the price of Malli on a given date is the
+      // same for everyone), so a rate saved by one login is
+      // meant to backfill every user's pending entries for that
+      // flower + date + slot - only the entries themselves
+      // (GET/PUT/DELETE) are scoped per-user, not the rates.
       // ======================================================
 
       await pool.query(
@@ -2127,7 +2187,7 @@ app.post(
           ? String(
               req.body.unit
             ).trim()
-          : "kg";
+          : "";
 
       if (!name) {
         return res.status(400).json({
@@ -2281,7 +2341,8 @@ app.post(
             unit,
             price,
             amount,
-            rate_slot
+            rate_slot,
+            user_id
           )
 
           VALUES
@@ -2295,7 +2356,8 @@ app.post(
             $7,
             $8,
             $9,
-            $10
+            $10,
+            $11
           )
 
           RETURNING
@@ -2324,6 +2386,7 @@ app.post(
             price,
             amount,
             rateSlot,
+            req.user.id,
           ]
         );
 
@@ -2391,9 +2454,15 @@ app.get(
       const paid =
         req.query.paid;
 
-      const params = [];
+      // SECURITY: every entries query is scoped to the logged-in
+      // account, so one login can never see another login's data.
+      const params = [
+        req.user.id,
+      ];
 
-      const conditions = [];
+      const conditions = [
+        "user_id = $1",
+      ];
 
       if (from) {
         params.push(from);
@@ -2435,11 +2504,9 @@ app.get(
       }
 
       const where =
-        conditions.length
-          ? `WHERE ${conditions.join(
-              " AND "
-            )}`
-          : "";
+        `WHERE ${conditions.join(
+          " AND "
+        )}`;
 
       const result =
         await pool.query(
@@ -2514,9 +2581,15 @@ app.get(
           req.query.to
         );
 
-      const params = [];
+      // SECURITY: summary totals are scoped to the logged-in
+      // account, so one login never sees another login's totals.
+      const params = [
+        req.user.id,
+      ];
 
-      const conditions = [];
+      const conditions = [
+        "user_id = $1",
+      ];
 
       if (from) {
         params.push(from);
@@ -2535,11 +2608,9 @@ app.get(
       }
 
       const where =
-        conditions.length
-          ? `WHERE ${conditions.join(
-              " AND "
-            )}`
-          : "";
+        `WHERE ${conditions.join(
+          " AND "
+        )}`;
 
       const result =
         await pool.query(
@@ -2657,11 +2728,14 @@ app.get(
           WHERE
             name ILIKE $1
 
+            AND
+            user_id = $2
+
           ORDER BY
             entry_date DESC,
             created_at DESC
           `,
-          [name]
+          [name, req.user.id]
         );
 
       res.json({
@@ -2733,12 +2807,16 @@ app.get(
           WHERE
             name ILIKE $1
 
+            AND
+            user_id = $2
+
           ORDER BY
             entry_date DESC,
             created_at DESC
           `,
           [
             `%${q}%`,
+            req.user.id,
           ]
         );
 
@@ -2853,7 +2931,7 @@ app.put(
           ? String(
               req.body.unit
             ).trim()
-          : "kg";
+          : "";
 
       // Rate slot can also be changed on edit. If not supplied,
       // keep whatever the entry already has.
@@ -2991,6 +3069,9 @@ app.put(
           WHERE
             id = $12
 
+            AND
+            user_id = $13
+
           RETURNING
 
             id,
@@ -3020,9 +3101,14 @@ app.put(
             paidDate,
             rateSlot,
             id,
+            req.user.id,
           ]
         );
 
+      // SECURITY: a 0-row result here means either the entry
+      // doesn't exist, OR it belongs to a different login - both
+      // cases return the same generic "not found" so one account
+      // can't probe for another account's entry IDs.
       if (
         result.rows.length ===
         0
@@ -3087,13 +3173,19 @@ app.delete(
           `
           DELETE FROM entries
 
-          WHERE id = $1
+          WHERE
+            id = $1
+
+            AND
+            user_id = $2
 
           RETURNING id
           `,
-          [id]
+          [id, req.user.id]
         );
 
+      // SECURITY: same generic "not found" whether the entry
+      // never existed or belongs to a different login.
       if (
         result.rows.length ===
         0

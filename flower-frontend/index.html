@@ -3297,7 +3297,7 @@ body{
   min-height:46px !important;
 }
 
-/* PRICE / KG */
+/* PRICE */
 #entryPanel .field:has(#inpPrice){
   width:150px !important;
   min-width:150px !important;
@@ -4528,8 +4528,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       <div class="field"><label for="editEntryName">Supplier name</label><input id="editEntryName" type="text"></div>
       <div class="field"><label for="editEntryDate">Date</label><input id="editEntryDate" type="date"></div>
       <div class="field"><label for="editEntryFlower">Flower</label><select id="editEntryFlower"><option value="முல்லை">முல்லை (Mullai)</option><option value="பிச்சி">பிச்சி (Royal Jasmine)</option><option value="மல்லி">மல்லி (Malli)</option></select></div>
-      <div class="field"><label for="editEntryQty">Quantity (kg)</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
-      <div class="field"><label for="editEntryPrice">Price / kg</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
+      <div class="field"><label for="editEntryQty">Quantity</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label for="editEntryPrice">Price</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
     </div>
     <div class="entry-edit-actions"><button type="button" class="btn btn-ghost" id="btnCancelEntryEdit">Cancel</button><button type="button" class="btn btn-primary" id="btnSaveEntryEdit">Save changes</button></div>
   </div>
@@ -4649,9 +4649,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Mullai</label>
             <div class="rate-flower-name">முல்லை</div>
             <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMullai"></div>
             <button type="button" class="rate-card-save" data-flower="முல்லை" data-date="rateDateMullai" data-prices="rateMullai1,rateMullai2,rateMullai3">Save Mullai rates</button>
             <div class="rate-card-status" id="rateStatusMullai">Not saved</div>
@@ -4661,9 +4661,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Royal Jasmine</label>
             <div class="rate-flower-name">பிச்சி</div>
             <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDatePichi"></div>
             <button type="button" class="rate-card-save" data-flower="பிச்சி" data-date="rateDatePichi" data-prices="ratePichi1,ratePichi2,ratePichi3">Save Royal Jasmine rates</button>
             <div class="rate-card-status" id="rateStatusPichi">Not saved</div>
@@ -4673,9 +4673,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Malli</label>
             <div class="rate-flower-name">மல்லி</div>
             <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMalli"></div>
             <button type="button" class="rate-card-save" data-flower="மல்லி" data-date="rateDateMalli" data-prices="rateMalli1,rateMalli2,rateMalli3">Save Malli rates</button>
             <div class="rate-card-status" id="rateStatusMalli">Not saved</div>
@@ -4724,12 +4724,12 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
           </div>
 
           <div class="field">
-            <label for="inpQty">Quantity (kg)</label>
-            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter kg" autocomplete="off">
+            <label for="inpQty">Quantity</label>
+            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter quantity" autocomplete="off">
           </div>
 
           <div class="field">
-            <label for="inpPrice">Price / kg</label>
+            <label for="inpPrice">Price</label>
             <input type="number" id="inpPrice" min="0" step="0.01" placeholder="₹" readonly>
             <div class="price-note" id="priceNote">Select a flower to use its saved rate.</div>
           </div>
@@ -5482,7 +5482,7 @@ function normalizeEntry(e){
     time: e.time || e.entry_time || "",
     flower: normalizeFlowerName(e.flower || ""),
     qty,
-    unit: e.unit || "kg",
+    unit: e.unit || "",
     price,
     amount,
     paid: e.paid === true,
@@ -6074,7 +6074,7 @@ function renderFlowerRates(){
     if(st){
       if(data.price !== '' && data.price != null){
         st.textContent =
-          `Saved ₹${Number(data.price).toLocaleString('en-IN')} / kg` +
+          `Saved ₹${Number(data.price).toLocaleString('en-IN')}` +
           ` • ${data.date || selectedRateCardDate()}`;
       }else{
         st.textContent = 'Not saved for this date';
@@ -6181,7 +6181,7 @@ function renderInlineCurrentRates(rates){
       slot.textContent=`${ordinal(index+1)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
-      value.textContent=`${fmtMoney(rate.price)} / kg`;
+      value.textContent=`${fmtMoney(rate.price)}`;
       row.append(slot,value);
       list.appendChild(row);
     });
@@ -6363,12 +6363,12 @@ function applyFlowerRate(){
     }else if(selectedRate.pending || rate == null || rate === ''){
       note.textContent = `${ordinal(selectedRate.slot)} Rate selected — Pending. You can add this entry now and fix the price later.`;
     }else{
-      note.textContent = `${ordinal(selectedRate.slot)} Rate selected: ${fmtMoney(rate)} / kg`;
+      note.textContent = `${ordinal(selectedRate.slot)} Rate selected: ${fmtMoney(rate)}`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
     priceInput.classList.remove('price-managed');
-    priceInput.placeholder = 'Enter price / kg';
+    priceInput.placeholder = 'Enter price';
     note.textContent = '';
   }else{
     priceInput.value = '';
@@ -6466,7 +6466,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
-  const unit = 'kg';
+  const unit = ''; 
   const price = parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
@@ -6480,7 +6480,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   if(ALLOWED_FLOWERS.includes(flower)){
     if(!selectedRate) missing.push("Rate / Time (1st, 2nd, or 3rd Rate)");
   }else if(isNaN(price) || price < 0){
-    missing.push("Price per kg");
+    missing.push("Price");
   }
 
   if(missing.length > 0){
@@ -6597,7 +6597,7 @@ async function saveEntryEdit(){
   if(!name||!date||!flower||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0){showToast('Edit failed','Please enter supplier, date, flower, quantity and price.','error');return;}
   const existing=entries.find(x=>String(x.id)===String(editingEntryId));
   if(!existing) return;
-  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'kg',price,amount:Number((qty*price).toFixed(2))};
+  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'',price,amount:Number((qty*price).toFixed(2))};
   const ok=await dbAddOrUpdate(updated,editingEntryId);
   if(ok){closeEntryEdit();showToast('Entry updated','The ledger row was updated directly.','success');render();}
 }
@@ -7015,7 +7015,7 @@ function render(){
       <td class="mono-cell">${fmtDate(e.date)}</td>
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
-      <td class="mono-cell">${e.qty} kg</td>
+      <td class="mono-cell">${e.qty}</td>
       <td class="mono-cell">${fmtMoney(e.price)}</td>
       <td class="amount-cell">${fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
@@ -7040,8 +7040,8 @@ function render(){
           <th>Date</th>
           <th>Supplier</th>
           <th>Flower</th>
-          <th>Quantity (kg)</th>
-          <th>Price / kg</th>
+          <th>Quantity</th>
+          <th>Price</th>
           <th>Amount</th>
           <th>Edit</th>
         </tr>
@@ -7085,8 +7085,8 @@ function exportExcel(){
       "Date": e.date || "",
       "Supplier": e.name || "",
       "Flower": flowerLabel(e.flower),
-      "Quantity (kg)": Number(e.qty || 0),
-      "Price / kg": Number(e.price || 0),
+      "Quantity": Number(e.qty || 0),
+      "Price": Number(e.price || 0),
       "Amount": Number(e.amount || 0),
       "Paid": e.paid ? "Yes" : "No",
       "Paid Date": e.paidDate || ""
@@ -7110,7 +7110,7 @@ function exportExcel(){
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
     ["Suppliers", supplierCount],
-    ["Total quantity (kg)", totalQty],
+    ["Total quantity", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7231,8 +7231,8 @@ async function exportPdf(){
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Supplier</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity (kg)</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price / kg</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Amount</th>
         </tr>
       </thead>
@@ -7243,7 +7243,7 @@ async function exportPdf(){
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(e.name||'')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')} kg</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
       </tr>`;
@@ -7406,7 +7406,7 @@ async function exportPdf(){
           <tfoot>
             <tr style="background:#FFF7FA;font-weight:800;">
               <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')} kg</td>
+              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')}</td>
               <td style="padding:11px;border:1px solid #E3B0C3;"></td>
               <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
             </tr>
@@ -7528,7 +7528,7 @@ document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
 document.getElementById('btnExport').addEventListener('click', ()=>{
   let toExport = getReportEntries();
   if(toExport.length === 0){ showToast("Nothing to export", "No entries match the selected date range.", "error"); return; }
-  const header = ["Date","Supplier","Flower","Quantity (kg)","Price per kg","Amount"];
+  const header = ["Date","Supplier","Flower","Quantity","Price","Amount"];
   const rows = toExport
     .slice()
     .sort((a,b)=> (a.date+ (a.time||"")).localeCompare(b.date+(b.time||"")))
