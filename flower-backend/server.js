@@ -970,8 +970,34 @@ function createToken(user) {
 // ============================================================
 // AUTH MIDDLEWARE
 // ============================================================
+//
+// SECURITY FIX:
+//
+// This previously only verified the JWT's signature/expiry with
+// jwt.verify(). That proves the token was issued by this server
+// and hasn't expired, but it never checked whether the user id
+// encoded inside the token still exists in the `users` table.
+//
+// As a result, deleting a user's row from the database did NOT
+// revoke their existing session - any browser holding an old
+// token for that (now-deleted) id was still treated as
+// authenticated for up to 30 days (the token's expiry).
+//
+// This middleware now also looks the user id up in the database
+// on every request. If the id no longer exists, it returns 401,
+// exactly like an expired/invalid token. The frontend already
+// treats any 401 as "session expired" - it clears the saved
+// token and returns to the login screen (see handleAuthFailure()
+// / restoreSavedSession() in index.html) - so no frontend changes
+// are required for this fix to take effect.
+//
+// The env-based admin fallback (id: 0, created in POST /api/login
+// when no matching row exists in `users`) is intentionally exempt
+// from this database check, since that account has no row in
+// `users` by design.
+// ============================================================
 
-function authMiddleware(
+async function authMiddleware(
   req,
   res,
   next
@@ -996,11 +1022,39 @@ function authMiddleware(
     header.substring(7);
 
   try {
-    req.user =
+    const decoded =
       jwt.verify(
         token,
         JWT_SECRET
       );
+
+    // Skip the DB check only for the env admin fallback account,
+    // which has no row in `users` by design.
+    if (decoded.id !== 0) {
+      const result =
+        await pool.query(
+          `
+          SELECT id
+          FROM users
+          WHERE id = $1
+          LIMIT 1
+          `,
+          [decoded.id]
+        );
+
+      if (
+        result.rows.length ===
+        0
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Session expired. Please sign in again.",
+        });
+      }
+    }
+
+    req.user = decoded;
 
     next();
   } catch (error) {
@@ -3436,6 +3490,10 @@ async function startServer() {
 
         console.log(
           "Password reset: ENABLED"
+        );
+
+        console.log(
+          "Auth session validated against users table: ENABLED"
         );
 
         console.log(
