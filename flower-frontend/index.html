@@ -5935,10 +5935,13 @@ async function loadFlowerRates(dateOverride = null){
     populateRateDropdown(false);
     applyFlowerRate();
 
-    const res = await fetch(API_BASE + '/api/rates', {
-      headers: authHeaders(),
-      cache: 'no-store'
-    });
+    const res = await fetch(
+      API_BASE + '/api/rates?date=' + encodeURIComponent(selectedDate),
+      {
+        headers: authHeaders(),
+        cache: 'no-store'
+      }
+    );
 
     if(requestVersion !== __entryRateLoadVersion) return;
 
@@ -6005,10 +6008,13 @@ async function loadRateCards(rateDate = null){
   renderFlowerRates();
 
   try{
-    const res = await fetch(API_BASE + '/api/rates', {
-      headers: authHeaders(),
-      cache: 'no-store'
-    });
+    const res = await fetch(
+      API_BASE + '/api/rates?date=' + encodeURIComponent(selectedDate),
+      {
+        headers: authHeaders(),
+        cache: 'no-store'
+      }
+    );
 
     if(requestVersion !== __cardRateLoadVersion) return;
 
