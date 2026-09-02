@@ -790,7 +790,8 @@ function formatTimeOnly(value) {
 // Accepts a number (1, 2, 3), a numeric string ("1", "2", "3"),
 // or a label ("1st", "1st Rate", "2nd Rate", "3rd Rate", etc.)
 // and returns a clean integer 1-3, or null if it can't be
-// parsed / is out of range.
+// parsed / is out of range / was not supplied at all (rate_slot
+// is OPTIONAL on entry creation - see POST /api/entries).
 // ============================================================
 
 function normalizeRateSlot(value) {
@@ -1960,18 +1961,29 @@ app.post(
       // BACKFILL PENDING ENTRIES
       // ======================================================
       //
-      // BUG FIX:
+      // WORKFLOW (rate_slot optional on entries):
       //
-      // This previously matched on flower + entry_date only, so
-      // saving the 1st Rate could overwrite entries that had
-      // been saved under the 2nd or 3rd Rate slot. It now also
-      // requires rate_slot to match, so an entry only ever gets
-      // backfilled by the price for the exact slot it was saved
-      // under.
+      // Entries can be added at any time WITHOUT picking a rate
+      // slot up front - rate_slot is left NULL on the entry.
+      // Whenever a rate is saved for that flower + date, every
+      // still-pending slot-less entry for that flower + date
+      // gets this price applied.
+      //
+      // If an entry DOES have a specific rate_slot recorded
+      // (either chosen at creation time or set explicitly via
+      // edit), it is only backfilled by a rate saved under that
+      // exact same slot - this preserves the original bug fix
+      // where saving the 1st Rate must not overwrite an entry
+      // that was tied to the 2nd or 3rd Rate.
+      //
+      // The "price IS NULL OR (price = 0 AND amount = 0)" guard
+      // means once a slot-less entry is backfilled by whichever
+      // rate is saved first for that date, later rate saves for
+      // other slots on the same date will not re-overwrite it.
       //
       // NOTE: entries has no user_id column in this schema, so
       // this is not scoped per-user - it matches on flower +
-      // entry_date + rate_slot only.
+      // entry_date (+ rate_slot when set) only.
       // ======================================================
 
       await pool.query(
@@ -1990,7 +2002,10 @@ app.post(
           entry_date = $3
 
           AND
-          rate_slot = $4
+          (
+            rate_slot IS NULL
+            OR rate_slot = $4
+          )
 
           AND
           (
@@ -2037,20 +2052,25 @@ app.post(
 // CREATE ENTRY
 // ============================================================
 //
-// WORKFLOW CHANGE:
+// WORKFLOW (rate_slot is OPTIONAL):
 //
-// The New Flower Entry dropdown always shows three fixed slots -
-// "1st Rate", "2nd Rate", "3rd Rate" - for every flower + date,
-// even before any price has been saved for them. The caller must
-// pick one of these slots (rate_slot: 1, 2, or 3) up front.
+// The caller MAY pick a slot (rate_slot: 1, 2, or 3) up front,
+// or leave it unset to add the entry with no rate decided yet -
+// this supports "add entries for many days first, then fix the
+// price by date later".
 //
-// If a price already exists for that flower + date + slot, the
-// entry is saved with that price immediately.
-//
-// If NOT, the entry is still created, with price and amount left
-// NULL. The frontend shows these as "Pending" until a matching
-// rate is saved for that exact slot (see POST /api/rates, which
-// backfills only entries with a matching rate_slot).
+// - rate_slot provided + a price already exists for that
+//   flower + date + slot -> entry is saved with that price
+//   immediately.
+// - rate_slot provided + no matching price yet -> entry is
+//   created as "Pending" (price/amount NULL) and gets
+//   backfilled only when that exact slot's rate is saved
+//   (see the UPDATE in POST /api/rates).
+// - rate_slot NOT provided -> entry is created as "Pending"
+//   with rate_slot left NULL, price/amount NULL. It gets
+//   backfilled by whichever rate (1st/2nd/3rd) is saved FIRST
+//   for that flower + date (POST /api/rates matches entries
+//   where rate_slot IS NULL OR rate_slot = <slot just saved>).
 //
 // ============================================================
 
@@ -2145,12 +2165,14 @@ app.post(
       }
 
       // ======================================================
-      // RATE SLOT SELECTED FROM THE DROPDOWN
+      // RATE SLOT (OPTIONAL)
       // ======================================================
       //
-      // The dropdown always shows "1st Rate", "2nd Rate", and
-      // "3rd Rate" - the caller must pick one, whether or not a
-      // price has been saved for it yet.
+      // The dropdown may offer "1st Rate", "2nd Rate", "3rd
+      // Rate" - or the caller can skip it entirely. If none is
+      // sent (or it doesn't parse to 1/2/3), normalizeRateSlot
+      // returns null and the entry is saved with rate_slot NULL,
+      // to be priced later.
       // ======================================================
 
       const rateSlot =
@@ -2160,89 +2182,86 @@ app.post(
           req.body.slot
         );
 
-      if (!rateSlot) {
-        return res.status(400).json({
-          success: false,
-          code:
-            "RATE_SLOT_REQUIRED",
-          message:
-            "Please select a rate (1st Rate, 2nd Rate, or 3rd Rate).",
-        });
-      }
-
-      const rateResult =
-        await pool.query(
-          `
-          SELECT
-            price
-
-          FROM flower_rates
-
-          WHERE
-            flower = $1
-
-            AND
-            rate_date = $2
-
-            AND
-            rate_slot = $3
-
-          ORDER BY
-            id DESC
-
-          LIMIT 1
-          `,
-          [
-            flower,
-            entryDate,
-            rateSlot,
-          ]
-        );
-
-      // ======================================================
-      // NO MATCHING RATE YET -> CREATE AS "PENDING"
-      // ======================================================
-      //
-      // The entry is still created, with price/amount left
-      // NULL, and gets backfilled automatically once a matching
-      // rate is saved for this exact slot (see the UPDATE in
-      // POST /api/rates above).
-      // ======================================================
-
       let price = null;
       let amount = null;
 
-      if (
-        rateResult.rows.length >
-        0
-      ) {
-        const rawPrice =
-          Number(
-            rateResult.rows[0].price
+      // Only attempt to match an existing price if a specific
+      // slot was chosen. A slot-less entry has nothing to match
+      // against yet and simply stays Pending until any rate is
+      // saved for this flower + date (see the backfill UPDATE
+      // in POST /api/rates above).
+      if (rateSlot) {
+        const rateResult =
+          await pool.query(
+            `
+            SELECT
+              price
+
+            FROM flower_rates
+
+            WHERE
+              flower = $1
+
+              AND
+              rate_date = $2
+
+              AND
+              rate_slot = $3
+
+            ORDER BY
+              id DESC
+
+            LIMIT 1
+            `,
+            [
+              flower,
+              entryDate,
+              rateSlot,
+            ]
           );
+
+        // ====================================================
+        // NO MATCHING RATE YET -> CREATE AS "PENDING"
+        // ====================================================
+        //
+        // The entry is still created, with price/amount left
+        // NULL, and gets backfilled automatically once a
+        // matching rate is saved for this exact slot (see the
+        // UPDATE in POST /api/rates above).
+        // ====================================================
 
         if (
-          !Number.isFinite(rawPrice) ||
-          rawPrice < 0
+          rateResult.rows.length >
+          0
         ) {
-          return res.status(400).json({
-            success: false,
-            code:
-              "INVALID_FLOWER_RATE",
+          const rawPrice =
+            Number(
+              rateResult.rows[0].price
+            );
 
-            message:
-              "The flower rate is invalid. Please update the rate before adding the entry.",
-          });
+          if (
+            !Number.isFinite(rawPrice) ||
+            rawPrice < 0
+          ) {
+            return res.status(400).json({
+              success: false,
+              code:
+                "INVALID_FLOWER_RATE",
+
+              message:
+                "The flower rate is invalid. Please update the rate before adding the entry.",
+            });
+          }
+
+          price = rawPrice;
+
+          amount =
+            Number(
+              (
+                qty * price
+              ).toFixed(2)
+            );
         }
-
-        price = rawPrice;
-
-        amount =
-          Number(
-            (
-              qty * price
-            ).toFixed(2)
-          );
       }
 
       const id =
@@ -2308,17 +2327,22 @@ app.post(
           ]
         );
 
-      await syncEntriesJson();
+      const slotLabel =
+        rateSlotLabel(rateSlot);
 
       res.status(201).json({
         success: true,
         message:
           price === null
-            ? `Entry added as pending (${rateSlotLabel(rateSlot)} not set yet).`
-            : `Entry added successfully (${rateSlotLabel(rateSlot)}).`,
+            ? slotLabel
+              ? `Entry added as pending (${slotLabel} not set yet).`
+              : "Entry added as pending (no rate selected yet)."
+            : `Entry added successfully (${slotLabel}).`,
         entry:
           result.rows[0],
       });
+
+      await syncEntriesJson();
     } catch (error) {
       console.error(
         "Create entry error:",
@@ -3249,6 +3273,10 @@ async function startServer() {
 
         console.log(
           "Slot-based flower rates (1st/2nd/3rd): ENABLED"
+        );
+
+        console.log(
+          "rate_slot on entry creation: OPTIONAL"
         );
 
         console.log(

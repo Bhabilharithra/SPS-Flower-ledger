@@ -3491,7 +3491,7 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-  
+  vertical-align:middle !important;
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -3499,8 +3499,6 @@ body{
 }
 .account-field .password-view-wrap .password-view-btn:hover{background:rgba(177,48,102,.08) !important;}
 .account-field .password-view-wrap .password-view-btn:focus{outline:2px solid rgba(177,48,102,.25) !important;outline-offset:1px !important;}
-.account-field .password-view-wrap .password-view-btn:active{top:50% !important;bottom:auto !important;transform:translateY(-50%) !important;margin:0 !important;padding:0 !important;outline:none !important;box-shadow:none !important;}
-.account-field .password-view-wrap .password-view-btn:focus:active{top:50% !important;transform:translateY(-50%) !important;}
 .account-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(46,24,37,.42);backdrop-filter:blur(5px);z-index:250000;padding:20px}
 .account-modal.show{display:flex}
 .account-card{width:min(420px,100%);background:#fff;border:1px solid #e9c8d7;border-radius:22px;padding:26px;box-shadow:0 24px 70px rgba(70,25,48,.22)}
@@ -3976,7 +3974,7 @@ body:has(.page) footer{background:rgba(255,255,255,.82);border-color:#C8D8EE;col
   border-bottom:3px solid #2a9d8f !important;
   box-shadow:0 5px 18px rgba(31,72,100,.12) !important;
 }
-#appWrap .topbar .brand-na{color:#17324d !important;}
+#appWrap .topbar .brand-name{color:#17324d !important;}
 #appWrap .topbar .brand-tag{color:#477084 !important;}
 #appWrap .today-badge{color:#466274 !important;}
 #appWrap .today-badge b{color:#17324d !important;}
@@ -4491,7 +4489,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       </div>
 
       <div class="lc-row-between">
-        <label class="remember-me"><input type="checkbox" id="chkRemember"> <span>Keep me signed in</span></label>
+        <label class="remember-me"><input type="checkbox" id="chkRemember" checked> <span>Keep me signed in</span></label>
         <button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button>
       </div>
 
@@ -4530,8 +4528,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       <div class="field"><label for="editEntryName">Supplier name</label><input id="editEntryName" type="text"></div>
       <div class="field"><label for="editEntryDate">Date</label><input id="editEntryDate" type="date"></div>
       <div class="field"><label for="editEntryFlower">Flower</label><select id="editEntryFlower"><option value="முல்லை">முல்லை (Mullai)</option><option value="பிச்சி">பிச்சி (Royal Jasmine)</option><option value="மல்லி">மல்லி (Malli)</option></select></div>
-      <div class="field"><label for="editEntryQty">Quantity</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
-      <div class="field"><label for="editEntryPrice">Price</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
+      <div class="field"><label for="editEntryQty">Quantity (kg)</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label for="editEntryPrice">Price / kg</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
     </div>
     <div class="entry-edit-actions"><button type="button" class="btn btn-ghost" id="btnCancelEntryEdit">Cancel</button><button type="button" class="btn btn-primary" id="btnSaveEntryEdit">Save changes</button></div>
   </div>
@@ -4543,7 +4541,6 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
     <h3 id="resetPasswordTitle">Reset password</h3>
     <p>Enter your username and choose a new password. You can then sign in normally.</p>
     <div class="account-field"><label for="resetUsername">Username</label><input id="resetUsername" type="text" placeholder="Enter username" autocomplete="username"></div>
-    <div class="account-field"><label for="resetCurrentPassword">Current password</label><div class="password-view-wrap"><input id="resetCurrentPassword" type="password" placeholder="Enter current password" autocomplete="current-password"><button type="button" class="password-view-btn" data-toggle-password="resetCurrentPassword" aria-label="Show password">👁</button></div></div>
     <div class="account-field"><label for="resetNewPassword">New password</label><div class="password-view-wrap"><input id="resetNewPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetNewPassword" aria-label="Show password">👁</button></div></div>
     <div class="account-field"><label for="resetConfirmPassword">Confirm new password</label><div class="password-view-wrap"><input id="resetConfirmPassword" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetConfirmPassword" aria-label="Show password">👁</button></div></div>
     <div class="account-message" id="resetPasswordMessage"></div>
@@ -4652,9 +4649,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Mullai</label>
             <div class="rate-flower-name">முல்லை</div>
             <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price / kg"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMullai"></div>
             <button type="button" class="rate-card-save" data-flower="முல்லை" data-date="rateDateMullai" data-prices="rateMullai1,rateMullai2,rateMullai3">Save Mullai rates</button>
             <div class="rate-card-status" id="rateStatusMullai">Not saved</div>
@@ -4664,9 +4661,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Royal Jasmine</label>
             <div class="rate-flower-name">பிச்சி</div>
             <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price / kg"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDatePichi"></div>
             <button type="button" class="rate-card-save" data-flower="பிச்சி" data-date="rateDatePichi" data-prices="ratePichi1,ratePichi2,ratePichi3">Save Royal Jasmine rates</button>
             <div class="rate-card-status" id="rateStatusPichi">Not saved</div>
@@ -4676,9 +4673,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Malli</label>
             <div class="rate-flower-name">மல்லி</div>
             <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price / kg"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMalli"></div>
             <button type="button" class="rate-card-save" data-flower="மல்லி" data-date="rateDateMalli" data-prices="rateMalli1,rateMalli2,rateMalli3">Save Malli rates</button>
             <div class="rate-card-status" id="rateStatusMalli">Not saved</div>
@@ -4720,19 +4717,19 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 
           <div class="field" id="rateSelectField">
             <label for="inpRateSelect">Rate / Time</label>
-            <select id="inpRateSelect" disabled autocomplete="off" data-lpignore="true" data-1p-ignore="true">
+            <select id="inpRateSelect" disabled>
               <option value="">Select flower first</option>
             </select>
             <div class="price-note" id="rateSelectNote">Choose the saved rate/time for this entry.</div>
           </div>
 
           <div class="field">
-            <label for="inpQty">Quantity</label>
-            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter quantity" autocomplete="off">
+            <label for="inpQty">Quantity (kg)</label>
+            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter kg" autocomplete="off">
           </div>
 
           <div class="field">
-            <label for="inpPrice">Price</label>
+            <label for="inpPrice">Price / kg</label>
             <input type="number" id="inpPrice" min="0" step="0.01" placeholder="₹" readonly>
             <div class="price-note" id="priceNote">Select a flower to use its saved rate.</div>
           </div>
@@ -5063,7 +5060,6 @@ if(resetPasswordModal){
 document.getElementById("btnResetPassword").addEventListener("click", async ()=>{
   const message = document.getElementById("resetPasswordMessage");
   const username = document.getElementById("resetUsername").value.trim();
-  const currentPassword = document.getElementById("resetCurrentPassword").value;
   const password = document.getElementById("resetNewPassword").value;
   const confirm = document.getElementById("resetConfirmPassword").value;
   const btn = document.getElementById("btnResetPassword");
@@ -5071,10 +5067,6 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
 
   if(!username){
     message.textContent = "Username is required.";
-    return;
-  }
-  if(!currentPassword){
-    message.textContent = "Current password is required.";
     return;
   }
   if(password.length < 6){
@@ -5093,7 +5085,7 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
     const res = await fetch(API_BASE + "/api/reset-password", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ username, currentPassword, newPassword: password })
+      body: JSON.stringify({ username, newPassword: password })
     });
 
     const data = await res.json().catch(()=>({}));
@@ -5103,7 +5095,6 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
       return;
     }
 
-    document.getElementById("resetCurrentPassword").value = "";
     closeResetPassword();
     document.getElementById("inpUsername").value = username;
     document.getElementById("inpPassword").value = "";
@@ -5169,7 +5160,7 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
 });
 
 // Press Enter inside reset-password fields to submit the reset form.
-["resetUsername","resetCurrentPassword","resetNewPassword","resetConfirmPassword"].forEach(id=>{
+["resetUsername","resetNewPassword","resetConfirmPassword"].forEach(id=>{
   const el = document.getElementById(id);
   if(el){
     el.addEventListener("keydown", (e)=>{
@@ -5473,16 +5464,10 @@ function normalizeFlowerName(value){
 function normalizeEntry(e){
   e = e || {};
   const qty = Number(e.qty) || 0;
-
-  const rawPrice = e.price;
-  const price = (rawPrice === null || rawPrice === undefined || rawPrice === '')
-    ? null
-    : Number(rawPrice);
-
-  const rawAmount = e.amount;
-  const amount = (rawAmount === null || rawAmount === undefined || rawAmount === '')
-    ? (price === null ? null : qty * price)
-    : Number(rawAmount);
+  const price = Number(e.price) || 0;
+  const amount = e.amount !== undefined && e.amount !== null
+    ? (Number(e.amount) || 0)
+    : qty * price;
 
   // entry_date can come back as a full ISO timestamp (e.g. 2026-08-24T00:00:00.000Z).
   // Always reduce it to a plain YYYY-MM-DD string so fmtDate() works correctly.
@@ -5848,170 +5833,135 @@ function populateRateDropdown(keepValue = true){
   const select = document.getElementById('inpRateSelect');
   const note = document.getElementById('rateSelectNote');
   if(!select) return;
-
   const previous = keepValue ? select.value : '';
-
   if(!ALLOWED_FLOWERS.includes(flower)){
     select.disabled = true;
-    select.innerHTML = '<option value="">Select a managed flower first</option>';
+    select.innerHTML = '<option value="">Select a flower first</option>';
     if(note) note.textContent = '';
     return;
   }
-
-  const rawOptions = (flowerRateOptions[flower] || []).slice();
-  const options = rawOptions
-    .filter(rate => rate && rate.id != null)
-    .sort((a,b) => {
-      const ta = String(a.time || a.rate_time || '');
-      const tb = String(b.time || b.rate_time || '');
-      return ta.localeCompare(tb);
-    });
-
-  // ALWAYS show all three rate slots. A slot can be saved or still Pending.
-  const slots = [0,1,2].map(index => {
-    const rate = options[index] || null;
-    const label = `${ordinal(index + 1)} Rate`;
-    return { index, rate, label };
-  });
-
+  const rates = (flowerRateOptions[flower] || []).slice();
   select.disabled = false;
   select.innerHTML = '<option value="">Select Rate / Time</option>';
-
-  slots.forEach(({index, rate, label}) => {
-    const opt = document.createElement('option');
-
+  [1,2,3].forEach(slot => {
+    let rate = rates.find(r => Number(r.rate_slot ?? r.rateSlot ?? r.slot) === slot);
+    if(!rate) rate = rates[slot-1] || null;
+    const opt=document.createElement('option');
+    opt.dataset.slot=String(slot);
+    opt.dataset.rateSlot=String(slot);
     if(rate){
-      opt.value = String(rate.id);
-      opt.dataset.rateId = String(rate.id);
-      opt.dataset.price = rate.price == null ? '' : String(rate.price);
-      opt.dataset.time = rate.time || rate.rate_time || '';
-      opt.dataset.slot = String(index + 1);
-      opt.textContent =
-        `${label} — ${rate.price == null || rate.price === '' ? 'Pending' : fmtMoney(rate.price)}`;
+      opt.value=String(rate.id);
+      opt.dataset.rateId=String(rate.id);
+      opt.dataset.price=rate.price==null?'':String(rate.price);
+      opt.dataset.time=rate.time||rate.rate_time||'';
+      opt.textContent=`${ordinal(slot)} Rate — ${rate.price==null||rate.price===''?'Pending':fmtMoney(rate.price)}`;
     }else{
-      // Stable value for an unsaved slot. The selected slot number is stored
-      // in dataset.slot so the entry can be recorded as Pending.
-      opt.value = `pending-slot-${index + 1}`;
-      opt.dataset.rateId = '';
-      opt.dataset.price = '';
-      opt.dataset.time = '';
-      opt.dataset.slot = String(index + 1);
-      opt.textContent = `${label} — Pending`;
+      opt.value=`slot-${slot}`;
+      opt.dataset.rateId='';
+      opt.dataset.price='';
+      opt.dataset.time='';
+      opt.textContent=`${ordinal(slot)} Rate — Pending`;
     }
-
     select.appendChild(opt);
   });
-
-  if(previous && [...select.options].some(o => o.value === previous)){
-    select.value = previous;
-  }else{
-    select.value = '';
-  }
-
-  if(note){
-    note.textContent =
-      'Choose 1st, 2nd, or 3rd Rate. If the selected rate has no price yet, the entry will be saved as Pending.';
-  }
+  if(previous && [...select.options].some(o=>o.value===previous)) select.value=previous;
+  else select.value='';
+  if(note) note.textContent='Choose 1st, 2nd, or 3rd Rate. If the price is not fixed yet, the entry will be saved as Pending.';
 }
 
 function getSelectedRateOption(){
-  const flower = getFlowerValue();
-  const select = document.getElementById('inpRateSelect');
-  if(!ALLOWED_FLOWERS.includes(flower) || !select || !select.value) return null;
-
-  const opt = select.options[select.selectedIndex];
-  const slot = Number(opt?.dataset?.slot || 0);
-
-  const saved = (flowerRateOptions[flower] || []).find(
-    r => String(r.id) === String(select.value)
-  );
-
-  if(saved){
-    return {
-      ...saved,
-      slot,
-      pending: saved.price === null || saved.price === undefined || saved.price === ''
-    };
-  }
-
-  if(String(select.value).startsWith('pending-slot-')){
-    return {
-      id: null,
-      slot,
-      pending: true,
-      price: null,
-      amount: null,
-      time: ''
-    };
-  }
-
-  return null;
+  const flower=getFlowerValue();
+  const select=document.getElementById('inpRateSelect');
+  if(!ALLOWED_FLOWERS.includes(flower)||!select||!select.value) return null;
+  const opt=select.options[select.selectedIndex];
+  const slot=Number(opt?.dataset?.slot||opt?.dataset?.rateSlot||0);
+  if(!slot) return null;
+  const saved=(flowerRateOptions[flower]||[]).find(r=>String(r.id)===String(select.value));
+  return {
+    ...(saved||{}),
+    slot,
+    rate_slot:slot,
+    pending:!saved||saved.price==null||saved.price==='',
+    price:saved&&saved.price!=null&&saved.price!==''?Number(saved.price):null,
+    time:saved?(saved.time||saved.rate_time||''):''
+  };
 }
 
-let __entryRateLoadVersion = 0;
-let __cardRateLoadVersion = 0;
-
 async function loadFlowerRates(dateOverride = null){
-  const requestVersion = ++__entryRateLoadVersion;
-  const selectedDate =
-    dateOverride ||
-    document.getElementById('inpDate')?.value ||
-    todayStr();
-
   try{
-    // Clear immediately so another date can never remain visible.
+    const selectedDate =
+      dateOverride ||
+      document.getElementById('inpDate')?.value ||
+      todayStr();
+
+    // Clear immediately so rates from another date are never shown.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
+    const rateSelect = document.getElementById('inpRateSelect');
+    if(rateSelect){
+      rateSelect.disabled = true;
+      rateSelect.innerHTML = '<option value="">No saved rate for this date</option>';
+      rateSelect.value = '';
+    }
     populateRateDropdown(false);
     applyFlowerRate();
 
+    /*
+      IMPORTANT FIX:
+      Load ALL rates from the server and filter the selected date in the
+      browser. This guarantees that all 1st / 2nd / 3rd saved rates are
+      available even if the backend does not support a specific date query.
+    */
     const res = await fetch(
-      API_BASE + '/api/rates?date=' + encodeURIComponent(selectedDate),
+      API_BASE + '/api/rates',
       {
         headers: authHeaders(),
         cache: 'no-store'
       }
     );
 
-    if(requestVersion !== __entryRateLoadVersion) return;
-
     if(res.status === 401){
       handleAuthFailure();
       return;
     }
-    if(!res.ok) throw new Error('Could not load flower rates');
 
-    const allPayload = await res.json();
-    if(requestVersion !== __entryRateLoadVersion) return;
-
-    // Use ONLY the currently requested date.
-    const selectedDateRates = getRatesArray(allPayload).filter(item =>
-      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
-    );
-
-    // Ignore stale responses if the user changed the date while loading.
-    const currentDate =
-      document.getElementById('inpDate')?.value || todayStr();
-    if(requestVersion !== __entryRateLoadVersion || currentDate !== selectedDate) return;
-
-    flowerRateOptions = ratesResponseToOptions(selectedDateRates);
-    flowerRates = ratesResponseToMap(selectedDateRates);
-
-    // Always stay on the placeholder after flower/date loading.
-    populateRateDropdown(false);
-    applyFlowerRate();
-    if(typeof window.resetEntryRateSelection === 'function'){
-      window.resetEntryRateSelection();
+    if(!res.ok){
+      throw new Error('Could not load flower rates');
     }
 
-  }catch(error){
-    if(requestVersion !== __entryRateLoadVersion) return;
-    console.error('Load entry flower rates error:', error);
-    flowerRates = normalizeFlowerRates(null);
-    flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
+    const allPayload = await res.json();
+
+    const selectedDateRates = getRatesArray(allPayload).filter(item=>{
+      const itemDate = String(
+        item?.rate_date ?? item?.date ?? ''
+      ).slice(0,10);
+
+      return itemDate === selectedDate;
+    });
+
+    // Keep every saved rate for the selected date and group them by flower.
+    flowerRateOptions = ratesResponseToOptions(selectedDateRates);
+
+    // The latest saved rate remains the default price.
+    flowerRates = ratesResponseToMap(selectedDateRates);
+
     populateRateDropdown(false);
     applyFlowerRate();
-    showToast('Rate loading failed', 'Could not load the flower rates from the server.', 'error');
+
+  }catch(error){
+    console.error('Load entry flower rates error:', error);
+
+    flowerRates = normalizeFlowerRates(null);
+    flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
+
+    populateRateDropdown(false);
+    applyFlowerRate();
+
+    showToast(
+      'Rate loading failed',
+      'Could not load the flower rates from the server.',
+      'error'
+    );
   }
 }
 
@@ -6025,63 +5975,63 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
-  const requestVersion = ++__cardRateLoadVersion;
+  // CURRENT RATE and editable inputs must always follow the selected rate date.
+  // When the date changes, rates from the previous date are cleared.
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
     todayStr();
 
-  // Clear immediately before the request starts.
-  displayFlowerRates = normalizeFlowerRates(null);
-  lastRatePayload = [];
-  fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
-  renderFlowerRates();
-
   try{
+    displayFlowerRates = normalizeFlowerRates(null);
+
+    // Load all saved rates from the server, then filter them to the selected date.
     const res = await fetch(
-      API_BASE + '/api/rates?date=' + encodeURIComponent(selectedDate),
+      API_BASE + '/api/rates',
       {
         headers: authHeaders(),
-        cache: 'no-store'
+        cache:'no-store'
       }
     );
 
-    if(requestVersion !== __cardRateLoadVersion) return;
-
-    if(res.status === 401){
+    if(res.status===401){
       handleAuthFailure();
       return;
     }
-    if(!res.ok) throw new Error('Could not load saved rates');
+
+    if(!res.ok){
+      throw new Error('Could not load saved rates');
+    }
 
     const ratePayload = await res.json();
-    if(requestVersion !== __cardRateLoadVersion) return;
 
+    // Use ONLY the selected card date everywhere in the cards. When the date
+    // changes, old prices from another day must never remain visible.
     const selectedDateRates = getRatesArray(ratePayload).filter(item =>
       String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
     );
-
-    // Ignore a response for an old date.
-    const currentDate =
-      document.getElementById('rateDateMullai')?.value || todayStr();
-    if(requestVersion !== __cardRateLoadVersion || currentDate !== selectedDate) return;
-
     lastRatePayload = selectedDateRates;
     displayFlowerRates = ratesResponseToMap(selectedDateRates);
-    fillMultiRateInputs(ratesResponseToOptions(selectedDateRates));
+
+    // Only put rates from the currently selected date into the editable
+    // 1st time / 2nd time / 3rd time input boxes.
+    const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
+    fillMultiRateInputs(selectedDateOptions);
+
     renderFlowerRates();
 
   }catch(error){
-    if(requestVersion !== __cardRateLoadVersion) return;
-    console.error('Load rate cards error:', error);
+    console.error('Load rate cards error:',error);
     displayFlowerRates = normalizeFlowerRates(null);
-    lastRatePayload = [];
-    fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
     renderFlowerRates();
-    showToast('Rates not loaded', 'Could not load the saved flower rates from the server.', 'error');
+
+    showToast(
+      'Rates not loaded',
+      'Could not load the saved flower rates from the server.',
+      'error'
+    );
   }
 }
-
 function fillMultiRateInputs(optionsByFlower){
   const config=[
     ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
@@ -6099,7 +6049,7 @@ function fillMultiRateInputs(optionsByFlower){
     }));
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
-      if(input) input.value = '';
+      if(input) input.value = rates[index]?.price ?? '';
     });
   });
 }
@@ -6124,10 +6074,10 @@ function renderFlowerRates(){
     if(st){
       if(data.price !== '' && data.price != null){
         st.textContent =
-          `Saved ₹${Number(data.price).toLocaleString('en-IN')}` +
+          `Saved ₹${Number(data.price).toLocaleString('en-IN')} / kg` +
           ` • ${data.date || selectedRateCardDate()}`;
       }else{
-        st.textContent = '';
+        st.textContent = 'Not saved for this date';
       }
     }
   });
@@ -6231,7 +6181,7 @@ function renderInlineCurrentRates(rates){
       slot.textContent=`${ordinal(index+1)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
-      value.textContent=`${fmtMoney(rate.price)}`;
+      value.textContent=`${fmtMoney(rate.price)} / kg`;
       row.append(slot,value);
       list.appendChild(row);
     });
@@ -6333,12 +6283,8 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
     // the exact saved rate_time values after an update.
     await loadRateCards(date);
     await loadFlowerRates(date);
-    // The backend may have applied this newly saved rate to pending entries.
-    // Refresh all entry/summary data immediately so pending values update.
-    await loadData(false);
-    if(typeof loadSummary === 'function') await loadSummary();
 
-    showToast(`${flower} rates saved`, `${saved.length} changed rate${saved.length===1?'':'s'} saved. Pending entries for this date will now refresh if the backend applied the rate.`, 'success');
+    showToast(`${flower} rates saved`, `${saved.length} changed rate${saved.length===1?'':'s'} saved successfully.`, 'success');
   }catch(error){
     console.error(error);
     showToast('Rate save failed', error.message || 'Could not save flower rates.', 'error');
@@ -6407,14 +6353,14 @@ function applyFlowerRate(){
     priceInput.placeholder = '₹';
 
     if(!selectedRate){
-      note.textContent = `No saved rate selected for ${fmtDate(selectedDate)}. You can add the entry now; the price and amount will stay pending until a rate is applied.`;
+      note.textContent = `⚠️ Select a saved ${flower} rate/time for ${fmtDate(selectedDate)} before adding this entry.`;
     }else{
-      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)}`;
+      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
     priceInput.classList.remove('price-managed');
-    priceInput.placeholder = 'Enter price';
+    priceInput.placeholder = 'Enter price / kg';
     note.textContent = '';
   }else{
     priceInput.value = '';
@@ -6461,16 +6407,8 @@ function setFlowerValue(flowerName){
   updateOtherFlowerField();
 }
 
-document.getElementById('inpFlowerSelect').addEventListener('change', async ()=>{
+document.getElementById('inpFlowerSelect').addEventListener('change', ()=>{
   updateOtherFlowerField();
-
-  const date =
-    document.getElementById('inpDate').value ||
-    todayStr();
-
-  // Always reload rates from the server for the selected entry date.
-  await loadFlowerRates(date);
-
   populateRateDropdown(false);
   applyFlowerRate();
 });
@@ -6481,9 +6419,7 @@ document.getElementById('inpRateSelect').addEventListener('change', ()=>{
 
 // The price always follows the selected ENTRY DATE.
 document.getElementById('inpDate').addEventListener('change', async ()=>{
-  // The entry date is the single source of truth for both the entry-rate
-  // dropdown and the Current rates cards. Never leave a previous day's
-  // price visible while either request is loading.
+  // Never carry the previous entry-date rate forward.
   flowerRates = normalizeFlowerRates(null);
   flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
   populateRateDropdown(false);
@@ -6492,32 +6428,15 @@ document.getElementById('inpDate').addEventListener('change', async ()=>{
   const date =
     document.getElementById('inpDate').value || todayStr();
 
-  // Keep all three rate-card date inputs synchronized with the entry date
-  // without dispatching another change event.
-  ['rateDateMullai','rateDatePichi','rateDateMalli'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.value=date;
-  });
-
-  // Refresh both views for exactly the same date.
-  await Promise.all([
-    loadFlowerRates(date),
-    loadRateCards(date)
-  ]);
-
-  // Re-assert the placeholder after asynchronous option rebuilding.
-  // This prevents browser form restoration from selecting an old option.
-  resetEntryRateSelection();
+  await loadFlowerRates(date);
 });
 
 applyFlowerRate();
 
 function updateAmountPreview(){
   const qty = parseFloat(document.getElementById('inpQty').value) || 0;
-  const rawPrice = document.getElementById('inpPrice').value.trim();
-  const price = rawPrice === '' ? null : parseFloat(rawPrice);
-  document.getElementById('amountPreview').textContent =
-    Number.isFinite(price) ? fmtMoney(qty * price) : 'Pending rate';
+  const price = parseFloat(document.getElementById('inpPrice').value) || 0;
+  document.getElementById('amountPreview').textContent = fmtMoney(qty * price);
 }
 document.getElementById('inpQty').addEventListener('input', updateAmountPreview);
 document.getElementById('inpPrice').addEventListener('input', updateAmountPreview);
@@ -6531,22 +6450,22 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
-  const unit = '';
-  const rawPrice = document.getElementById('inpPrice').value.trim();
-  const price = rawPrice === '' ? null : parseFloat(rawPrice);
+  const unit = 'kg';
+  const price = parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
   if(!name) missing.push("Supplier name");
   if(!date) missing.push("Date");
   if(!flower) missing.push(document.getElementById('inpFlowerSelect').value === '__other__' ? "Other flower name" : "Flower type");
   if(isNaN(qty) || qty <= 0) missing.push("Quantity");
-  // Saved flowers may be recorded before a rate is available. Their price and
-  // amount remain pending until the backend applies a rate later. Other flowers
-  // still require a manual price.
-  if((price === null || !Number.isFinite(price) || price < 0) && !ALLOWED_FLOWERS.includes(flower)) missing.push("Price");
+  if(isNaN(price) || price < 0) missing.push(ALLOWED_FLOWERS.includes(flower) ? "Flower rate (set it above)" : "Price per kg");
 
   if(missing.length > 0){
-    showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
+    if(ALLOWED_FLOWERS.includes(flower) && (isNaN(price) || price < 0)){
+      showToast("Flower rate missing", `Please enter the ${flower} rate for ${fmtDate(date)} before adding this entry.`, "error");
+    }else{
+      showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
+    }
     return;
   }
 
@@ -6567,8 +6486,8 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       qty,
       unit,
       price,
-      amount: price === null ? null : qty * price,
-      rate_time: selectedRate ? (selectedRate.time || undefined) : undefined,
+      amount: qty * price,
+      rate_time: selectedRate ? selectedRate.time : undefined,
       rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
@@ -6585,15 +6504,15 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       qty,
       unit,
       price,
-      amount: price === null ? null : qty * price,
+      amount: qty * price,
       paid: false,
       paidDate: null,
-      rate_time: selectedRate ? (selectedRate.time || undefined) : undefined,
+      rate_time: selectedRate ? selectedRate.time : undefined,
       rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(entry);
     if(!saved) return;
-    showToast("Entry added", price === null ? `${name}'s entry was recorded with a pending rate.` : `${name} — ${fmtMoney(qty*price)} recorded.`, "success");
+    showToast("Entry added", `${name} — ${fmtMoney(qty*price)} recorded.`, "success");
   }
 
   document.getElementById('inpName').value = "";
@@ -6654,7 +6573,7 @@ async function saveEntryEdit(){
   if(!name||!date||!flower||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0){showToast('Edit failed','Please enter supplier, date, flower, quantity and price.','error');return;}
   const existing=entries.find(x=>String(x.id)===String(editingEntryId));
   if(!existing) return;
-  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'',price,amount:Number((qty*price).toFixed(2))};
+  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'kg',price,amount:Number((qty*price).toFixed(2))};
   const ok=await dbAddOrUpdate(updated,editingEntryId);
   if(ok){closeEntryEdit();showToast('Entry updated','The ledger row was updated directly.','success');render();}
 }
@@ -7072,9 +6991,9 @@ function render(){
       <td class="mono-cell">${fmtDate(e.date)}</td>
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
-      <td class="mono-cell">${e.qty}</td>
-      <td class="mono-cell">${e.price == null || e.price === '' ? 'Pending' : fmtMoney(e.price)}</td>
-      <td class="amount-cell">${e.amount == null || e.amount === '' ? 'Pending' : fmtMoney(e.amount)}</td>
+      <td class="mono-cell">${e.qty} kg</td>
+      <td class="mono-cell">${fmtMoney(e.price)}</td>
+      <td class="amount-cell">${fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-edit" onclick="editEntry('${e.id}')">Edit</button>
         <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Delete</button>
@@ -7097,8 +7016,8 @@ function render(){
           <th>Date</th>
           <th>Supplier</th>
           <th>Flower</th>
-          <th>Quantity</th>
-          <th>Price</th>
+          <th>Quantity (kg)</th>
+          <th>Price / kg</th>
           <th>Amount</th>
           <th>Edit</th>
         </tr>
@@ -7142,9 +7061,9 @@ function exportExcel(){
       "Date": e.date || "",
       "Supplier": e.name || "",
       "Flower": flowerLabel(e.flower),
-      "Quantity": Number(e.qty || 0),
-      "Price": e.price == null || e.price === '' ? '' : Number(e.price),
-      "Amount": e.amount == null || e.amount === '' ? '' : Number(e.amount),
+      "Quantity (kg)": Number(e.qty || 0),
+      "Price / kg": Number(e.price || 0),
+      "Amount": Number(e.amount || 0),
       "Paid": e.paid ? "Yes" : "No",
       "Paid Date": e.paidDate || ""
     }));
@@ -7160,14 +7079,14 @@ function exportExcel(){
 
   // Add a small summary sheet so the Excel file is useful for accounting.
   const totalQty = toExport.reduce((sum,e)=>sum + Number(e.qty || 0), 0);
-  const totalAmount = toExport.reduce((sum,e)=>sum + e.amount == null || e.amount === '' ? '' : Number(e.amount), 0);
+  const totalAmount = toExport.reduce((sum,e)=>sum + Number(e.amount || 0), 0);
   const supplierCount = new Set(toExport.map(e => String(e.name || '').trim().toLowerCase()).filter(Boolean)).size;
   const summaryRows = [
     ["S.P.S. மலரகம்", "Flower Ledger"],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
     ["Suppliers", supplierCount],
-    ["Total quantity", totalQty],
+    ["Total quantity (kg)", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7286,9 +7205,10 @@ async function exportPdf(){
       <thead>
         <tr style="background:#FFE6EF;">
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
+          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Supplier</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity (kg)</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price / kg</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Amount</th>
         </tr>
       </thead>
@@ -7297,10 +7217,11 @@ async function exportPdf(){
     function pdfRowHtml(e){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(e.name||'')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${e.price == null || e.price === '' ? 'Pending' : fmtMoney(e.price)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${e.amount == null || e.amount === '' ? 'Pending' : fmtMoney(e.amount)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')} kg</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
       </tr>`;
     }
 
@@ -7461,7 +7382,7 @@ async function exportPdf(){
           <tfoot>
             <tr style="background:#FFF7FA;font-weight:800;">
               <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')}</td>
+              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')} kg</td>
               <td style="padding:11px;border:1px solid #E3B0C3;"></td>
               <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
             </tr>
@@ -7583,7 +7504,7 @@ document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
 document.getElementById('btnExport').addEventListener('click', ()=>{
   let toExport = getReportEntries();
   if(toExport.length === 0){ showToast("Nothing to export", "No entries match the selected date range.", "error"); return; }
-  const header = ["Date","Supplier","Flower","Quantity","Price","Amount"];
+  const header = ["Date","Supplier","Flower","Quantity (kg)","Price per kg","Amount"];
   const rows = toExport
     .slice()
     .sort((a,b)=> (a.date+ (a.time||"")).localeCompare(b.date+(b.time||"")))
@@ -7623,69 +7544,25 @@ window.addEventListener('load',()=>{
 
 <script id="final-rate-and-eye-fixes">
 (() => {
-  // Lock all password-eye buttons in the exact center on hover, focus and touch.
-  const lockEyeButtons = () => {
-    document.querySelectorAll('.password-view-btn,.password-toggle').forEach(btn => {
-      btn.removeAttribute('title');
-      btn.style.top='50%';
-      btn.style.bottom='auto';
-      btn.style.transform='translateY(-50%)';
-      btn.style.margin='0';
-      btn.style.padding='0';
-      btn.addEventListener('pointerdown', () => {
-        btn.style.top='50%';
-        btn.style.bottom='auto';
-        btn.style.transform='translateY(-50%)';
-        btn.style.margin='0';
-        btn.style.padding='0';
-      }, {passive:true});
-      btn.addEventListener('touchstart', () => {
-        btn.style.top='50%';
-        btn.style.bottom='auto';
-        btn.style.transform='translateY(-50%)';
-      }, {passive:true});
-    });
-  };
+  // Remove browser "Show password" tooltip and lock all eye buttons in place.
+  document.querySelectorAll('.password-view-btn,.password-toggle').forEach(btn => {
+    btn.removeAttribute('title');
+    btn.style.top='50%'; btn.style.bottom='auto';
+    btn.style.transform='translateY(-50%)';
+    btn.style.margin='0';
+  });
 
-  // Always force the entry-rate select back to its placeholder.
-  // This is deliberately callable from async loaders as well as events,
-  // because browser form restoration can occur after options are rebuilt.
-  window.resetEntryRateSelection = () => {
-    const select=document.getElementById('inpRateSelect');
-    if(!select) return;
-    select.setAttribute('autocomplete','off');
-    select.setAttribute('data-lpignore','true');
-    select.setAttribute('data-1p-ignore','true');
-    if(select.options.length){
-      select.selectedIndex=0;
-      select.value='';
-    }
+  // If browser form restoration selects an old option, reset it whenever the
+  // flower or entry date changes.
+  const resetRateChoice = () => {
+    const s=document.getElementById('inpRateSelect');
+    if(!s) return;
+    if(s.options.length){ s.selectedIndex=0; s.value=''; }
     const price=document.getElementById('inpPrice');
     if(price) price.value='';
-    if(typeof updateAmountPreview==='function') updateAmountPreview();
   };
-
-  lockEyeButtons();
-
-  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => {
-    setTimeout(window.resetEntryRateSelection, 0);
-  });
-
-  document.getElementById('inpDate')?.addEventListener('change', () => {
-    setTimeout(window.resetEntryRateSelection, 0);
-  });
-
-  // Handle Chrome/Edge bfcache and form-state restoration on refresh/back.
-  window.addEventListener('pageshow', () => {
-    setTimeout(window.resetEntryRateSelection, 0);
-    setTimeout(window.resetEntryRateSelection, 150);
-  });
-
-  // Also reset after the initial asynchronous rate fetch has rebuilt options.
-  window.addEventListener('load', () => {
-    setTimeout(window.resetEntryRateSelection, 0);
-    setTimeout(window.resetEntryRateSelection, 450);
-  });
+  document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
+  document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
 })();
 </script>
 </body>
