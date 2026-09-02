@@ -184,6 +184,7 @@ async function syncRatesJson() {
         rate_date,
         rate_time,
         rate_slot,
+        user_id,
         created_at,
         updated_at
 
@@ -471,13 +472,48 @@ async function initializeDatabase() {
       flower_rates_flower_date_time_unique;
     `);
 
+    // ========================================================
+    // USER OWNERSHIP ON FLOWER_RATES
+    // ========================================================
+    //
+    // WORKFLOW CHANGE:
+    //
+    // Rates were previously global - one shared price list for
+    // every login. Saving a rate under any account backfilled
+    // EVERY account's pending entries for that flower/date/slot.
+    //
+    // Each login now keeps its own independent rate list: rates
+    // are scoped by user_id, and the backfill in POST /api/rates
+    // only ever updates that same account's own pending entries.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      ADD COLUMN IF NOT EXISTS
+      user_id BIGINT;
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS
+      idx_flower_rates_user_id
+      ON flower_rates(user_id);
+    `);
+
+    // Old shared-across-everyone unique key is retired - a rate
+    // is now unique per (user, flower, date, slot) instead.
+    await client.query(`
+      DROP INDEX IF EXISTS
+      flower_rates_flower_date_slot_unique;
+    `);
+
     // One rate for:
-    // FLOWER + DATE + SLOT (1st / 2nd / 3rd)
+    // USER + FLOWER + DATE + SLOT (1st / 2nd / 3rd)
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS
-      flower_rates_flower_date_slot_unique
+      flower_rates_user_flower_date_slot_unique
       ON flower_rates
       (
+        user_id,
         flower,
         rate_date,
         rate_slot
@@ -1573,7 +1609,10 @@ app.get(
       // ------------------------------------------------------
 
       if (date) {
-        const params = [date];
+        const params = [
+          req.user.id,
+          date,
+        ];
 
         let timeCondition = "";
 
@@ -1600,7 +1639,10 @@ app.get(
             FROM flower_rates
 
             WHERE
-              rate_date = $1
+              user_id = $1
+
+              AND
+              rate_date = $2
 
               ${timeCondition}
 
@@ -1626,9 +1668,13 @@ app.get(
       // DATE RANGE
       // ------------------------------------------------------
 
-      const params = [];
+      const params = [
+        req.user.id,
+      ];
 
-      const conditions = [];
+      const conditions = [
+        "user_id = $1",
+      ];
 
       if (from) {
         params.push(from);
@@ -1647,11 +1693,9 @@ app.get(
       }
 
       const where =
-        conditions.length
-          ? `WHERE ${conditions.join(
-              " AND "
-            )}`
-          : "";
+        `WHERE ${conditions.join(
+          " AND "
+        )}`;
 
       const result =
         await pool.query(
@@ -1762,13 +1806,16 @@ app.get(
           FROM flower_rates
 
           WHERE
-            flower = $1
+            user_id = $1
 
             AND
-            rate_date = $2
+            flower = $2
 
             AND
-            rate_time <= $3::time
+            rate_date = $3
+
+            AND
+            rate_time <= $4::time
 
           ORDER BY
             rate_time DESC,
@@ -1777,6 +1824,7 @@ app.get(
           LIMIT 1
           `,
           [
+            req.user.id,
             flower,
             date,
             at,
@@ -1944,6 +1992,7 @@ app.post(
             rate_date,
             rate_time,
             rate_slot,
+            user_id,
             updated_at
           )
 
@@ -1956,11 +2005,13 @@ app.post(
             $5,
             $6,
             $7,
+            $8,
             NOW()
           )
 
           ON CONFLICT
           (
+            user_id,
             flower,
             rate_date,
             rate_slot
@@ -2009,20 +2060,23 @@ app.post(
             rateDate,
             rateTime,
             rateSlot,
+            req.user.id,
           ]
         );
 
       // ======================================================
-      // BACKFILL PENDING ENTRIES
+      // BACKFILL PENDING ENTRIES (SAME LOGIN ONLY)
       // ======================================================
       //
-      // WORKFLOW (rate_slot optional on entries):
+      // WORKFLOW (rate_slot optional on entries, rates scoped
+      // per login):
       //
       // Entries can be added at any time WITHOUT picking a rate
       // slot up front - rate_slot is left NULL on the entry.
-      // Whenever a rate is saved for that flower + date, every
-      // still-pending slot-less entry for that flower + date
-      // gets this price applied.
+      // Whenever THIS account saves a rate for that flower +
+      // date, every still-pending slot-less entry belonging to
+      // THIS SAME account for that flower + date gets this
+      // price applied.
       //
       // If an entry DOES have a specific rate_slot recorded
       // (either chosen at creation time or set explicitly via
@@ -2036,14 +2090,10 @@ app.post(
       // rate is saved first for that date, later rate saves for
       // other slots on the same date will not re-overwrite it.
       //
-      // NOTE: this backfill intentionally matches on flower +
-      // entry_date (+ rate_slot when set) ONLY, regardless of
-      // which login owns the entry or the rate. Flower rates are
-      // shared/global (the price of Malli on a given date is the
-      // same for everyone), so a rate saved by one login is
-      // meant to backfill every user's pending entries for that
-      // flower + date + slot - only the entries themselves
-      // (GET/PUT/DELETE) are scoped per-user, not the rates.
+      // user_id = $5 is the critical scoping condition: rates
+      // are now per-account, so saving a rate NEVER touches
+      // another login's entries, even if they logged the same
+      // flower on the same date.
       // ======================================================
 
       await pool.query(
@@ -2068,6 +2118,9 @@ app.post(
           )
 
           AND
+          user_id = $5
+
+          AND
           (
            price IS NULL
            OR (price = 0 AND amount = 0)
@@ -2078,6 +2131,7 @@ app.post(
           flower,
           rateDate,
           rateSlot,
+          req.user.id,
         ]
       );
 
@@ -2124,13 +2178,14 @@ app.post(
 //   immediately.
 // - rate_slot provided + no matching price yet -> entry is
 //   created as "Pending" (price/amount NULL) and gets
-//   backfilled only when that exact slot's rate is saved
-//   (see the UPDATE in POST /api/rates).
+//   backfilled only when THIS SAME account saves that exact
+//   slot's rate (see the UPDATE in POST /api/rates).
 // - rate_slot NOT provided -> entry is created as "Pending"
 //   with rate_slot left NULL, price/amount NULL. It gets
-//   backfilled by whichever rate (1st/2nd/3rd) is saved FIRST
-//   for that flower + date (POST /api/rates matches entries
-//   where rate_slot IS NULL OR rate_slot = <slot just saved>).
+//   backfilled by whichever rate (1st/2nd/3rd) THIS SAME
+//   account saves FIRST for that flower + date (POST /api/rates
+//   matches entries where rate_slot IS NULL OR rate_slot =
+//   <slot just saved>, AND user_id = the account saving it).
 //
 // ============================================================
 
