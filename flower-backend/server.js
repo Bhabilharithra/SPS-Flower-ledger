@@ -406,6 +406,37 @@ async function initializeDatabase() {
       );
     `);
 
+    // ========================================================
+    // ALLOW PENDING ENTRIES (NULL price / amount)
+    // ========================================================
+    //
+    // Entries created before a flower rate has been saved for
+    // that flower/date need to be insertable with price = NULL
+    // and amount = NULL, showing as "Pending" in the frontend
+    // until a matching rate is saved (see POST /api/rates,
+    // which then backfills these rows).
+    //
+    // These ALTER statements are idempotent - safe to run on
+    // every startup, whether the columns are already nullable
+    // or not.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE entries ALTER COLUMN price DROP NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE entries ALTER COLUMN price DROP DEFAULT;
+    `);
+
+    await client.query(`
+      ALTER TABLE entries ALTER COLUMN amount DROP NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE entries ALTER COLUMN amount DROP DEFAULT;
+    `);
+
     await client.query(`
       CREATE INDEX IF NOT EXISTS
       idx_entries_date
@@ -1714,7 +1745,46 @@ app.post(
           ]
         );
 
+      // ======================================================
+      // BACKFILL PENDING ENTRIES
+      // ======================================================
+      //
+      // Any entry for this flower + rate date that was created
+      // BEFORE a rate existed (price/amount left NULL, shown as
+      // "Pending" in the frontend) now gets this rate applied.
+      //
+      // NOTE: entries has no user_id column in this schema, so
+      // this is not scoped per-user - it matches on flower +
+      // entry_date only, same as the lookup in POST /api/entries.
+      // ======================================================
+
+      await pool.query(
+        `
+        UPDATE entries
+
+        SET
+          price = $1,
+          amount = ROUND(qty * $1, 2),
+          updated_at = NOW()
+
+        WHERE
+          flower = $2
+
+          AND
+          entry_date = $3
+
+          AND
+          price IS NULL
+        `,
+        [
+          price,
+          flower,
+          rateDate,
+        ]
+      );
+
       await syncRatesJson();
+      await syncEntriesJson();
 
       res.json({
         success: true,
@@ -1762,6 +1832,11 @@ app.post(
 // Entry gets ₹80.
 //
 // An entry at 15:00 gets ₹100.
+//
+// If NO matching rate exists yet, the entry is still created,
+// with price and amount left NULL. The frontend shows these as
+// "Pending" until a matching rate is saved (see POST /api/rates,
+// which backfills these rows automatically).
 //
 // ============================================================
 
@@ -1937,51 +2012,52 @@ app.post(
 
       }
 
+      // ======================================================
+      // NO MATCHING RATE YET -> CREATE AS "PENDING"
+      // ======================================================
+      //
+      // Previously this returned 400 FLOWER_RATE_MISSING and
+      // blocked the insert entirely. Now the entry is still
+      // created, with price/amount left NULL, and gets
+      // backfilled automatically once a matching rate is saved
+      // (see the UPDATE in POST /api/rates above).
+      // ======================================================
+
+      let price = null;
+      let amount = null;
+
       if (
-        rateResult.rows.length ===
+        rateResult.rows.length >
         0
       ) {
-        return res.status(400).json({
-          success: false,
-          code:
-            "FLOWER_RATE_MISSING",
+        const rawPrice =
+          Number(
+            rateResult.rows[0].price
+          );
 
-          message:
-            `Please enter the ${flower} rate for ${entryDate} before adding this entry.`,
+        if (
+          !Number.isFinite(rawPrice) ||
+          rawPrice < 0
+        ) {
+          return res.status(400).json({
+            success: false,
+            code:
+              "INVALID_FLOWER_RATE",
 
-          flower,
-          date:
-            entryDate,
-          time:
-            entryTime,
-        });
+            message:
+              "The flower rate is invalid. Please update the rate before adding the entry.",
+          });
+        }
+
+        price = rawPrice;
+
+        amount =
+          Number(
+            (
+              qty * price
+            ).toFixed(2)
+          );
       }
-
-      const price =
-        Number(
-          rateResult.rows[0].price
-        );
-
-      if (
-        !Number.isFinite(price) ||
-        price < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          code:
-            "INVALID_FLOWER_RATE",
-
-          message:
-            "The flower rate is invalid. Please update the rate before adding the entry.",
-        });
-      }
-
-      const amount =
-        Number(
-          (
-            qty * price
-          ).toFixed(2)
-        );
 
       const id =
         crypto.randomUUID();
@@ -2047,7 +2123,9 @@ app.post(
       res.status(201).json({
         success: true,
         message:
-          "Entry added successfully.",
+          price === null
+            ? "Entry added as pending (no rate set yet)."
+            : "Entry added successfully.",
         entry:
           result.rows[0],
       });

@@ -7115,7 +7115,7 @@ function exportExcel(){
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
     ["Suppliers", supplierCount],
-    ["Total quantity (kg)", totalQty],
+    ["Total quantity", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
