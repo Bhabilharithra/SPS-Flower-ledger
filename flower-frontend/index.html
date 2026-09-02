@@ -5473,10 +5473,16 @@ function normalizeFlowerName(value){
 function normalizeEntry(e){
   e = e || {};
   const qty = Number(e.qty) || 0;
-  const price = Number(e.price) || 0;
-  const amount = e.amount !== undefined && e.amount !== null
-    ? (Number(e.amount) || 0)
-    : qty * price;
+
+  const rawPrice = e.price;
+  const price = (rawPrice === null || rawPrice === undefined || rawPrice === '')
+    ? null
+    : Number(rawPrice);
+
+  const rawAmount = e.amount;
+  const amount = (rawAmount === null || rawAmount === undefined || rawAmount === '')
+    ? (price === null ? null : qty * price)
+    : Number(rawAmount);
 
   // entry_date can come back as a full ISO timestamp (e.g. 2026-08-24T00:00:00.000Z).
   // Always reduce it to a plain YYYY-MM-DD string so fmtDate() works correctly.
@@ -6419,8 +6425,16 @@ function setFlowerValue(flowerName){
   updateOtherFlowerField();
 }
 
-document.getElementById('inpFlowerSelect').addEventListener('change', ()=>{
+document.getElementById('inpFlowerSelect').addEventListener('change', async ()=>{
   updateOtherFlowerField();
+
+  const date =
+    document.getElementById('inpDate').value ||
+    todayStr();
+
+  // Always reload rates from the server for the selected entry date.
+  await loadFlowerRates(date);
+
   populateRateDropdown(false);
   applyFlowerRate();
 });

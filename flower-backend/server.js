@@ -1774,7 +1774,10 @@ app.post(
           entry_date = $3
 
           AND
-          price IS NULL
+          (
+           price IS NULL
+           OR (price = 0 AND amount = 0)
+          )
         `,
         [
           price,
