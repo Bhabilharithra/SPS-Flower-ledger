@@ -3491,7 +3491,7 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-  vertical-align:middle !important;
+ 
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -6263,6 +6263,11 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
           name: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           englishName: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           price:item.price,
+          // IMPORTANT: server.js requires the slot name exactly.
+          // item.slot is 0, 1, 2 in this loop, so convert it to 1st/2nd/3rd Rate.
+          rate_slot:`${ordinal(item.slot + 1)} Rate`,
+          rateSlot:`${ordinal(item.slot + 1)} Rate`,
+          slot:item.slot + 1,
           date,
           rate_date:date,
           rateDate:date,
@@ -6342,20 +6347,23 @@ function applyFlowerRate(){
   const selectedRate = getSelectedRateOption();
 
   if(ALLOWED_FLOWERS.includes(flower)){
-    // IMPORTANT: never fall back to a previous/last rate. The entry price must
-    // come only from the rate explicitly selected for the current entry date.
+    // The user can create an entry before the flower price is fixed.
+    // The selected 1st/2nd/3rd slot is saved with the entry and the backend
+    // can update pending entries later when that slot's rate is saved.
     const data = selectedRate || null;
-    const rate = data ? data.price : '';
+    const rate = data ? data.price : null;
 
-    priceInput.value = rate === '' || rate == null ? '' : rate;
+    priceInput.value = rate == null || rate === '' ? '' : rate;
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
-    priceInput.placeholder = '₹';
+    priceInput.placeholder = data ? (data.pending ? 'Pending' : '₹') : '₹';
 
     if(!selectedRate){
-      note.textContent = `⚠️ Select a saved ${flower} rate/time for ${fmtDate(selectedDate)} before adding this entry.`;
+      note.textContent = `⚠️ Choose 1st, 2nd, or 3rd Rate for ${flower}. The price can be fixed later.`;
+    }else if(selectedRate.pending || rate == null || rate === ''){
+      note.textContent = `${ordinal(selectedRate.slot)} Rate selected — Pending. You can add this entry now and fix the price later.`;
     }else{
-      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
+      note.textContent = `${ordinal(selectedRate.slot)} Rate selected: ${fmtMoney(rate)} / kg`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
@@ -6434,6 +6442,14 @@ document.getElementById('inpDate').addEventListener('change', async ()=>{
 applyFlowerRate();
 
 function updateAmountPreview(){
+  const selectedRate = getSelectedRateOption();
+  const flower = getFlowerValue();
+  const pending = ALLOWED_FLOWERS.includes(flower) && selectedRate &&
+    (selectedRate.pending || selectedRate.price == null || selectedRate.price === '');
+  if(pending){
+    document.getElementById('amountPreview').textContent = 'Pending rate';
+    return;
+  }
   const qty = parseFloat(document.getElementById('inpQty').value) || 0;
   const price = parseFloat(document.getElementById('inpPrice').value) || 0;
   document.getElementById('amountPreview').textContent = fmtMoney(qty * price);
@@ -6458,16 +6474,24 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   if(!date) missing.push("Date");
   if(!flower) missing.push(document.getElementById('inpFlowerSelect').value === '__other__' ? "Other flower name" : "Flower type");
   if(isNaN(qty) || qty <= 0) missing.push("Quantity");
-  if(isNaN(price) || price < 0) missing.push(ALLOWED_FLOWERS.includes(flower) ? "Flower rate (set it above)" : "Price per kg");
+
+  // For the three managed flowers, a rate PRICE is optional. The user only
+  // needs to choose a rate SLOT (1st/2nd/3rd). Pending entries are allowed.
+  if(ALLOWED_FLOWERS.includes(flower)){
+    if(!selectedRate) missing.push("Rate / Time (1st, 2nd, or 3rd Rate)");
+  }else if(isNaN(price) || price < 0){
+    missing.push("Price per kg");
+  }
 
   if(missing.length > 0){
-    if(ALLOWED_FLOWERS.includes(flower) && (isNaN(price) || price < 0)){
-      showToast("Flower rate missing", `Please enter the ${flower} rate for ${fmtDate(date)} before adding this entry.`, "error");
-    }else{
-      showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
-    }
+    showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
     return;
   }
+
+  const pendingRate = ALLOWED_FLOWERS.includes(flower) &&
+    selectedRate && (selectedRate.pending || selectedRate.price == null || selectedRate.price === '');
+  const entryPrice = pendingRate ? null : price;
+  const entryAmount = pendingRate ? null : qty * entryPrice;
 
   if(editingId){
     const idBeingEdited = editingId;
@@ -6485,9 +6509,9 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       flower,
       qty,
       unit,
-      price,
-      amount: qty * price,
-      rate_time: selectedRate ? selectedRate.time : undefined,
+      price: entryPrice,
+      amount: entryAmount,
+      rate_time: selectedRate && selectedRate.time ? selectedRate.time : undefined,
       rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
@@ -6503,16 +6527,16 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       flower,
       qty,
       unit,
-      price,
-      amount: qty * price,
+      price: entryPrice,
+      amount: entryAmount,
       paid: false,
       paidDate: null,
-      rate_time: selectedRate ? selectedRate.time : undefined,
+      rate_time: selectedRate && selectedRate.time ? selectedRate.time : undefined,
       rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(entry);
     if(!saved) return;
-    showToast("Entry added", `${name} — ${fmtMoney(qty*price)} recorded.`, "success");
+    showToast("Entry added", pendingRate ? `${name} — Pending rate recorded.` : `${name} — ${fmtMoney(entryAmount)} recorded.`, "success");
   }
 
   document.getElementById('inpName').value = "";
