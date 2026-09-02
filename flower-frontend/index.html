@@ -5850,72 +5850,102 @@ function populateRateDropdown(keepValue = true){
   if(!select) return;
 
   const previous = keepValue ? select.value : '';
-  select.innerHTML = '';
 
   if(!ALLOWED_FLOWERS.includes(flower)){
     select.disabled = true;
-    select.innerHTML = '<option value="">Select flower first</option>';
-    if(note) note.textContent = 'Choose the saved rate/time for this entry.';
+    select.innerHTML = '<option value="">Select a managed flower first</option>';
+    if(note) note.textContent = '';
     return;
   }
 
-  // IMPORTANT: keep ALL saved rates for this flower/date.
-  // Do not collapse 1st, 2nd and 3rd rates into only one "latest" rate.
-  const rawOptions = flowerRateOptions[flower] || [];
-  const seen = new Set();
-  const options = rawOptions.filter(rate=>{
-    const key = String(rate.id ?? `${rate.date}-${rate.time}-${rate.price}`);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  const rawOptions = (flowerRateOptions[flower] || []).slice();
+  const options = rawOptions
+    .filter(rate => rate && rate.id != null)
+    .sort((a,b) => {
+      const ta = String(a.time || a.rate_time || '');
+      const tb = String(b.time || b.rate_time || '');
+      return ta.localeCompare(tb);
+    });
+
+  // ALWAYS show all three rate slots. A slot can be saved or still Pending.
+  const slots = [0,1,2].map(index => {
+    const rate = options[index] || null;
+    const label = `${ordinal(index + 1)} Rate`;
+    return { index, rate, label };
   });
 
-  if(!options.length){
-    select.disabled = true;
-    select.innerHTML = '<option value="">No saved rate for this date</option>';
-    if(note) note.textContent = 'No saved rate exists for this flower on the selected date.';
-    return;
-  }
-
   select.disabled = false;
-  // Always start with the placeholder. Never keep a previous rate from another
-  // flower/date and never auto-select the 3rd/latest option.
-  select.innerHTML = '<option value="" selected>Select rate / time</option>';
+  select.innerHTML = '<option value="">Select Rate / Time</option>';
 
-  options.forEach((rate,index)=>{
+  slots.forEach(({index, rate, label}) => {
     const opt = document.createElement('option');
-    opt.value = String(rate.id);
-    opt.textContent =
-      `${ordinal(index + 1)} time — ${fmtMoney(rate.price)}` +
-      `${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
-    opt.dataset.price = String(rate.price);
-    opt.dataset.time = rate.time || '';
-    opt.dataset.date = rate.date || '';
+
+    if(rate){
+      opt.value = String(rate.id);
+      opt.dataset.rateId = String(rate.id);
+      opt.dataset.price = rate.price == null ? '' : String(rate.price);
+      opt.dataset.time = rate.time || rate.rate_time || '';
+      opt.dataset.slot = String(index + 1);
+      opt.textContent =
+        `${label} — ${rate.price == null || rate.price === '' ? 'Pending' : fmtMoney(rate.price)}`;
+    }else{
+      // Stable value for an unsaved slot. The selected slot number is stored
+      // in dataset.slot so the entry can be recorded as Pending.
+      opt.value = `pending-slot-${index + 1}`;
+      opt.dataset.rateId = '';
+      opt.dataset.price = '';
+      opt.dataset.time = '';
+      opt.dataset.slot = String(index + 1);
+      opt.textContent = `${label} — Pending`;
+    }
+
     select.appendChild(opt);
   });
 
-  // Keep a value only when this exact flower/date dropdown still contains it.
-  // On a flower/date refresh, populateRateDropdown(false) forces the placeholder.
-  if(keepValue && previous && [...select.options].some(o=>o.value===previous)){
+  if(previous && [...select.options].some(o => o.value === previous)){
     select.value = previous;
   }else{
-    select.selectedIndex = 0;
     select.value = '';
   }
 
   if(note){
     note.textContent =
-      `${options.length} saved rate${options.length===1?'':'s'} available for ` +
-      `${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
+      'Choose 1st, 2nd, or 3rd Rate. If the selected rate has no price yet, the entry will be saved as Pending.';
   }
 }
-
 
 function getSelectedRateOption(){
   const flower = getFlowerValue();
   const select = document.getElementById('inpRateSelect');
   if(!ALLOWED_FLOWERS.includes(flower) || !select || !select.value) return null;
-  return (flowerRateOptions[flower] || []).find(r=>String(r.id)===String(select.value)) || null;
+
+  const opt = select.options[select.selectedIndex];
+  const slot = Number(opt?.dataset?.slot || 0);
+
+  const saved = (flowerRateOptions[flower] || []).find(
+    r => String(r.id) === String(select.value)
+  );
+
+  if(saved){
+    return {
+      ...saved,
+      slot,
+      pending: saved.price === null || saved.price === undefined || saved.price === ''
+    };
+  }
+
+  if(String(select.value).startsWith('pending-slot-')){
+    return {
+      id: null,
+      slot,
+      pending: true,
+      price: null,
+      amount: null,
+      time: ''
+    };
+  }
+
+  return null;
 }
 
 let __entryRateLoadVersion = 0;
@@ -6538,7 +6568,8 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       unit,
       price,
       amount: price === null ? null : qty * price,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      rate_time: selectedRate ? (selectedRate.time || undefined) : undefined,
+      rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
@@ -6557,7 +6588,8 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       amount: price === null ? null : qty * price,
       paid: false,
       paidDate: null,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      rate_time: selectedRate ? (selectedRate.time || undefined) : undefined,
+      rate_slot: selectedRate ? selectedRate.slot : undefined
     };
     const saved = await dbAddOrUpdate(entry);
     if(!saved) return;

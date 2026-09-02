@@ -142,6 +142,7 @@ async function syncEntriesJson() {
         unit,
         price,
         amount,
+        rate_slot,
         paid,
         paid_date,
         created_at,
@@ -181,6 +182,7 @@ async function syncRatesJson() {
         price,
         rate_date,
         rate_time,
+        rate_slot,
         created_at,
         updated_at
 
@@ -188,7 +190,7 @@ async function syncRatesJson() {
 
       ORDER BY
         rate_date DESC,
-        rate_time DESC,
+        rate_slot ASC,
         flower
     `);
 
@@ -360,6 +362,96 @@ async function initializeDatabase() {
       SET NOT NULL;
     `);
 
+    // ========================================================
+    // RATE SLOTS (1st / 2nd / 3rd Rate)
+    // ========================================================
+    //
+    // BUG FIX + WORKFLOW CHANGE:
+    //
+    // Previously, entries were matched to a flower_rates row by
+    // clock TIME (rate_time), and the New Flower Entry dropdown
+    // only showed rate options that already existed - so it had
+    // to be disabled/hidden until a rate was saved.
+    //
+    // The new workflow always shows exactly three fixed slots -
+    // "1st Rate", "2nd Rate", "3rd Rate" - for every flower/date,
+    // even before any price has been entered. The user picks a
+    // slot up front; the entry is stored as "Pending" against
+    // that slot until a matching price is saved later.
+    //
+    // rate_slot (1, 2, or 3) is the new join key between
+    // flower_rates and entries, replacing rate_time for this
+    // purpose. rate_time is kept only as an informational
+    // timestamp (auto-set to when the rate was saved) - it is no
+    // longer used to decide which entries get which price.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      ADD COLUMN IF NOT EXISTS
+      rate_slot SMALLINT;
+    `);
+
+    // Backfill rate_slot for pre-existing rows: order each
+    // flower/date's rates by rate_time and number them 1, 2, 3.
+    // Anything beyond a 3rd rate on the same day (rare legacy
+    // data) is clipped into slot 3.
+    await client.query(`
+      WITH ranked AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (
+            PARTITION BY flower, rate_date
+            ORDER BY rate_time ASC, id ASC
+          ) AS rn
+        FROM flower_rates
+        WHERE rate_slot IS NULL
+      )
+      UPDATE flower_rates fr
+      SET rate_slot = LEAST(ranked.rn, 3)
+      FROM ranked
+      WHERE fr.id = ranked.id;
+    `);
+
+    // Safety cleanup so the new unique index below can never
+    // fail: if legacy data ever produced two rows clipped into
+    // the same (flower, rate_date, rate_slot), keep only the
+    // most recently saved row.
+    await client.query(`
+      DELETE FROM flower_rates a
+      USING flower_rates b
+      WHERE a.flower = b.flower
+        AND a.rate_date = b.rate_date
+        AND a.rate_slot = b.rate_slot
+        AND a.rate_slot IS NOT NULL
+        AND a.id < b.id;
+    `);
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      ALTER COLUMN rate_slot
+      SET DEFAULT 1;
+    `);
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      ALTER COLUMN rate_slot
+      SET NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      DROP CONSTRAINT IF EXISTS
+      flower_rates_rate_slot_check;
+    `);
+
+    await client.query(`
+      ALTER TABLE flower_rates
+      ADD CONSTRAINT
+      flower_rates_rate_slot_check
+      CHECK (rate_slot BETWEEN 1 AND 3);
+    `);
+
     // Remove old indexes if they exist.
     await client.query(`
       DROP INDEX IF EXISTS
@@ -371,16 +463,23 @@ async function initializeDatabase() {
       flower_rates_flower_unique;
     `);
 
+    // Old time-based unique key is retired in favour of the
+    // slot-based key below.
+    await client.query(`
+      DROP INDEX IF EXISTS
+      flower_rates_flower_date_time_unique;
+    `);
+
     // One rate for:
-    // FLOWER + DATE + TIME
+    // FLOWER + DATE + SLOT (1st / 2nd / 3rd)
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS
-      flower_rates_flower_date_time_unique
+      flower_rates_flower_date_slot_unique
       ON flower_rates
       (
         flower,
         rate_date,
-        rate_time
+        rate_slot
       );
     `);
 
@@ -437,6 +536,36 @@ async function initializeDatabase() {
       ALTER TABLE entries ALTER COLUMN amount DROP DEFAULT;
     `);
 
+    // ========================================================
+    // RATE SLOT ON ENTRIES
+    // ========================================================
+    //
+    // Records which dropdown slot (1st / 2nd / 3rd Rate) the
+    // entry was saved against. This is what the backfill in
+    // POST /api/rates matches on, fixing the bug where saving
+    // one slot's price used to overwrite entries saved under a
+    // different slot.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE entries
+      ADD COLUMN IF NOT EXISTS
+      rate_slot SMALLINT;
+    `);
+
+    await client.query(`
+      ALTER TABLE entries
+      DROP CONSTRAINT IF EXISTS
+      entries_rate_slot_check;
+    `);
+
+    await client.query(`
+      ALTER TABLE entries
+      ADD CONSTRAINT
+      entries_rate_slot_check
+      CHECK (rate_slot IS NULL OR rate_slot BETWEEN 1 AND 3);
+    `);
+
     await client.query(`
       CREATE INDEX IF NOT EXISTS
       idx_entries_date
@@ -459,6 +588,12 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS
       idx_entries_paid
       ON entries(paid);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS
+      idx_entries_rate_slot
+      ON entries(flower, entry_date, rate_slot);
     `);
 
     await client.query(`
@@ -646,6 +781,55 @@ function formatTimeOnly(value) {
     ":" +
     String(second).padStart(2, "0")
   );
+}
+
+// ============================================================
+// RATE SLOT NORMALIZATION (1st / 2nd / 3rd Rate)
+// ============================================================
+//
+// Accepts a number (1, 2, 3), a numeric string ("1", "2", "3"),
+// or a label ("1st", "1st Rate", "2nd Rate", "3rd Rate", etc.)
+// and returns a clean integer 1-3, or null if it can't be
+// parsed / is out of range.
+// ============================================================
+
+function normalizeRateSlot(value) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const match =
+    String(value)
+      .trim()
+      .match(/[1-3]/);
+
+  if (!match) {
+    return null;
+  }
+
+  const slot =
+    Number(match[0]);
+
+  if (
+    !Number.isInteger(slot) ||
+    slot < 1 ||
+    slot > 3
+  ) {
+    return null;
+  }
+
+  return slot;
+}
+
+function rateSlotLabel(slot) {
+  if (slot === 1) return "1st Rate";
+  if (slot === 2) return "2nd Rate";
+  if (slot === 3) return "3rd Rate";
+  return null;
 }
 
 // ============================================================
@@ -1275,7 +1459,7 @@ app.get(
 //
 // If date is provided (with or without "at"):
 //
-// Returns EVERY saved rate row for that date (all time slots),
+// Returns EVERY saved rate row for that date (all three slots),
 // optionally limited to rates at-or-before the given "at" time.
 //
 // This intentionally does NOT collapse to a single "latest" row
@@ -1285,14 +1469,11 @@ app.get(
 //
 // Example:
 //
-// 08:00 -> ₹80
-// 13:00 -> ₹100
+// 1st Rate -> ₹80
+// 2nd Rate -> ₹100
 //
 // GET /api/rates?date=2026-08-25
 //   -> returns BOTH rows for that date.
-//
-// GET /api/rates?date=2026-08-25&at=10:00
-//   -> returns rows with rate_time <= 10:00 (so just the ₹80 row).
 //
 // ============================================================
 
@@ -1355,6 +1536,7 @@ app.get(
               english_name,
               rate_date,
               rate_time,
+              rate_slot,
               price,
               created_at,
               updated_at
@@ -1368,7 +1550,7 @@ app.get(
 
             ORDER BY
               flower,
-              rate_time ASC,
+              rate_slot ASC,
               id ASC
             `,
             params
@@ -1425,6 +1607,7 @@ app.get(
             english_name,
             rate_date,
             rate_time,
+            rate_slot,
             price,
             created_at,
             updated_at
@@ -1435,7 +1618,7 @@ app.get(
 
           ORDER BY
             rate_date DESC,
-            rate_time DESC,
+            rate_slot ASC,
             flower,
             id DESC
           `,
@@ -1517,6 +1700,7 @@ app.get(
             english_name,
             rate_date,
             rate_time,
+            rate_slot,
             price
 
           FROM flower_rates
@@ -1592,7 +1776,9 @@ app.get(
 // SAVE FLOWER RATE
 // ============================================================
 //
-// Multiple rates per day are allowed.
+// Every rate is now saved against one of three fixed slots -
+// 1st Rate, 2nd Rate, 3rd Rate - for a given flower + date,
+// instead of a free-form clock time. rate_slot is required.
 //
 // ============================================================
 
@@ -1633,6 +1819,16 @@ app.post(
           req.body.date
         );
 
+      const rateSlot =
+        normalizeRateSlot(
+          req.body.rate_slot ||
+          req.body.rateSlot ||
+          req.body.slot
+        );
+
+      // rate_time is kept only as an informational timestamp
+      // (when this slot's price was saved) - it is no longer
+      // part of the matching logic.
       const rateTime =
         formatTimeOnly(
           req.body.rate_time ||
@@ -1664,6 +1860,14 @@ app.post(
         });
       }
 
+      if (!rateSlot) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Rate slot (1st, 2nd, or 3rd Rate) is required.",
+        });
+      }
+
       if (!Number.isFinite(price) || price < 0) {
         return res.status(400).json({
           success: false,
@@ -1683,6 +1887,7 @@ app.post(
             price,
             rate_date,
             rate_time,
+            rate_slot,
             updated_at
           )
 
@@ -1694,6 +1899,7 @@ app.post(
             $4,
             $5,
             $6,
+            $7,
             NOW()
           )
 
@@ -1701,7 +1907,7 @@ app.post(
           (
             flower,
             rate_date,
-            rate_time
+            rate_slot
           )
 
           DO UPDATE SET
@@ -1721,6 +1927,9 @@ app.post(
             price =
               EXCLUDED.price,
 
+            rate_time =
+              EXCLUDED.rate_time,
+
             updated_at =
               NOW()
 
@@ -1731,6 +1940,7 @@ app.post(
             english_name,
             rate_date,
             rate_time,
+            rate_slot,
             price,
             created_at,
             updated_at
@@ -1742,6 +1952,7 @@ app.post(
             price,
             rateDate,
             rateTime,
+            rateSlot,
           ]
         );
 
@@ -1749,13 +1960,18 @@ app.post(
       // BACKFILL PENDING ENTRIES
       // ======================================================
       //
-      // Any entry for this flower + rate date that was created
-      // BEFORE a rate existed (price/amount left NULL, shown as
-      // "Pending" in the frontend) now gets this rate applied.
+      // BUG FIX:
+      //
+      // This previously matched on flower + entry_date only, so
+      // saving the 1st Rate could overwrite entries that had
+      // been saved under the 2nd or 3rd Rate slot. It now also
+      // requires rate_slot to match, so an entry only ever gets
+      // backfilled by the price for the exact slot it was saved
+      // under.
       //
       // NOTE: entries has no user_id column in this schema, so
       // this is not scoped per-user - it matches on flower +
-      // entry_date only, same as the lookup in POST /api/entries.
+      // entry_date + rate_slot only.
       // ======================================================
 
       await pool.query(
@@ -1774,6 +1990,9 @@ app.post(
           entry_date = $3
 
           AND
+          rate_slot = $4
+
+          AND
           (
            price IS NULL
            OR (price = 0 AND amount = 0)
@@ -1783,6 +2002,7 @@ app.post(
           price,
           flower,
           rateDate,
+          rateSlot,
         ]
       );
 
@@ -1792,7 +2012,7 @@ app.post(
       res.json({
         success: true,
         message:
-          "Flower rate saved successfully.",
+          `Flower rate saved successfully (${rateSlotLabel(rateSlot)}).`,
         rate:
           result.rows[0],
       });
@@ -1817,29 +2037,20 @@ app.post(
 // CREATE ENTRY
 // ============================================================
 //
-// The entry price is automatically determined from:
+// WORKFLOW CHANGE:
 //
-// FLOWER + ENTRY DATE + ENTRY TIME
+// The New Flower Entry dropdown always shows three fixed slots -
+// "1st Rate", "2nd Rate", "3rd Rate" - for every flower + date,
+// even before any price has been saved for them. The caller must
+// pick one of these slots (rate_slot: 1, 2, or 3) up front.
 //
-// Example:
+// If a price already exists for that flower + date + slot, the
+// entry is saved with that price immediately.
 //
-// Malli
-// 25 Aug
-// 08:00
-//
-// If rates are:
-//
-// 07:00 -> ₹80
-// 13:00 -> ₹100
-//
-// Entry gets ₹80.
-//
-// An entry at 15:00 gets ₹100.
-//
-// If NO matching rate exists yet, the entry is still created,
-// with price and amount left NULL. The frontend shows these as
-// "Pending" until a matching rate is saved (see POST /api/rates,
-// which backfills these rows automatically).
+// If NOT, the entry is still created, with price and amount left
+// NULL. The frontend shows these as "Pending" until a matching
+// rate is saved for that exact slot (see POST /api/rates, which
+// backfills only entries with a matching rate_slot).
 //
 // ============================================================
 
@@ -1934,96 +2145,68 @@ app.post(
       }
 
       // ======================================================
-      // FIND THE RATE SELECTED FROM THE RATE / TIME DROPDOWN
+      // RATE SLOT SELECTED FROM THE DROPDOWN
+      // ======================================================
+      //
+      // The dropdown always shows "1st Rate", "2nd Rate", and
+      // "3rd Rate" - the caller must pick one, whether or not a
+      // price has been saved for it yet.
       // ======================================================
 
-      // Frontend sends the selected flower rate time.
-      const selectedRateTime =
-        formatTimeOnly(
-          req.body.rate_time ||
-          req.body.rateTime
+      const rateSlot =
+        normalizeRateSlot(
+          req.body.rate_slot ||
+          req.body.rateSlot ||
+          req.body.slot
         );
 
-      // If a rate is selected from the dropdown, find that exact rate.
-      // Otherwise, fall back to the normal entry-time lookup.
-      let rateResult;
-
-      if (selectedRateTime) {
-
-        rateResult = await pool.query(
-          `
-          SELECT
-            price,
-            rate_date,
-            rate_time
-
-          FROM flower_rates
-
-          WHERE
-            flower = $1
-
-            AND
-            rate_date = $2
-
-            AND
-            rate_time = $3::time
-
-          ORDER BY
-            id DESC
-
-          LIMIT 1
-          `,
-          [
-            flower,
-            entryDate,
-            selectedRateTime,
-          ]
-        );
-
-      } else {
-
-        rateResult = await pool.query(
-          `
-          SELECT
-            price,
-            rate_date,
-            rate_time
-
-          FROM flower_rates
-
-          WHERE
-            flower = $1
-
-            AND
-            rate_date = $2
-
-            AND
-            rate_time <= $3::time
-
-          ORDER BY
-            rate_time DESC,
-            id DESC
-
-          LIMIT 1
-          `,
-          [
-            flower,
-            entryDate,
-            entryTime,
-          ]
-        );
-
+      if (!rateSlot) {
+        return res.status(400).json({
+          success: false,
+          code:
+            "RATE_SLOT_REQUIRED",
+          message:
+            "Please select a rate (1st Rate, 2nd Rate, or 3rd Rate).",
+        });
       }
+
+      const rateResult =
+        await pool.query(
+          `
+          SELECT
+            price
+
+          FROM flower_rates
+
+          WHERE
+            flower = $1
+
+            AND
+            rate_date = $2
+
+            AND
+            rate_slot = $3
+
+          ORDER BY
+            id DESC
+
+          LIMIT 1
+          `,
+          [
+            flower,
+            entryDate,
+            rateSlot,
+          ]
+        );
 
       // ======================================================
       // NO MATCHING RATE YET -> CREATE AS "PENDING"
       // ======================================================
       //
-      // Previously this returned 400 FLOWER_RATE_MISSING and
-      // blocked the insert entirely. Now the entry is still
-      // created, with price/amount left NULL, and gets
-      // backfilled automatically once a matching rate is saved
-      // (see the UPDATE in POST /api/rates above).
+      // The entry is still created, with price/amount left
+      // NULL, and gets backfilled automatically once a matching
+      // rate is saved for this exact slot (see the UPDATE in
+      // POST /api/rates above).
       // ======================================================
 
       let price = null;
@@ -2078,7 +2261,8 @@ app.post(
             qty,
             unit,
             price,
-            amount
+            amount,
+            rate_slot
           )
 
           VALUES
@@ -2091,7 +2275,8 @@ app.post(
             $6,
             $7,
             $8,
-            $9
+            $9,
+            $10
           )
 
           RETURNING
@@ -2104,6 +2289,7 @@ app.post(
             unit,
             price,
             amount,
+            rate_slot,
             paid,
             paid_date,
             created_at
@@ -2118,6 +2304,7 @@ app.post(
             unit,
             price,
             amount,
+            rateSlot,
           ]
         );
 
@@ -2127,8 +2314,8 @@ app.post(
         success: true,
         message:
           price === null
-            ? "Entry added as pending (no rate set yet)."
-            : "Entry added successfully.",
+            ? `Entry added as pending (${rateSlotLabel(rateSlot)} not set yet).`
+            : `Entry added successfully (${rateSlotLabel(rateSlot)}).`,
         entry:
           result.rows[0],
       });
@@ -2243,6 +2430,7 @@ app.get(
             unit,
             price,
             amount,
+            rate_slot,
             paid,
             paid_date,
             created_at,
@@ -2435,6 +2623,7 @@ app.get(
             unit,
             price,
             amount,
+            rate_slot,
             paid,
             paid_date,
             created_at
@@ -2511,6 +2700,7 @@ app.get(
             unit,
             price,
             amount,
+            rate_slot,
             paid,
             paid_date
 
@@ -2570,6 +2760,7 @@ app.get(
 // Flower
 // KG
 // Price
+// Rate slot (1st / 2nd / 3rd Rate)
 //
 // ============================================================
 
@@ -2639,6 +2830,15 @@ app.put(
               req.body.unit
             ).trim()
           : "kg";
+
+      // Rate slot can also be changed on edit. If not supplied,
+      // keep whatever the entry already has.
+      const rateSlot =
+        normalizeRateSlot(
+          req.body.rate_slot ||
+          req.body.rateSlot ||
+          req.body.slot
+        );
 
       // ------------------------------------------------------
       // IMPORTANT:
@@ -2758,11 +2958,14 @@ app.put(
             paid_date =
               $10,
 
+            rate_slot =
+              COALESCE($11, rate_slot),
+
             updated_at =
               NOW()
 
           WHERE
-            id = $11
+            id = $12
 
           RETURNING
 
@@ -2775,6 +2978,7 @@ app.put(
             unit,
             price,
             amount,
+            rate_slot,
             paid,
             paid_date,
             updated_at
@@ -2790,6 +2994,7 @@ app.put(
             amount,
             paid,
             paidDate,
+            rateSlot,
             id,
           ]
         );
@@ -3043,11 +3248,7 @@ async function startServer() {
         );
 
         console.log(
-          "Multiple daily flower rates: ENABLED"
-        );
-
-        console.log(
-          "Rate date + time: ENABLED"
+          "Slot-based flower rates (1st/2nd/3rd): ENABLED"
         );
 
         console.log(
