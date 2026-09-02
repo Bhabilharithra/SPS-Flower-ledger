@@ -6293,7 +6293,7 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
     await loadFlowerRates(date);
     // The backend may have applied this newly saved rate to pending entries.
     // Refresh all entry/summary data immediately so pending values update.
-    await loadEntries();
+    await loadData(false);
     if(typeof loadSummary === 'function') await loadSummary();
 
     showToast(`${flower} rates saved`, `${saved.length} changed rate${saved.length===1?'':'s'} saved. Pending entries for this date will now refresh if the backend applied the rate.`, 'success');
