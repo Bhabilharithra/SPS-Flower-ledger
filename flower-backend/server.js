@@ -902,6 +902,20 @@ app.post(
 // ============================================================
 // RESET PASSWORD
 // ============================================================
+//
+// SECURITY FIX:
+//
+// This route previously reset a user's password from just their
+// username, with no proof that the caller actually owned the
+// account. Anyone who knew (or guessed) a valid username could
+// take over that account.
+//
+// It now requires the account's CURRENT password and verifies it
+// with bcrypt before allowing the change. A wrong username and a
+// wrong current password both return the same generic 401 message
+// so the endpoint cannot be used to discover which usernames exist.
+//
+// ============================================================
 
 app.post(
   "/api/reset-password",
@@ -914,6 +928,12 @@ app.post(
         )
           .trim()
           .toLowerCase();
+
+      const currentPassword =
+        String(
+          req.body.currentPassword ||
+            ""
+        );
 
       const newPassword =
         String(
@@ -933,6 +953,14 @@ app.post(
         });
       }
 
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Current password is required.",
+        });
+      }
+
       if (
         newPassword.length < 6
       ) {
@@ -949,7 +977,8 @@ app.post(
           SELECT
             id,
             name,
-            username
+            username,
+            password_hash
 
           FROM users
 
@@ -965,10 +994,24 @@ app.post(
         existing.rows.length ===
         0
       ) {
-        return res.status(404).json({
+        return res.status(401).json({
           success: false,
           message:
-            "Username not found.",
+            "Current password is incorrect.",
+        });
+      }
+
+      const currentPasswordOK =
+        await bcrypt.compare(
+          currentPassword,
+          existing.rows[0].password_hash
+        );
+
+      if (!currentPasswordOK) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Current password is incorrect.",
         });
       }
 
