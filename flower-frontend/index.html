@@ -4764,7 +4764,6 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
         <div class="person-summary" id="personSummary">
           <div class="grid4">
             <div class="item"><div class="label">Total visits</div><div class="value" id="psVisits">0</div></div>
-            <div class="item"><div class="label">Total quantity</div><div class="value" id="psQty">0</div></div>
             <div class="item"><div class="label">Total billed</div><div class="value" id="psAmount">₹0</div></div>
             <div class="item"><div class="label">Last visit</div><div class="value" id="psLast">-</div></div>
           </div>
@@ -5181,20 +5180,46 @@ async function tryUnlock(){
   const username = document.getElementById('inpUsername').value.trim();
   const password = document.getElementById('inpPassword').value;
   const remember = document.getElementById('chkRemember').checked;
+  const loginButton = document.getElementById('btnUnlock');
   if(!username || !password){ showLoginError("Enter both a username and password."); return; }
+
+  if(loginButton?.disabled) return;
+  const originalButtonText = loginButton ? loginButton.innerHTML : '';
+  if(loginButton){
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
+    loginButton.style.opacity = '0.8';
+    loginButton.style.cursor = 'wait';
+  }
+
   try{
     const res = await fetch(API_BASE + "/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
+      cache: "no-store"
     });
     const data = await res.json().catch(()=>({}));
-    if(!res.ok){ showLoginError(data.error || "Wrong username or password."); return; }
+    if(!res.ok){
+      showLoginError(data.error || "Wrong username or password.");
+      return;
+    }
+
     authToken = data.token;
     persistSession(authToken, data.user, remember);
+
+    // Show the app immediately after authentication. Data and rates continue
+    // loading in the background instead of delaying the screen transition.
     showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
+  }finally{
+    if(loginButton && document.getElementById('loginScreen').style.display !== 'none'){
+      loginButton.disabled = false;
+      loginButton.innerHTML = originalButtonText;
+      loginButton.style.opacity = '';
+      loginButton.style.cursor = '';
+    }
   }
 }
 
@@ -6968,11 +6993,9 @@ function render(){
   const summaryBox = document.getElementById('personSummary');
   if(currentFilter && filtered.length > 0){
     const visits = filtered.length;
-    const totalQty = filtered.reduce((s,e)=>s+(Number(e.qty)||0),0);
     const totalAmt = filtered.reduce((s,e)=>s+(Number(e.amount)||0),0);
     const lastDate = filtered.reduce((latest,e)=> (e.date > latest ? e.date : latest), filtered[0].date);
     document.getElementById('psVisits').textContent = visits;
-    document.getElementById('psQty').textContent = totalQty;
     document.getElementById('psAmount').textContent = fmtMoney(totalAmt);
     document.getElementById('psLast').textContent = fmtDate(lastDate);
     summaryBox.classList.add('show');
@@ -7015,7 +7038,7 @@ function render(){
       <td class="mono-cell">${fmtDate(e.date)}</td>
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
-      <td class="mono-cell">${e.qty} kg</td>
+      <td class="mono-cell">${e.qty}</td>
       <td class="mono-cell">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
       <td class="amount-cell">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
@@ -7087,29 +7110,25 @@ function exportExcel(){
       "Flower": flowerLabel(e.flower),
       "Quantity": Number(e.qty || 0),
       "Price": Number(e.price || 0),
-      "Amount": Number(e.amount || 0),
-      "Paid": e.paid ? "Yes" : "No",
-      "Paid Date": e.paidDate || ""
+      "Amount": Number(e.amount || 0)
     }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   worksheet['!cols'] = [
     { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 16 },
-    { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 14 }
+    { wch: 14 }, { wch: 16 }
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Flower Ledger");
 
   // Add a small summary sheet so the Excel file is useful for accounting.
-  const totalQty = toExport.reduce((sum,e)=>sum + Number(e.qty || 0), 0);
   const totalAmount = toExport.reduce((sum,e)=>sum + Number(e.amount || 0), 0);
   const supplierCount = new Set(toExport.map(e => String(e.name || '').trim().toLowerCase()).filter(Boolean)).size;
   const summaryRows = [
     ["S.P.S. மலரகம்", "Flower Ledger"],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
-        ["Total quantity", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7167,7 +7186,6 @@ async function exportPdf(){
       return da.localeCompare(db);
     });
 
-    const totalQty = sorted.reduce((sum,e)=>sum+Number(e.qty||0),0);
     const totalAmount = sorted.reduce((sum,e)=>sum+Number(e.amount||0),0);
     const supplierNames = new Set(
       sorted
@@ -7398,9 +7416,7 @@ async function exportPdf(){
         totalTable.innerHTML = `
           <tfoot>
             <tr style="background:#FFF7FA;font-weight:800;">
-              <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')} kg</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;"></td>
+              <td colspan="4" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
               <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
             </tr>
           </tfoot>

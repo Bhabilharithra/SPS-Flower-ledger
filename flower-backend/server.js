@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
+const https = require("https");
 const { Pool, types } = require("pg");
 
 // ============================================================
@@ -73,7 +75,84 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 
   connectionTimeoutMillis: 10000,
+
+  // ============================================================
+  // KEEP-ALIVE (SIGN-IN DELAY FIX, PART 1)
+  // ============================================================
+  //
+  // Without TCP keep-alive, a connection that has sat idle for a
+  // while (e.g. overnight, or between logins) can be silently
+  // dropped by the OS, a load balancer, or Supabase's own pooler.
+  // The pg driver doesn't always notice immediately, so the NEXT
+  // query (often the login query) has to wait for a failed write,
+  // time out, and retry a fresh connection - this alone can look
+  // like a multi-second "hang" on sign-in even when Supabase
+  // itself is fully awake.
+  //
+  // keepAlive sends TCP keep-alive probes on open connections so
+  // dead ones are detected and recycled proactively instead of on
+  // the next real query.
+  // ============================================================
+
+  keepAlive: true,
+
+  keepAliveInitialDelayMillis: 10000,
 });
+
+// ============================================================
+// KEEP THE DATABASE CONNECTION WARM (SIGN-IN DELAY FIX, PART 2)
+// ============================================================
+//
+// Two DIFFERENT things can cause the "waking up" delay on login:
+//
+// 1. Supabase / the Postgres connection pool going idle and
+//    needing to re-establish a connection on the next query.
+//    This interval fixes THAT part, by running a trivial query
+//    every few minutes so the pool never sits fully idle.
+//
+// 2. The Node process itself being spun down by a free-tier host
+//    (Render, Railway, Fly.io free tiers, etc.) after a period
+//    with no incoming HTTP requests. This interval CANNOT fix
+//    that part on its own, because if the process is asleep, the
+//    interval isn't running either. For that you still need
+//    something external hitting this server periodically -
+//    either a free uptime monitor (UptimeRobot, cron-job.org)
+//    pointed at GET /api/health, or the optional SELF_PING_URL
+//    fallback below (only helps once the process is already up
+//    and running, e.g. to stop it going to sleep in the first
+//    place - it can't wake itself up from a full stop).
+// ============================================================
+
+setInterval(() => {
+  pool.query("SELECT 1").catch((error) => {
+    console.error(
+      "Keep-alive DB ping failed:",
+      error.message
+    );
+  });
+}, 4 * 60 * 1000); // every 4 minutes
+
+// Optional: set SELF_PING_URL in .env to your server's own public
+// URL (e.g. https://your-app.onrender.com/api/health) to have the
+// server ping itself periodically, on top of the DB keep-alive
+// above. This is a lightweight built-in substitute for an external
+// uptime monitor - an external monitor is still the more reliable
+// option since it works even after a cold restart.
+if (process.env.SELF_PING_URL) {
+  const selfPingUrl = process.env.SELF_PING_URL;
+
+  setInterval(() => {
+    const client = selfPingUrl.startsWith("https") ? https : http;
+
+    client
+      .get(selfPingUrl, (res) => {
+        res.resume(); // drain response, don't hold the socket open
+      })
+      .on("error", (error) => {
+        console.error("Self-ping failed:", error.message);
+      });
+  }, 10 * 60 * 1000); // every 10 minutes
+}
 
 // ============================================================
 // LOCAL JSON FILES
@@ -3521,6 +3600,16 @@ async function startServer() {
 
         console.log(
           "Logout endpoint: ENABLED"
+        );
+
+        console.log(
+          "DB keep-alive ping: ENABLED (every 4 min)"
+        );
+
+        console.log(
+          process.env.SELF_PING_URL
+            ? "Self-ping: ENABLED (every 10 min)"
+            : "Self-ping: disabled (set SELF_PING_URL in .env to enable)"
         );
 
         console.log(
