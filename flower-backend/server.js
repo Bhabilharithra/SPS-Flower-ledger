@@ -1584,6 +1584,29 @@ app.post(
 );
 
 // ============================================================
+// LOGOUT
+// ============================================================
+//
+// JWTs are stateless, so there is no server-side session to
+// destroy - the frontend already clears its own saved token on
+// sign-out (see clearSession() in index.html). This route exists
+// only so that call doesn't hit a 404; it just confirms the
+// logout to keep the server logs clean.
+// ============================================================
+
+app.post(
+  "/api/logout",
+  authMiddleware,
+  (req, res) => {
+    res.json({
+      success: true,
+      message:
+        "Logged out.",
+    });
+  }
+);
+
+// ============================================================
 // CURRENT USER
 // ============================================================
 
@@ -3494,6 +3517,10 @@ async function startServer() {
 
         console.log(
           "Auth session validated against users table: ENABLED"
+        );
+
+        console.log(
+          "Logout endpoint: ENABLED"
         );
 
         console.log(

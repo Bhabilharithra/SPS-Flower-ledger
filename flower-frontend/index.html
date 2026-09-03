@@ -4528,8 +4528,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       <div class="field"><label for="editEntryName">Supplier name</label><input id="editEntryName" type="text"></div>
       <div class="field"><label for="editEntryDate">Date</label><input id="editEntryDate" type="date"></div>
       <div class="field"><label for="editEntryFlower">Flower</label><select id="editEntryFlower"><option value="முல்லை">முல்லை (Mullai)</option><option value="பிச்சி">பிச்சி (Royal Jasmine)</option><option value="மல்லி">மல்லி (Malli)</option></select></div>
-      <div class="field"><label for="editEntryQty">Quantity (kg)</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
-      <div class="field"><label for="editEntryPrice">Price / kg</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
+      <div class="field"><label for="editEntryQty">Quantity</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label for="editEntryPrice">Price</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
     </div>
     <div class="entry-edit-actions"><button type="button" class="btn btn-ghost" id="btnCancelEntryEdit">Cancel</button><button type="button" class="btn btn-primary" id="btnSaveEntryEdit">Save changes</button></div>
   </div>
@@ -4649,9 +4649,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Mullai</label>
             <div class="rate-flower-name">முல்லை</div>
             <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMullai"></div>
             <button type="button" class="rate-card-save" data-flower="முல்லை" data-date="rateDateMullai" data-prices="rateMullai1,rateMullai2,rateMullai3">Save Mullai rates</button>
             <div class="rate-card-status" id="rateStatusMullai">Not saved</div>
@@ -4661,9 +4661,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Royal Jasmine</label>
             <div class="rate-flower-name">பிச்சி</div>
             <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDatePichi"></div>
             <button type="button" class="rate-card-save" data-flower="பிச்சி" data-date="rateDatePichi" data-prices="ratePichi1,ratePichi2,ratePichi3">Save Royal Jasmine rates</button>
             <div class="rate-card-status" id="rateStatusPichi">Not saved</div>
@@ -4673,9 +4673,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Malli</label>
             <div class="rate-flower-name">மல்லி</div>
             <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMalli"></div>
             <button type="button" class="rate-card-save" data-flower="மல்லி" data-date="rateDateMalli" data-prices="rateMalli1,rateMalli2,rateMalli3">Save Malli rates</button>
             <div class="rate-card-status" id="rateStatusMalli">Not saved</div>
@@ -4724,12 +4724,12 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
           </div>
 
           <div class="field">
-            <label for="inpQty">Quantity (kg)</label>
-            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter kg" autocomplete="off">
+            <label for="inpQty">Quantity</label>
+            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter quantity" autocomplete="off">
           </div>
 
           <div class="field">
-            <label for="inpPrice">Price / kg</label>
+            <label for="inpPrice">Price</label>
             <input type="number" id="inpPrice" min="0" step="0.01" placeholder="₹" readonly>
             <div class="price-note" id="priceNote">Select a flower to use its saved rate.</div>
           </div>
@@ -4811,23 +4811,15 @@ const API_BASE = window.FLOWER_API_BASE ||
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
 function readStoredSession(){
-  const sessionToken = sessionStorage.getItem("poo_kanakku_token");
-  const localToken = localStorage.getItem("poo_kanakku_token");
-
-  // Prefer the session token, otherwise use the remembered local token.
-  const token = sessionToken || localToken || null;
-  const userRaw = sessionToken
-    ? sessionStorage.getItem("poo_kanakku_user")
-    : localStorage.getItem("poo_kanakku_user");
-
-  let user = null;
-  try{
-    user = userRaw ? JSON.parse(userRaw) : null;
-  }catch(e){
-    user = null;
-  }
-
-  return { token, user };
+  // SECURITY / MULTI-SHOP MODE:
+  // Never restore a previous browser session automatically.
+  // Every fresh page load must start on the login screen.
+  // Remove any token left behind by older versions.
+  sessionStorage.removeItem("poo_kanakku_token");
+  sessionStorage.removeItem("poo_kanakku_user");
+  localStorage.removeItem("poo_kanakku_token");
+  localStorage.removeItem("poo_kanakku_user");
+  return { token: null, user: null };
 }
 
 const storedSession = readStoredSession();
@@ -4886,16 +4878,15 @@ function authHeaders(){
 }
 
 function persistSession(token, user, remember){
-  // Always remove both copies first so an old session token cannot win over
-  // the newly saved token on the next page load.
+  // Multi-user / multi-shop mode:
+  // Keep authentication only in JavaScript memory for this open page.
+  // Refreshing or reopening the site always requires a new login.
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
-
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem("poo_kanakku_token", token);
-  store.setItem("poo_kanakku_user", JSON.stringify(user));
+  authToken = token;
+  currentUser = user;
 }
 
 function clearSession(){
@@ -5464,10 +5455,10 @@ function normalizeFlowerName(value){
 function normalizeEntry(e){
   e = e || {};
   const qty = Number(e.qty) || 0;
-  const price = Number(e.price) || 0;
-  const amount = e.amount !== undefined && e.amount !== null
-    ? (Number(e.amount) || 0)
-    : qty * price;
+  const hasPrice = e.price !== undefined && e.price !== null && e.price !== '';
+  const price = hasPrice ? Number(e.price) : null;
+  const hasAmount = e.amount !== undefined && e.amount !== null && e.amount !== '';
+  const amount = hasAmount ? Number(e.amount) : (hasPrice ? qty * price : null);
 
   // entry_date can come back as a full ISO timestamp (e.g. 2026-08-24T00:00:00.000Z).
   // Always reduce it to a plain YYYY-MM-DD string so fmtDate() works correctly.
@@ -5482,9 +5473,10 @@ function normalizeEntry(e){
     time: e.time || e.entry_time || "",
     flower: normalizeFlowerName(e.flower || ""),
     qty,
-    unit: e.unit || "kg",
+    unit: e.unit || "",
     price,
     amount,
+    rate_slot: e.rate_slot || e.rateSlot || null,
     paid: e.paid === true,
     paidDate: e.paidDate || e.paid_date || null
   };
@@ -5801,6 +5793,7 @@ function ratesResponseToOptions(payload){
 
     grouped[flower].push({
       id: String(item.id ?? `${flower}-${date}-${time}-${price}`),
+      slot: String(item.rate_slot ?? item.rateSlot ?? item.slot ?? ''),
       price: Number(price),
       date,
       time,
@@ -5809,12 +5802,12 @@ function ratesResponseToOptions(payload){
   });
 
   Object.keys(grouped).forEach(flower=>{
-    grouped[flower].sort((a,b)=>{
-      const ta = String(a.time || '00:00:00');
-      const tb = String(b.time || '00:00:00');
-      if(ta !== tb) return ta.localeCompare(tb);
-      return String(a.id).localeCompare(String(b.id));
+    grouped[flower].forEach((rate, index)=>{
+      const match = String(rate.slot || '').match(/([123])/);
+      rate.slotIndex = match ? Number(match[1]) : (index + 1);
+      rate.slotLabel = `${rate.slotIndex}${rate.slotIndex===1?'st':rate.slotIndex===2?'nd':'rd'} Rate`;
     });
+    grouped[flower].sort((a,b)=> a.slotIndex - b.slotIndex || String(a.time || '').localeCompare(String(b.time || '')));
   });
 
   return grouped;
@@ -5840,47 +5833,39 @@ function populateRateDropdown(keepValue = true){
   if(!ALLOWED_FLOWERS.includes(flower)){
     select.disabled = true;
     select.innerHTML = '<option value="">Select flower first</option>';
-    if(note) note.textContent = 'Choose the saved rate/time for this entry.';
+    if(note) note.textContent = 'Choose 1st Rate, 2nd Rate, or 3rd Rate for this entry.';
     return;
   }
 
-  // IMPORTANT: keep ALL saved rates for this flower/date.
-  // Do not collapse 1st, 2nd and 3rd rates into only one "latest" rate.
-  const rawOptions = flowerRateOptions[flower] || [];
-  const seen = new Set();
-  const options = rawOptions.filter(rate=>{
-    const key = String(rate.id ?? `${rate.date}-${rate.time}-${rate.price}`);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  // IMPORTANT: the three slots must ALWAYS be available.
+  // A slot without a saved price is shown as Pending, but the user can still
+  // create the entry. The backend will update pending entries automatically
+  // when a price is saved later for the same flower/date/slot.
+  const saved = flowerRateOptions[flower] || [];
+  const bySlot = {};
+  saved.forEach((rate, index)=>{
+    const slotIndex = Number(rate.slotIndex || index + 1);
+    if(slotIndex >= 1 && slotIndex <= 3) bySlot[slotIndex] = rate;
   });
 
-  if(!options.length){
-    select.disabled = true;
-    select.innerHTML = '<option value="">No saved rate for this date</option>';
-    if(note) note.textContent = 'No saved rate exists for this flower on the selected date.';
-    return;
-  }
-
   select.disabled = false;
-  // Always start with the placeholder. Never keep a previous rate from another
-  // flower/date and never auto-select the 3rd/latest option.
-  select.innerHTML = '<option value="" selected>Select rate / time</option>';
+  select.innerHTML = '<option value="" selected>Select Rate / Time</option>';
 
-  options.forEach((rate,index)=>{
+  [1,2,3].forEach(slotIndex=>{
+    const rate = bySlot[slotIndex] || null;
+    const label = `${ordinal(slotIndex)} Rate`;
     const opt = document.createElement('option');
-    opt.value = String(rate.id);
-    opt.textContent =
-      `${ordinal(index + 1)} time — ${fmtMoney(rate.price)} / kg` +
-      `${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
-    opt.dataset.price = String(rate.price);
-    opt.dataset.time = rate.time || '';
-    opt.dataset.date = rate.date || '';
+    opt.value = String(slotIndex);
+    opt.dataset.slot = label;
+    opt.dataset.price = rate && rate.price !== '' && rate.price != null ? String(rate.price) : '';
+    opt.dataset.time = rate?.time || '';
+    opt.dataset.date = rate?.date || document.getElementById('inpDate').value || todayStr();
+    opt.textContent = rate
+      ? `${label} — ${fmtMoney(rate.price)}`
+      : `${label} — Pending`;
     select.appendChild(opt);
   });
 
-  // Keep a value only when this exact flower/date dropdown still contains it.
-  // On a flower/date refresh, populateRateDropdown(false) forces the placeholder.
   if(keepValue && previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
   }else{
@@ -5889,18 +5874,29 @@ function populateRateDropdown(keepValue = true){
   }
 
   if(note){
-    note.textContent =
-      `${options.length} saved rate${options.length===1?'':'s'} available for ` +
-      `${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
+    note.textContent = 'Select the rate slot now. Unsaved slots show Pending and can still be used for a new entry.';
   }
 }
-
 
 function getSelectedRateOption(){
   const flower = getFlowerValue();
   const select = document.getElementById('inpRateSelect');
   if(!ALLOWED_FLOWERS.includes(flower) || !select || !select.value) return null;
-  return (flowerRateOptions[flower] || []).find(r=>String(r.id)===String(select.value)) || null;
+
+  const slotIndex = Number(select.value);
+  if(![1,2,3].includes(slotIndex)) return null;
+
+  const saved = (flowerRateOptions[flower] || []).find(r => Number(r.slotIndex) === slotIndex) || null;
+
+  return {
+    slotIndex,
+    slotLabel: `${ordinal(slotIndex)} Rate`,
+    rate_slot: `${ordinal(slotIndex)} Rate`,
+    price: saved?.price ?? null,
+    time: saved?.time || '',
+    date: saved?.date || document.getElementById('inpDate').value || todayStr(),
+    pending: !saved
+  };
 }
 
 let __entryRateLoadVersion = 0;
@@ -6035,17 +6031,25 @@ function fillMultiRateInputs(optionsByFlower){
     ['மல்லி',['rateMalli1','rateMalli2','rateMalli3']]
   ];
   const selectedDate = selectedRateCardDate();
+
   config.forEach(([flower,ids])=>{
-    const rates=(optionsByFlower[flower] || []).slice(-3);
+    const bySlot = [null, null, null];
+    (optionsByFlower[flower] || []).forEach((rate, index)=>{
+      const slot = Number(rate.slotIndex || index + 1);
+      if(slot >= 1 && slot <= 3) bySlot[slot - 1] = rate;
+    });
+
     const cacheKey=`${flower}|${selectedDate}`;
-    window.__rateSlotCache[cacheKey]=rates.map(rate=>({
+    window.__rateSlotCache[cacheKey]=bySlot.map((rate,index)=> rate ? ({
       id: rate.id ?? '',
       price:Number(rate.price),
-      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8)
-    }));
+      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8),
+      slotIndex:index + 1
+    }) : null);
+
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
-      if(input) input.value = rates[index]?.price ?? '';
+      if(input) input.value = bySlot[index]?.price ?? '';
     });
   });
 }
@@ -6070,7 +6074,7 @@ function renderFlowerRates(){
     if(st){
       if(data.price !== '' && data.price != null){
         st.textContent =
-          `Saved ₹${Number(data.price).toLocaleString('en-IN')} / kg` +
+          `Saved ₹${Number(data.price).toLocaleString('en-IN')}` +
           ` • ${data.date || selectedRateCardDate()}`;
       }else{
         st.textContent = '';
@@ -6125,7 +6129,8 @@ function renderInlineCurrentRates(rates){
     const time=String(raw.rate_time ?? raw.rateTime ?? raw.time ?? '').slice(0,8);
     if(price === '' || price == null || !date) return;
     grouped[flower].push({
-      id:String(raw.id ?? ''), price:Number(price), date, time,
+      id:String(raw.id ?? ''), slot:String(raw.rate_slot ?? raw.rateSlot ?? raw.slot ?? ''),
+      price:Number(price), date, time,
       updated_at:raw.updated_at ?? raw.created_at ?? ''
     });
   });
@@ -6174,10 +6179,12 @@ function renderInlineCurrentRates(rates){
       row.className='current-rate-row';
       const slot=document.createElement('span');
       slot.className='current-rate-slot';
-      slot.textContent=`${ordinal(index+1)} rate`;
+      const slotMatch=String(rate.slot || '').match(/([123])/);
+      const slotIndex=slotMatch ? Number(slotMatch[1]) : index+1;
+      slot.textContent=`${ordinal(slotIndex)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
-      value.textContent=`${fmtMoney(rate.price)} / kg`;
+      value.textContent=`${fmtMoney(rate.price)}`;
       row.append(slot,value);
       list.appendChild(row);
     });
@@ -6262,6 +6269,9 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
           date,
           rate_date:date,
           rateDate:date,
+          rate_slot:`${ordinal(item.slot + 1)} Rate`,
+          rateSlot:`${ordinal(item.slot + 1)} Rate`,
+          slot:`${ordinal(item.slot + 1)} Rate`,
           rate_time:item.rateTime,
           rateTime:item.rateTime
         })
@@ -6338,25 +6348,26 @@ function applyFlowerRate(){
   const selectedRate = getSelectedRateOption();
 
   if(ALLOWED_FLOWERS.includes(flower)){
-    // IMPORTANT: never fall back to a previous/last rate. The entry price must
-    // come only from the rate explicitly selected for the current entry date.
-    const data = selectedRate || null;
-    const rate = data ? data.price : '';
-
-    priceInput.value = rate === '' || rate == null ? '' : rate;
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
-    priceInput.placeholder = '₹';
 
     if(!selectedRate){
-      note.textContent = `⚠️ Select a saved ${flower} rate/time for ${fmtDate(selectedDate)} before adding this entry.`;
+      priceInput.value = '';
+      priceInput.placeholder = 'Pending';
+      note.textContent = `Select 1st Rate, 2nd Rate, or 3rd Rate for ${fmtDate(selectedDate)}.`;
+    }else if(selectedRate.pending || selectedRate.price === '' || selectedRate.price == null){
+      priceInput.value = '';
+      priceInput.placeholder = 'Pending';
+      note.textContent = `${selectedRate.slotLabel} is pending. You can still add this entry now; its price and amount will update automatically when you save that rate later.`;
     }else{
-      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
+      priceInput.value = selectedRate.price;
+      priceInput.placeholder = '₹';
+      note.textContent = `${selectedRate.slotLabel} selected: ${fmtMoney(selectedRate.price)}.`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
     priceInput.classList.remove('price-managed');
-    priceInput.placeholder = 'Enter price / kg';
+    priceInput.placeholder = 'Enter price';
     note.textContent = '';
   }else{
     priceInput.value = '';
@@ -6441,29 +6452,38 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const name = document.getElementById('inpName').value.trim();
   const date = document.getElementById('inpDate').value;
   const selectedRate = getSelectedRateOption();
-  // For flowers with saved rate times, send the selected rate time so the
-  // existing backend validates against exactly the rate chosen in the dropdown.
-  const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
-  const unit = 'kg';
-  const price = parseFloat(document.getElementById('inpPrice').value);
+  const unit = '';
+  const manualPrice = parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
   if(!name) missing.push("Supplier name");
   if(!date) missing.push("Date");
   if(!flower) missing.push(document.getElementById('inpFlowerSelect').value === '__other__' ? "Other flower name" : "Flower type");
   if(isNaN(qty) || qty <= 0) missing.push("Quantity");
-  if(isNaN(price) || price < 0) missing.push(ALLOWED_FLOWERS.includes(flower) ? "Flower rate (set it above)" : "Price per kg");
+
+  if(ALLOWED_FLOWERS.includes(flower) && !selectedRate){
+    missing.push("Rate / Time (1st Rate, 2nd Rate, or 3rd Rate)");
+  }
+
+  if(!ALLOWED_FLOWERS.includes(flower) && (isNaN(manualPrice) || manualPrice < 0)){
+    missing.push("Price");
+  }
 
   if(missing.length > 0){
-    if(ALLOWED_FLOWERS.includes(flower) && (isNaN(price) || price < 0)){
-      showToast("Flower rate missing", `Please enter the ${flower} rate for ${fmtDate(date)} before adding this entry.`, "error");
-    }else{
-      showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
-    }
+    showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
     return;
   }
+
+  const isPending = ALLOWED_FLOWERS.includes(flower) &&
+    (selectedRate.pending || selectedRate.price === '' || selectedRate.price == null);
+
+  const price = isPending ? null :
+    (ALLOWED_FLOWERS.includes(flower) ? Number(selectedRate.price) : manualPrice);
+
+  const amount = isPending ? null : qty * price;
+  const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
 
   if(editingId){
     const idBeingEdited = editingId;
@@ -6472,6 +6492,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       showToast("Edit failed", "The original entry could not be found. Please reload the page and try again.", "error");
       return;
     }
+
     const updated = {
       ...existing,
       id: idBeingEdited,
@@ -6482,31 +6503,43 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       qty,
       unit,
       price,
-      amount: qty * price,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      amount,
+      rate_slot: selectedRate?.rate_slot || existing.rate_slot || null,
+      rateSlot: selectedRate?.rate_slot || existing.rate_slot || null,
+      rate_time: selectedRate?.time || existing.rate_time || undefined
     };
+
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
-    showToast("Entry updated", `${name}'s entry on ${fmtDate(date)} was updated.`, "success");
+    showToast("Entry updated", isPending ? `${name}'s entry is pending the selected rate.` : `${name}'s entry was updated.`, "success");
     cancelEdit();
   } else {
     const entry = {
       id: uid(),
       name,
       date,
-      time: time || "",
+      time,
       flower,
       qty,
       unit,
       price,
-      amount: qty * price,
+      amount,
       paid: false,
       paidDate: null,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      // This is the key field the backend uses to backfill a pending entry.
+      rate_slot: selectedRate?.rate_slot || null,
+      rateSlot: selectedRate?.rate_slot || null,
+      rate_time: selectedRate?.time || undefined
     };
+
     const saved = await dbAddOrUpdate(entry);
     if(!saved) return;
-    showToast("Entry added", `${name} — ${fmtMoney(qty*price)} recorded.`, "success");
+
+    if(isPending){
+      showToast("Entry added as Pending", `${name}'s entry was saved. Its price will update automatically when ${selectedRate.slotLabel} is saved for this date.`, "success");
+    }else{
+      showToast("Entry added", `${name} — ${fmtMoney(amount)} recorded.`, "success");
+    }
   }
 
   document.getElementById('inpName').value = "";
@@ -6517,10 +6550,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   populateRateDropdown(false);
   applyFlowerRate();
   document.getElementById('inpQty').value = "";
-  // Price is managed by the selected flower rate.
-  loadFlowerRates(
-    document.getElementById('inpDate').value || todayStr()
-  );
+  await loadFlowerRates(document.getElementById('inpDate').value || todayStr());
   updateAmountPreview();
 
   render();
@@ -6567,7 +6597,7 @@ async function saveEntryEdit(){
   if(!name||!date||!flower||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0){showToast('Edit failed','Please enter supplier, date, flower, quantity and price.','error');return;}
   const existing=entries.find(x=>String(x.id)===String(editingEntryId));
   if(!existing) return;
-  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'kg',price,amount:Number((qty*price).toFixed(2))};
+  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'',price,amount:Number((qty*price).toFixed(2))};
   const ok=await dbAddOrUpdate(updated,editingEntryId);
   if(ok){closeEntryEdit();showToast('Entry updated','The ledger row was updated directly.','success');render();}
 }
@@ -6986,8 +7016,8 @@ function render(){
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
       <td class="mono-cell">${e.qty} kg</td>
-      <td class="mono-cell">${fmtMoney(e.price)}</td>
-      <td class="amount-cell">${fmtMoney(e.amount)}</td>
+      <td class="mono-cell">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
+      <td class="amount-cell">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-edit" onclick="editEntry('${e.id}')">Edit</button>
         <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Delete</button>
@@ -7010,8 +7040,8 @@ function render(){
           <th>Date</th>
           <th>Supplier</th>
           <th>Flower</th>
-          <th>Quantity (kg)</th>
-          <th>Price / kg</th>
+          <th>Quantity</th>
+          <th>Price</th>
           <th>Amount</th>
           <th>Edit</th>
         </tr>
@@ -7055,8 +7085,8 @@ function exportExcel(){
       "Date": e.date || "",
       "Supplier": e.name || "",
       "Flower": flowerLabel(e.flower),
-      "Quantity (kg)": Number(e.qty || 0),
-      "Price / kg": Number(e.price || 0),
+      "Quantity": Number(e.qty || 0),
+      "Price": Number(e.price || 0),
       "Amount": Number(e.amount || 0),
       "Paid": e.paid ? "Yes" : "No",
       "Paid Date": e.paidDate || ""
@@ -7079,8 +7109,7 @@ function exportExcel(){
     ["S.P.S. மலரகம்", "Flower Ledger"],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
-    ["Suppliers", supplierCount],
-    ["Total quantity (kg)", totalQty],
+        ["Total quantity", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7146,7 +7175,7 @@ async function exportPdf(){
         .filter(Boolean)
     ).size;
 
-    const scope = `${currentFilter ? `Supplier: ${escapeHtml(sorted[0]?.name || currentFilter)} · ` : ''}Date range: ${getReportScopeLabel()}`;
+    const scope = `Date range: ${getReportScopeLabel()}`;
 
     // A4 landscape ratio in CSS pixels.
     const PAGE_W = 1120;
@@ -7184,10 +7213,6 @@ async function exportPdf(){
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Entries</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${sorted.length}</div>
         </div>
-        <div style="flex:1;background:#EEE8FA;border:1px solid #D8CCE9;border-radius:14px;padding:15px;">
-          <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Suppliers</div>
-          <div style="font-size:23px;font-weight:800;margin-top:5px;">${supplierNames}</div>
-        </div>
         <div style="flex:1;background:#FFF4C8;border:1px solid #EEDB9C;border-radius:14px;padding:15px;">
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Total amount</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${fmtMoney(totalAmount)}</div>
@@ -7199,10 +7224,9 @@ async function exportPdf(){
       <thead>
         <tr style="background:#FFE6EF;">
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
-          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Supplier</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity (kg)</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price / kg</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Amount</th>
         </tr>
       </thead>
@@ -7211,11 +7235,10 @@ async function exportPdf(){
     function pdfRowHtml(e){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(e.name||'')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')} kg</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       </tr>`;
     }
 
@@ -7498,7 +7521,7 @@ document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
 document.getElementById('btnExport').addEventListener('click', ()=>{
   let toExport = getReportEntries();
   if(toExport.length === 0){ showToast("Nothing to export", "No entries match the selected date range.", "error"); return; }
-  const header = ["Date","Supplier","Flower","Quantity (kg)","Price per kg","Amount"];
+  const header = ["Date","Supplier","Flower","Quantity","Price","Amount"];
   const rows = toExport
     .slice()
     .sort((a,b)=> (a.date+ (a.time||"")).localeCompare(b.date+(b.time||"")))
