@@ -4480,8 +4480,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 <div class="divider"><span>or continue with account</span></div>
 
       <div class="lc-field">
-        <label for="inpUsername">Username</label>
-        <div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter username" autocomplete="username"></div>
+        <label for="inpUsername">Email or Username</label>
+        <div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter email or username" autocomplete="username email"></div>
       </div>
 
       <div class="lc-field">
@@ -4826,15 +4826,30 @@ const API_BASE = window.FLOWER_API_BASE ||
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
 function readStoredSession(){
-  // SECURITY / MULTI-SHOP MODE:
-  // Never restore a previous browser session automatically.
-  // Every fresh page load must start on the login screen.
-  // Remove any token left behind by older versions.
-  sessionStorage.removeItem("poo_kanakku_token");
-  sessionStorage.removeItem("poo_kanakku_user");
-  localStorage.removeItem("poo_kanakku_token");
-  localStorage.removeItem("poo_kanakku_user");
-  return { token: null, user: null };
+  // Restore the current session. The session is cleared only on logout or
+  // when the backend reports that the token is no longer valid.
+  const sessionToken = sessionStorage.getItem("poo_kanakku_token");
+  const sessionUserRaw = sessionStorage.getItem("poo_kanakku_user");
+  const localToken = localStorage.getItem("poo_kanakku_token");
+  const localUserRaw = localStorage.getItem("poo_kanakku_user");
+
+  const token = sessionToken || localToken || null;
+  const rawUser = sessionUserRaw || localUserRaw || null;
+  let user = null;
+
+  try{
+    user = rawUser ? JSON.parse(rawUser) : null;
+  }catch(e){
+    console.warn("Saved user session could not be read. Clearing invalid session.", e);
+    sessionStorage.removeItem("poo_kanakku_token");
+    sessionStorage.removeItem("poo_kanakku_user");
+    localStorage.removeItem("poo_kanakku_token");
+    localStorage.removeItem("poo_kanakku_user");
+    return { token: null, user: null };
+  }
+
+  if(!token || !user) return { token: null, user: null };
+  return { token, user };
 }
 
 const storedSession = readStoredSession();
@@ -5139,7 +5154,7 @@ document.getElementById("btnVerifyOtp")?.addEventListener("click",async()=>{
  const r=await fetch(API_BASE+"/api/register/verify-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({otp,code:otp,email:pendingSignupEmail,pendingSignupId})});
  const d=await r.json().catch(()=>({}));
  if(!r.ok){msg.textContent=d.message||d.error||"Invalid OTP.";return;}
- closeOtpModal();document.getElementById("inpUsername").value=pendingSignupEmail;showLoginError("Account verified. Please sign in.");
+ closeOtpModal();document.getElementById("inpUsername").value=pendingSignupEmail;showLoginError("Account verified successfully. Please sign in with your email or username and password.");
 });
 // Password view buttons for account and reset-password forms.
 document.querySelectorAll("[data-toggle-password]").forEach(button=>{
@@ -5209,7 +5224,7 @@ async function tryUnlock(){
   const password = document.getElementById('inpPassword').value;
   const remember = document.getElementById('chkRemember').checked;
   const loginButton = document.getElementById('btnUnlock');
-  if(!username || !password){ showLoginError("Enter both a username and password."); return; }
+  if(!username || !password){ showLoginError("Enter your email or username and password."); return; }
 
   if(loginButton?.disabled) return;
   const originalButtonText = loginButton ? loginButton.innerHTML : '';
@@ -5224,12 +5239,12 @@ async function tryUnlock(){
     const res = await fetch(API_BASE + "/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, email: username, password }),
       cache: "no-store"
     });
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
-      showLoginError(data.error || "Wrong username or password.");
+      showLoginError(data.error || "Wrong email/username or password.");
       return;
     }
 

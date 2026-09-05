@@ -3,24 +3,1184 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Profile | Flower Ledger</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:#fff6fa;color:#3d2632;font-family:Arial,sans-serif}.top{background:#17121f;color:#fff;padding:18px 5%;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-weight:900;font-size:22px}.top-right{display:flex;align-items:center;gap:12px}.avatar{width:46px;height:46px;border-radius:50%;background:#17121f;border:3px solid #ff4f9a;box-shadow:0 0 18px rgba(255,79,154,.55);display:flex;align-items:center;justify-content:center;font-weight:900}.usertext b{display:block;color:#fff}.usertext span{font-size:12px;color:#ffb5d2}.wrap{max-width:1180px;margin:35px auto;padding:0 20px}.back{border:1px solid #d9b5c7;background:#fff;border-radius:10px;padding:10px 16px;font-weight:800;color:#7d3156;cursor:pointer}.hero{margin-top:20px;background:linear-gradient(135deg,#321b2b,#17121f);color:#fff;border-radius:24px;padding:30px;box-shadow:0 20px 50px rgba(70,20,50,.22)}h1{margin:0 0 8px;font-size:34px}.muted{color:#d9b9c9}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}.stat,.supplier{background:#fff;border:1px solid #edcbd9;border-radius:16px;padding:18px}.stat .label{font-size:11px;font-weight:900;color:#95657a;text-transform:uppercase}.stat .value{font-size:25px;font-weight:900;color:#b52e69;margin-top:7px}.section-title{margin:30px 0 14px;font-size:20px;font-weight:900}.suppliers{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.supplier{display:flex;justify-content:space-between;gap:20px}.supplier-name{font-size:17px;font-weight:900}.supplier-meta{margin-top:5px;color:#987183;font-size:12px}.amount{font-size:18px;font-weight:900;color:#b52e69;white-space:nowrap}.empty{text-align:center;padding:30px;background:#fff;border:1px dashed #d9b5c7;border-radius:16px;color:#987183}@media(max-width:750px){.stats{grid-template-columns:1fr 1fr}.suppliers{grid-template-columns:1fr}.top{padding:14px 4%}.wrap{margin-top:20px}}
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#fff6fa;
+  color:#3d2632;
+  font-family:Arial,sans-serif;
+}
+
+.top{
+  background:#17121f;
+  color:#fff;
+  padding:18px 5%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.brand{
+  font-weight:900;
+  font-size:22px;
+}
+
+.top-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.avatar{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:#17121f;
+  border:3px solid #ff4f9a;
+  box-shadow:0 0 18px rgba(255,79,154,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+}
+
+.usertext b{
+  display:block;
+  color:#fff;
+}
+
+.usertext span{
+  font-size:12px;
+  color:#ffb5d2;
+}
+
+.wrap{
+  max-width:1180px;
+  margin:35px auto;
+  padding:0 20px;
+}
+
+.back{
+  border:1px solid #d9b5c7;
+  background:#fff;
+  border-radius:10px;
+  padding:10px 16px;
+  font-weight:800;
+  color:#7d3156;
+  cursor:pointer;
+}
+
+.hero{
+  margin-top:20px;
+  background:linear-gradient(135deg,#321b2b,#17121f);
+  color:#fff;
+  border-radius:24px;
+  padding:30px;
+  box-shadow:0 20px 50px rgba(70,20,50,.22);
+}
+
+h1{
+  margin:0 0 8px;
+  font-size:34px;
+}
+
+.muted{
+  color:#d9b9c9;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-top:22px;
+}
+
+.stat,
+.supplier{
+  background:#fff;
+  border:1px solid #edcbd9;
+  border-radius:16px;
+  padding:18px;
+}
+
+.stat .label{
+  font-size:11px;
+  font-weight:900;
+  color:#95657a;
+  text-transform:uppercase;
+}
+
+.stat .value{
+  font-size:25px;
+  font-weight:900;
+  color:#b52e69;
+  margin-top:7px;
+  word-break:break-word;
+}
+
+.section-title{
+  margin:30px 0 14px;
+  font-size:20px;
+  font-weight:900;
+}
+
+.suppliers{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.supplier{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.supplier-name{
+  font-size:17px;
+  font-weight:900;
+}
+
+.supplier-meta{
+  margin-top:5px;
+  color:#987183;
+  font-size:12px;
+}
+
+.amount{
+  font-size:18px;
+  font-weight:900;
+  color:#b52e69;
+  white-space:nowrap;
+}
+
+.empty{
+  text-align:center;
+  padding:30px;
+  background:#fff;
+  border:1px dashed #d9b5c7;
+  border-radius:16px;
+  color:#987183;
+}
+
+@media(max-width:750px){
+
+  .stats{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .suppliers{
+    grid-template-columns:1fr;
+  }
+
+  .top{
+    padding:14px 4%;
+  }
+
+  .wrap{
+    margin-top:20px;
+  }
+
+  .supplier{
+    flex-direction:column;
+    gap:8px;
+  }
+
+}
 </style>
 </head>
+
 <body>
-<header class="top"><div class="brand">🌸 Flower Ledger</div><div class="top-right"><div class="usertext"><b id="name">User</b><span id="username">@user</span></div><div class="avatar" id="avatar">?</div></div></header>
-<main class="wrap"><button class="back" onclick="history.back()">← Back to ledger</button><section class="hero"><h1 id="title">Profile</h1><div class="muted" id="sub">Account overview</div><div class="stats"><div class="stat"><div class="label">Name</div><div class="value" id="nameStat">—</div></div><div class="stat"><div class="label">Username</div><div class="value" id="userStat">—</div></div><div class="stat"><div class="label">Total entries</div><div class="value" id="entryStat">0</div></div><div class="stat"><div class="label">Total suppliers</div><div class="value" id="supplierStat">0</div></div></div></section><div class="section-title">Overall supplier summary</div><section class="suppliers" id="suppliers"></section></main>
+
+<header class="top">
+
+  <div class="brand">
+    🌸 Flower Ledger
+  </div>
+
+  <div class="top-right">
+
+    <div class="usertext">
+      <b id="name">User</b>
+      <span id="username"></span>
+    </div>
+
+    <div class="avatar" id="avatar">
+      ?
+    </div>
+
+  </div>
+
+</header>
+
+
+<main class="wrap">
+
+  <button class="back" onclick="goBack()">
+    ← Back to ledger
+  </button>
+
+
+  <section class="hero">
+
+    <h1 id="title">
+      Profile
+    </h1>
+
+    <div class="muted" id="sub">
+      Account overview
+    </div>
+
+
+    <div class="stats">
+
+      <div class="stat">
+
+        <div class="label">
+          Name
+        </div>
+
+        <div class="value" id="nameStat">
+          —
+        </div>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="label">
+          Username / Email
+        </div>
+
+        <div class="value" id="userStat">
+          —
+        </div>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="label">
+          Total entries
+        </div>
+
+        <div class="value" id="entryStat">
+          0
+        </div>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="label">
+          Total suppliers
+        </div>
+
+        <div class="value" id="supplierStat">
+          0
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <div class="section-title">
+    Overall supplier summary
+  </div>
+
+
+  <section class="suppliers" id="suppliers">
+
+    <div class="empty">
+      Loading supplier information...
+    </div>
+
+  </section>
+
+</main>
+
+
 <script>
-const API_BASE=window.FLOWER_API_BASE||'https://sps-flower-ledger.onrender.com';
-function getSession(){const token=sessionStorage.getItem('poo_kanakku_token')||localStorage.getItem('poo_kanakku_token');const raw=sessionStorage.getItem('poo_kanakku_user')||localStorage.getItem('poo_kanakku_user');let user=null;try{user=raw?JSON.parse(raw):null}catch(e){}return{token,user}}
-const session=getSession();
-if(!session.token||!session.user){window.location.href='index.html';}
-const user=session.user||{};
-const name=user.name||user.username||'User', username=user.username||'';
-document.getElementById('name').textContent=name;document.getElementById('username').textContent=username?'@'+username:'';document.getElementById('title').textContent=name+' — Profile';document.getElementById('sub').textContent=username?'@'+username:'Account overview';document.getElementById('nameStat').textContent=name;document.getElementById('userStat').textContent=username||'—';document.getElementById('avatar').textContent=(name||username||'?').charAt(0).toUpperCase();
-async function load(){try{const r=await fetch(API_BASE+'/api/entries',{headers:{Authorization:'Bearer '+session.token},cache:'no-store'});if(r.status===401){window.location.href='index.html';return}const d=await r.json();const entries=Array.isArray(d)?d:(d.entries||[]);document.getElementById('entryStat').textContent=entries.length;const map=new Map();entries.forEach(e=>{const n=String(e.name||'').trim();if(!n)return;const k=n.toLowerCase();if(!map.has(k))map.set(k,{name:n,entries:0,qty:0,amount:0,last:''});const x=map.get(k);x.entries++;x.qty+=Number(e.qty)||0;x.amount+=Number(e.amount)||0;if(e.date&&(!x.last||e.date>x.last))x.last=e.date});const list=[...map.values()].sort((a,b)=>b.amount-a.amount);document.getElementById('supplierStat').textContent=list.length;const holder=document.getElementById('suppliers');if(!list.length){holder.innerHTML='<div class="empty">No supplier entries yet.</div>';return}holder.innerHTML=list.map(x=>`<div class="supplier"><div><div class="supplier-name">${esc(x.name)}</div><div class="supplier-meta">${x.entries} ${x.entries===1?'entry':'entries'} · ${x.qty.toLocaleString()} kg${x.last?' · Last '+fmt(x.last):''}</div></div><div class="amount">₹${x.amount.toLocaleString('en-IN')}</div></div>`).join('')}catch(e){document.getElementById('suppliers').innerHTML='<div class="empty">Could not load supplier information.</div>'}}
-function esc(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}function fmt(v){const p=String(v).split('-');return p.length===3?`${p[2]} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1])-1]} ${p[0]}`:v}load();
+
+/* ============================================================
+   API
+============================================================ */
+
+const API_BASE =
+  window.FLOWER_API_BASE ||
+  'https://sps-flower-ledger.onrender.com';
+
+
+/* ============================================================
+   SAFE JSON PARSE
+============================================================ */
+
+function safeParse(value){
+
+  if(!value){
+    return null;
+  }
+
+  try{
+    return JSON.parse(value);
+  }
+  catch(error){
+    return null;
+  }
+
+}
+
+
+/* ============================================================
+   GET STORAGE VALUE
+   Checks sessionStorage first, then localStorage
+============================================================ */
+
+function getStorageValue(keys){
+
+  for(const key of keys){
+
+    const sessionValue =
+      sessionStorage.getItem(key);
+
+    if(sessionValue){
+      return sessionValue;
+    }
+
+    const localValue =
+      localStorage.getItem(key);
+
+    if(localValue){
+      return localValue;
+    }
+
+  }
+
+  return null;
+
+}
+
+
+/* ============================================================
+   GET TOKEN
+============================================================ */
+
+function getSessionToken(){
+
+  return getStorageValue([
+
+    'poo_kanakku_token',
+
+    'flower_token',
+
+    'authToken',
+
+    'token',
+
+    'jwt',
+
+    'access_token'
+
+  ]);
+
+}
+
+
+/* ============================================================
+   GET USER
+============================================================ */
+
+function getSessionUser(){
+
+  const userKeys = [
+
+    'poo_kanakku_user',
+
+    'flower_user',
+
+    'currentUser',
+
+    'authUser',
+
+    'user'
+
+  ];
+
+
+  for(const key of userKeys){
+
+    let value =
+      sessionStorage.getItem(key);
+
+    if(!value){
+
+      value =
+        localStorage.getItem(key);
+
+    }
+
+
+    const parsed =
+      safeParse(value);
+
+
+    if(parsed && typeof parsed === 'object'){
+
+      return parsed;
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+/* ============================================================
+   GET CURRENT SESSION
+============================================================ */
+
+let sessionToken =
+  getSessionToken();
+
+let sessionUser =
+  getSessionUser();
+
+
+/* ============================================================
+   IMPORTANT:
+   DO NOT REDIRECT IMMEDIATELY
+
+   Google login and normal login can save the session
+   shortly before the profile page opens.
+============================================================ */
+
+if(!sessionToken){
+
+  setTimeout(()=>{
+
+    sessionToken =
+      getSessionToken();
+
+    sessionUser =
+      getSessionUser();
+
+
+    if(!sessionToken){
+
+      window.location.replace('index.html');
+
+    }
+    else{
+
+      initialiseProfile();
+
+    }
+
+  },500);
+
+}
+else{
+
+  initialiseProfile();
+
+}
+
+
+/* ============================================================
+   INITIALISE PROFILE
+============================================================ */
+
+function initialiseProfile(){
+
+  const user =
+    sessionUser || {};
+
+
+  /* Google account compatibility */
+
+  const name =
+
+    user.name ||
+
+    user.full_name ||
+
+    user.fullName ||
+
+    user.displayName ||
+
+    user.display_name ||
+
+    user.username ||
+
+    user.email ||
+
+    'User';
+
+
+  const username =
+
+    user.username ||
+
+    user.email ||
+
+    '';
+
+
+  /* Header */
+
+  document.getElementById('name').textContent =
+    name;
+
+
+  document.getElementById('username').textContent =
+
+    username
+      ? '@' + username
+      : '';
+
+
+  /* Hero */
+
+  document.getElementById('title').textContent =
+    name + ' — Profile';
+
+
+  document.getElementById('sub').textContent =
+
+    username ||
+    'Account overview';
+
+
+  /* Stats */
+
+  document.getElementById('nameStat').textContent =
+    name;
+
+
+  document.getElementById('userStat').textContent =
+
+    username ||
+    '—';
+
+
+  /* Avatar */
+
+  document.getElementById('avatar').textContent =
+
+    String(
+      name ||
+      username ||
+      '?'
+    )
+    .charAt(0)
+    .toUpperCase();
+
+
+  /* Load entries */
+
+  loadProfileData();
+
+}
+
+
+/* ============================================================
+   BACK BUTTON
+============================================================ */
+
+function goBack(){
+
+  if(window.history.length > 1){
+
+    window.history.back();
+
+  }
+  else{
+
+    window.location.href =
+      'index.html';
+
+  }
+
+}
+
+
+/* ============================================================
+   LOAD PROFILE DATA
+============================================================ */
+
+async function loadProfileData(){
+
+  const token =
+    getSessionToken();
+
+
+  if(!token){
+
+    return;
+
+  }
+
+
+  try{
+
+    const response =
+      await fetch(
+
+        API_BASE + '/api/entries',
+
+        {
+
+          headers:{
+
+            Authorization:
+              'Bearer ' + token
+
+          },
+
+          cache:'no-store'
+
+        }
+
+      );
+
+
+    /* Token invalid */
+
+    if(response.status === 401){
+
+      console.log(
+        'Session expired'
+      );
+
+      clearInvalidSession();
+
+      window.location.replace(
+        'index.html'
+      );
+
+      return;
+
+    }
+
+
+    if(!response.ok){
+
+      throw new Error(
+        'Could not load entries'
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    const entries =
+
+      Array.isArray(data)
+
+        ? data
+
+        : (
+
+          data.entries ||
+
+          []
+
+        );
+
+
+    /* Total entries */
+
+    document
+      .getElementById('entryStat')
+      .textContent =
+        entries.length;
+
+
+    /* Supplier map */
+
+    const supplierMap =
+      new Map();
+
+
+    entries.forEach(entry=>{
+
+
+      const supplierName =
+        String(
+
+          entry.name ||
+
+          entry.supplier ||
+
+          entry.supplier_name ||
+
+          ''
+
+        )
+        .trim();
+
+
+      if(!supplierName){
+
+        return;
+
+      }
+
+
+      const key =
+        supplierName
+          .toLowerCase();
+
+
+      if(!supplierMap.has(key)){
+
+        supplierMap.set(
+
+          key,
+
+          {
+
+            name:
+              supplierName,
+
+            entries:
+              0,
+
+            qty:
+              0,
+
+            amount:
+              0,
+
+            last:
+              ''
+
+          }
+
+        );
+
+      }
+
+
+      const supplier =
+        supplierMap.get(key);
+
+
+      supplier.entries++;
+
+
+      supplier.qty +=
+        Number(
+
+          entry.qty ||
+
+          entry.quantity ||
+
+          0
+
+        );
+
+
+      supplier.amount +=
+        Number(
+
+          entry.amount ||
+
+          entry.total ||
+
+          0
+
+        );
+
+
+      const entryDate =
+
+        entry.date ||
+
+        entry.created_at ||
+
+        '';
+
+
+      if(
+
+        entryDate &&
+
+        (
+
+          !supplier.last ||
+
+          entryDate >
+          supplier.last
+
+        )
+
+      ){
+
+        supplier.last =
+          entryDate;
+
+      }
+
+
+    });
+
+
+    /* Convert map to list */
+
+    const suppliers =
+      Array
+        .from(
+          supplierMap.values()
+        )
+        .sort(
+
+          (a,b)=>
+
+            b.amount -
+            a.amount
+
+        );
+
+
+    /* Total suppliers */
+
+    document
+      .getElementById('supplierStat')
+      .textContent =
+        suppliers.length;
+
+
+    const holder =
+      document.getElementById(
+        'suppliers'
+      );
+
+
+    /* No suppliers */
+
+    if(!suppliers.length){
+
+      holder.innerHTML =
+
+        `
+        <div class="empty">
+
+          No supplier entries yet.
+
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    /* Display suppliers */
+
+    holder.innerHTML =
+
+      suppliers
+        .map(
+
+          supplier =>
+
+          `
+
+          <div class="supplier">
+
+            <div>
+
+              <div class="supplier-name">
+
+                ${esc(
+                  supplier.name
+                )}
+
+              </div>
+
+
+              <div class="supplier-meta">
+
+                ${supplier.entries}
+
+                ${
+
+                  supplier.entries === 1
+
+                    ? 'entry'
+
+                    : 'entries'
+
+                }
+
+                ·
+
+                ${Number(
+                  supplier.qty
+                ).toLocaleString()}
+
+
+                ${
+
+                  supplier.last
+
+                    ?
+
+                    ' · Last ' +
+                    formatDate(
+                      supplier.last
+                    )
+
+                    :
+
+                    ''
+
+                }
+
+              </div>
+
+            </div>
+
+
+            <div class="amount">
+
+              ₹${Number(
+                supplier.amount
+              ).toLocaleString(
+                'en-IN'
+              )}
+
+            </div>
+
+          </div>
+
+          `
+
+        )
+        .join('');
+
+
+  }
+
+
+  catch(error){
+
+    console.error(
+      'Profile error:',
+      error
+    );
+
+
+    document
+      .getElementById('suppliers')
+      .innerHTML =
+
+        `
+        <div class="empty">
+
+          Could not load supplier information.
+
+        </div>
+        `;
+
+  }
+
+}
+
+
+/* ============================================================
+   CLEAR INVALID SESSION
+============================================================ */
+
+function clearInvalidSession(){
+
+  const tokenKeys = [
+
+    'poo_kanakku_token',
+
+    'flower_token',
+
+    'authToken',
+
+    'token',
+
+    'jwt',
+
+    'access_token'
+
+  ];
+
+
+  const userKeys = [
+
+    'poo_kanakku_user',
+
+    'flower_user',
+
+    'currentUser',
+
+    'authUser',
+
+    'user'
+
+  ];
+
+
+  tokenKeys.forEach(key=>{
+
+    localStorage.removeItem(key);
+
+    sessionStorage.removeItem(key);
+
+  });
+
+
+  userKeys.forEach(key=>{
+
+    localStorage.removeItem(key);
+
+    sessionStorage.removeItem(key);
+
+  });
+
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+============================================================ */
+
+function esc(value){
+
+  return String(value)
+    .replace(
+
+      /[&<>'"]/g,
+
+      character =>
+
+        ({
+
+          '&':'&amp;',
+
+          '<':'&lt;',
+
+          '>':'&gt;',
+
+          "'":'&#39;',
+
+          '"':'&quot;'
+
+        })[character]
+
+    );
+
+}
+
+
+/* ============================================================
+   FORMAT DATE
+============================================================ */
+
+function formatDate(value){
+
+  const parts =
+    String(value)
+      .split('-');
+
+
+  if(parts.length !== 3){
+
+    return value;
+
+  }
+
+
+  const months = [
+
+    'Jan',
+
+    'Feb',
+
+    'Mar',
+
+    'Apr',
+
+    'May',
+
+    'Jun',
+
+    'Jul',
+
+    'Aug',
+
+    'Sep',
+
+    'Oct',
+
+    'Nov',
+
+    'Dec'
+
+  ];
+
+
+  const monthIndex =
+    Number(parts[1]) - 1;
+
+
+  return (
+
+    parts[2]
+
+    +
+
+    ' '
+
+    +
+
+    (
+
+      months[monthIndex] ||
+
+      ''
+
+    )
+
+    +
+
+    ' '
+
+    +
+
+    parts[0]
+
+  );
+
+}
+
 </script>
+
 </body>
 </html>
