@@ -2795,6 +2795,12 @@ body:not(#loginScreen) #appWrap .topbar .user-avatar{
 /* This is the requested main-page scope line, kept here intentionally. */
 
 
+/* GOOGLE CREATE ACCOUNT HEADING */
+.google-create-heading{font:600 13px "Work Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b5c68;text-align:center;margin:10px 0 10px;}
+.google-account-wrap{margin:0 0 16px !important;}
+.google-account-wrap .google-signin-button{min-height:52px;font-size:15px;font-weight:700;border:1px solid #dadce0;background:#fff;box-shadow:0 4px 14px rgba(80,40,60,.10);}
+.google-account-wrap .google-signin-button span{color:#3c4043;}
+
 /* GOOGLE SIGN-IN */
 .google-signin-wrap{width:100%;margin:0 0 18px;}
 .google-signin-button{width:100%;min-height:46px;border:1px solid #dadce0;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;gap:12px;font:600 14px Arial,sans-serif;color:#3c4043;cursor:pointer;}
@@ -4542,6 +4548,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
     <p>Create an account using Google, or create a username and password account. New Google users can be created automatically by the server.</p>
 
     <!-- GOOGLE CREATE ACCOUNT / SIGN IN -->
+    <div class="google-create-heading">Create an account with Google</div>
     <div class="google-signin-wrap google-account-wrap">
       <button type="button" id="btnGoogleCreateAccount" class="google-signin-button" aria-label="Create or continue with Google">
         <svg class="google-g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.25-.2-1.8H12v3.42h5.37c-.11.85-.72 2.13-2.08 2.99l-.02.11 3.02 2.34.21.02c1.93-1.78 3.04-4.4 3.04-7.08z"/><path fill="#34A853" d="M12 21.72c2.63 0 4.84-.87 6.45-2.41l-3.07-2.38c-.82.57-1.92.97-3.38.97-2.57 0-4.75-1.69-5.53-4.03l-.1.01-3.14 2.43-.03.1C4.8 19.62 8.14 21.72 12 21.72z"/><path fill="#FBBC05" d="M6.47 13.87A5.87 5.87 0 0 1 6.16 12c0-.65.11-1.28.3-1.87v-.12L3.29 7.55l-.1.05A9.7 9.7 0 0 0 2.28 12c0 1.57.38 3.05.91 4.4l3.28-2.53z"/><path fill="#EA4335" d="M12 6.1c1.84 0 3.08.8 3.79 1.47l2.77-2.7C16.83 3.26 14.63 2.28 12 2.28 8.14 2.28 4.8 4.38 3.19 7.6l3.27 2.54C7.25 7.79 9.43 6.1 12 6.1z"/></svg>
