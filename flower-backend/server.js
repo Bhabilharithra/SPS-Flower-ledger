@@ -40,6 +40,22 @@ const JWT_SECRET =
   process.env.JWT_SECRET ||
   "flower-ledger-change-this-secret";
 
+// FIX: warn loudly on startup if the insecure fallback secret is in
+// use. This does NOT stop the server (so it won't break an existing
+// deployment that hasn't set JWT_SECRET yet), but it makes the risk
+// impossible to miss in the logs: with the fallback secret, anyone
+// who reads this source file can forge a valid login token for any
+// account, including the admin account (id: 0).
+if (!process.env.JWT_SECRET) {
+  console.warn(
+    "WARNING: JWT_SECRET is not set in .env - using the insecure " +
+      "default fallback secret. Anyone who has read this source " +
+      "file can forge valid login tokens. Set JWT_SECRET in your " +
+      "environment (Render dashboard, not just local .env) as soon " +
+      "as possible."
+  );
+}
+
 // ============================================================
 // GOOGLE SIGN-IN CONFIG
 // ============================================================
@@ -80,12 +96,47 @@ const googleClient = GOOGLE_CLIENT_ID
 // BREVO_API_KEY and BREVO_SENDER_EMAIL must be set in .env;
 // BREVO_SENDER_EMAIL must be a sender verified in your Brevo account
 // (Settings -> Senders), or sends will fail.
+//
+// FIX: added a simple in-memory attempt counter (see
+// otpAttemptCounts below) so the verify-otp endpoints can no longer
+// be brute-forced with unlimited guesses inside the 10-minute
+// window. This is intentionally simple (per-process memory, not
+// Redis) - good enough for a single backend instance; if this ever
+// runs multiple instances behind a load balancer, move this to the
+// database or a shared store instead.
 // ============================================================
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "";
 const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "S.P.S. Malaragam Flower Ledger";
 const OTP_TTL_MINUTES = 10;
+const OTP_MAX_ATTEMPTS = 5;
+
+// Maps a pendingId/userId key -> number of failed verify attempts
+// since the OTP was issued. Cleared whenever a fresh OTP is issued
+// or after a successful verify.
+const otpAttemptCounts = new Map();
+
+function otpAttemptKey(kind, id) {
+  return `${kind}:${id}`;
+}
+
+function resetOtpAttempts(kind, id) {
+  otpAttemptCounts.delete(otpAttemptKey(kind, id));
+}
+
+// Returns true if this key has exceeded the allowed attempts.
+function otpAttemptsExceeded(kind, id) {
+  const key = otpAttemptKey(kind, id);
+  const count = otpAttemptCounts.get(key) || 0;
+  return count >= OTP_MAX_ATTEMPTS;
+}
+
+function recordOtpFailure(kind, id) {
+  const key = otpAttemptKey(kind, id);
+  const count = otpAttemptCounts.get(key) || 0;
+  otpAttemptCounts.set(key, count + 1);
+}
 
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -149,7 +200,13 @@ async function sendOtpEmail(toEmail, toName, otp, purpose) {
 app.use(
   cors({
     origin: true,
-    credentials: true,
+    // FIX: this backend authenticates with a Bearer token in the
+    // Authorization header (see authMiddleware below), not cookies,
+    // so credentials: true was not needed and was needlessly
+    // widening what a reflected-origin CORS policy allows (it lets
+    // any origin make credentialed requests, e.g. carrying cookies
+    // or HTTP auth, which this API never relies on). Turned off.
+    credentials: false,
   })
 );
 
@@ -1050,6 +1107,12 @@ function formatTimeOnly(value) {
 // ============================================================
 // RATE SLOT NORMALIZATION (1st / 2nd / 3rd Rate)
 // ============================================================
+//
+// FIX: this used to match /[1-3]/ ANYWHERE in the string, so a
+// malformed value like "13" or "21" would silently resolve to slot
+// 1 or 2 instead of being rejected. Tightened to require the WHOLE
+// (trimmed) string to be exactly one digit 1-3.
+// ============================================================
 
 function normalizeRateSlot(value) {
   if (
@@ -1060,17 +1123,13 @@ function normalizeRateSlot(value) {
     return null;
   }
 
-  const match =
-    String(value)
-      .trim()
-      .match(/[1-3]/);
+  const trimmed = String(value).trim();
 
-  if (!match) {
+  if (!/^[1-3]$/.test(trimmed)) {
     return null;
   }
 
-  const slot =
-    Number(match[0]);
+  const slot = Number(trimmed);
 
   if (
     !Number.isInteger(slot) ||
@@ -1163,6 +1222,30 @@ function currentServerTime() {
       d.getSeconds()
     ).padStart(2, "0")
   );
+}
+
+// ============================================================
+// CONSTANT-TIME STRING COMPARE (for the admin password check)
+// ============================================================
+//
+// FIX: plain `a === b` string comparison leaks timing information
+// (it returns as soon as the first mismatched character is found),
+// which in theory lets an attacker recover the admin password one
+// character at a time by measuring response times. crypto.timingSafeEqual
+// always takes the same time regardless of where strings differ.
+// Both buffers must be the same length for timingSafeEqual, so
+// mismatched lengths are treated as an immediate non-match.
+// ============================================================
+
+function safeStringEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 // ============================================================
@@ -1432,6 +1515,9 @@ app.post(
         [pendingId, name, username, passwordHash, email, otp, otpExpiresAt]
       );
 
+      // FIX: a fresh OTP means a fresh attempt budget.
+      resetOtpAttempts("register", pendingId);
+
       try {
         await sendOtpEmail(email, name, otp, "signup");
       } catch (emailError) {
@@ -1488,6 +1574,17 @@ app.post(
         });
       }
 
+      // FIX: brute-force guard. Once too many wrong codes have been
+      // tried for this pendingId, stop checking altogether until a
+      // fresh OTP is requested (register again).
+      if (otpAttemptsExceeded("register", pendingId)) {
+        return res.status(429).json({
+          success: false,
+          message:
+            "Too many incorrect attempts. Please start signup again to get a new code.",
+        });
+      }
+
       const pendingResult = await pool.query(
         `
         SELECT *
@@ -1513,6 +1610,9 @@ app.post(
         pending.otp_code !== otp ||
         new Date(pending.otp_expires_at).getTime() < Date.now()
       ) {
+        // FIX: count this failed attempt.
+        recordOtpFailure("register", pendingId);
+
         return res.status(401).json({
           success: false,
           message:
@@ -1554,6 +1654,10 @@ app.post(
         `DELETE FROM pending_signups WHERE id = $1`,
         [pendingId]
       );
+
+      // FIX: clear the attempt counter now that this pendingId is
+      // fully spent - keeps the in-memory map from growing forever.
+      resetOtpAttempts("register", pendingId);
 
       const user = result.rows[0];
       await syncUsersJson();
@@ -1674,6 +1778,9 @@ app.post(
         [otp, otpExpiresAt, user.id]
       );
 
+      // FIX: a fresh OTP means a fresh attempt budget.
+      resetOtpAttempts("reset", user.id);
+
       try {
         await sendOtpEmail(user.email, user.name, otp, "reset");
       } catch (emailError) {
@@ -1753,6 +1860,16 @@ app.post(
         });
       }
 
+      // FIX: brute-force guard, same as the register verify-otp
+      // endpoint above.
+      if (otpAttemptsExceeded("reset", userId)) {
+        return res.status(429).json({
+          success: false,
+          message:
+            "Too many incorrect attempts. Please request a new code.",
+        });
+      }
+
       const existing =
         await pool.query(
           `
@@ -1789,6 +1906,9 @@ app.post(
         !user.otp_expires_at ||
         new Date(user.otp_expires_at).getTime() < Date.now()
       ) {
+        // FIX: count this failed attempt.
+        recordOtpFailure("reset", userId);
+
         return res.status(401).json({
           success: false,
           message:
@@ -1823,6 +1943,9 @@ app.post(
           `,
           [passwordHash, user.id]
         );
+
+      // FIX: clear the attempt counter now that this OTP is spent.
+      resetOtpAttempts("reset", userId);
 
       await syncUsersJson();
 
@@ -1941,12 +2064,19 @@ app.post(
               ""
           );
 
+        // FIX: use a constant-time compare for the admin password
+        // instead of `===`, so response timing can't be used to
+        // guess it character-by-character. Behavior is identical
+        // for correct/incorrect passwords - only the comparison
+        // mechanics changed.
         if (
           identifier ===
             envUsername &&
           envPassword &&
-          password ===
+          safeStringEqual(
+            password,
             envPassword
+          )
         ) {
           user = {
             id: 0,
@@ -2981,6 +3111,26 @@ app.post(
 // ============================================================
 // CREATE ENTRY
 // ============================================================
+//
+// FIX (bug #1 - cross-user data leak): the rate lookup below now
+// filters by user_id = req.user.id as well as flower/date/slot.
+// Previously it did not, so if two different accounts each saved a
+// rate for the same flower name + date + slot, whichever save had
+// the higher `id` (i.e. was saved more recently, by anyone) would
+// silently supply the price for every user's entry, not just the
+// user who owns that rate. Every other query in this file already
+// scopes by user_id; this one had been missed.
+//
+// FIX (bug #2 - double response risk): syncEntriesJson() now runs
+// BEFORE the response is sent, matching every other route in this
+// file (see POST /api/rates, PUT /api/entries/:id, etc). Previously
+// it ran AFTER res.status(201).json(...) - if syncEntriesJson()
+// throws, the catch block below tries to call res.status(500).json(...)
+// on a response that has already been sent, which throws
+// ERR_HTTP_HEADERS_SENT and crashes that request. The entry is
+// still inserted into the database either way; only the ordering of
+// the JSON-file mirror step changed.
+// ============================================================
 
 app.post(
   "/api/entries",
@@ -3097,6 +3247,9 @@ app.post(
               AND
               rate_slot = $3
 
+              AND
+              user_id = $4
+
             ORDER BY
               id DESC
 
@@ -3106,6 +3259,7 @@ app.post(
               flower,
               entryDate,
               rateSlot,
+              req.user.id,
             ]
           );
 
@@ -3212,6 +3366,13 @@ app.post(
       const slotLabel =
         rateSlotLabel(rateSlot);
 
+      // FIX: moved above the response (was previously after
+      // res.status(201).json(...) - see comment at the top of this
+      // route). The entry row is already committed to the database
+      // at this point; this only refreshes the JSON mirror file
+      // before telling the client the request succeeded.
+      await syncEntriesJson();
+
       res.status(201).json({
         success: true,
         message:
@@ -3223,8 +3384,6 @@ app.post(
         entry:
           result.rows[0],
       });
-
-      await syncEntriesJson();
     } catch (error) {
       console.error(
         "Create entry error:",
@@ -4158,6 +4317,10 @@ async function startServer() {
 
         console.log(
           "Password reset: OTP-based (request-otp + verify-otp) ENABLED"
+        );
+
+        console.log(
+          "OTP brute-force guard: ENABLED (max " + OTP_MAX_ATTEMPTS + " attempts per code)"
         );
 
         console.log(
