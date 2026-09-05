@@ -4441,7 +4441,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style id="google-otp-only">
-.google-auth-wrap{margin:0 0 18px}.google-fallback-real{width:100%;height:48px;border:1px solid #ddd;border-radius:10px;background:#fff;font-weight:600;cursor:pointer}.otp-modal{z-index:9999}.otp-box{max-width:430px}.otp-input{text-align:center;letter-spacing:.3em;font-size:22px}
+.google-auth-wrap{margin:0 0 18px}.google-fallback-real{width:100%;height:48px;border:1px solid #ddd;border-radius:10px;background:#fff;font-weight:600;cursor:pointer}.otp-modal{z-index:300000!important}.otp-box{max-width:430px}.otp-input{text-align:center;letter-spacing:.3em;font-size:22px}
 </style>
 </head>
 <body>
@@ -5145,7 +5145,14 @@ document.getElementById("btnCreateAccount").addEventListener("click",async()=>{
   const r=await fetch(API_BASE+"/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,username,password})});
   const d=await r.json().catch(()=>({}));
   if(!r.ok){msg.textContent=d.message||d.error||"Could not send OTP.";return;}
-  pendingSignupId=d.pendingSignupId||d.pending_signup_id||d.id||null;closeCreateAccount();openOtpModal(email);
+  pendingSignupId=d.pendingSignupId||d.pending_signup_id||d.id||null;
+  // OTP was sent successfully: close the signup modal first, then force the OTP modal to the front.
+  closeCreateAccount();
+  setTimeout(()=>{
+    const otpModal=document.getElementById("otpModal");
+    if(otpModal){otpModal.style.zIndex="300000";}
+    openOtpModal(email);
+  },80);
  }catch(e){msg.textContent="Could not reach the server.";}finally{btn.disabled=false;}
 });
 document.getElementById("btnVerifyOtp")?.addEventListener("click",async()=>{
