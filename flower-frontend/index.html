@@ -7573,10 +7573,10 @@ async function exportPdf(){
     // Do not print the selected supplier/customer name in the PDF.
     const scope = `Date range: ${getReportScopeLabel()}`;
 
-    // A4 landscape ratio in CSS pixels.
-    const PAGE_W = 1120;
-    const PAGE_H = Math.round(PAGE_W * 210 / 297); // ~792px
-    const PAGE_PAD = 44;
+    // A4 portrait ratio in CSS pixels.
+    const PAGE_W = 794;
+    const PAGE_H = Math.round(PAGE_W * 297 / 210); // ~1123px
+    const PAGE_PAD = 34;
 
     pdfRoot = document.createElement('div');
     pdfRoot.id = 'pdfRootPagination';
@@ -7609,10 +7609,6 @@ async function exportPdf(){
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Entries</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${sorted.length}</div>
         </div>
-        <div style="flex:1;background:#EEE8FA;border:1px solid #D8CCE9;border-radius:14px;padding:15px;">
-          <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Suppliers</div>
-          <div style="font-size:23px;font-weight:800;margin-top:5px;">${supplierNames}</div>
-        </div>
         <div style="flex:1;background:#FFF4C8;border:1px solid #EEDB9C;border-radius:14px;padding:15px;">
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Total amount</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${fmtMoney(totalAmount)}</div>
@@ -7621,9 +7617,13 @@ async function exportPdf(){
     `;
 
     const tableHeadHtml = `
+      <colgroup>
+        <col style="width:7%;"><col style="width:18%;"><col style="width:22%;">
+        <col style="width:18%;"><col style="width:17%;"><col style="width:18%;">
+      </colgroup>
       <thead>
         <tr style="background:#FFE6EF;">
-          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;width:58px;">S.No</th>
+          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;">S.No</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
@@ -7743,6 +7743,29 @@ async function exportPdf(){
       pageRowGroups.push(currentRows);
     }
 
+    // Reserve room on the final page for the TOTAL row and footer.
+    // If the last row would push those outside the A4 page, move that row
+    // to a new page instead of cutting the table or footer.
+    const FINAL_EXTRA_SPACE = 82;
+    function groupRowsHeight(group){
+      return group.reduce((sum, rowIndex)=>sum + rowHeights[rowIndex], 0);
+    }
+    let changedFinalPage = true;
+    while(changedFinalPage && pageRowGroups.length){
+      changedFinalPage = false;
+      const lastGroup = pageRowGroups[pageRowGroups.length - 1];
+      const lastIsFirstPage = pageRowGroups.length === 1;
+      const lastCapacity = Math.max(
+        (lastIsFirstPage ? firstPageRowsSpace : nextPageRowsSpace) - FINAL_EXTRA_SPACE,
+        80
+      );
+      if(lastGroup.length > 1 && groupRowsHeight(lastGroup) > lastCapacity){
+        const movedRow = lastGroup.pop();
+        pageRowGroups.push([movedRow]);
+        changedFinalPage = true;
+      }
+    }
+
     // ---------------------------------------------------------
     // Build each actual A4 page.
     // ---------------------------------------------------------
@@ -7786,29 +7809,25 @@ async function exportPdf(){
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
+
+      // Put TOTAL in the SAME table so every column lines up exactly.
+      // Only the final page contains the total and footer.
+      if(pageIndex === pageRowGroups.length - 1){
+        const tfoot = document.createElement('tfoot');
+        tfoot.innerHTML = `
+          <tr style="background:#FFF7FA;font-weight:800;">
+            <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
+            <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')}</td>
+            <td style="padding:11px;border:1px solid #E3B0C3;"></td>
+            <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
+          </tr>
+        `;
+        table.appendChild(tfoot);
+      }
+
       page.appendChild(table);
 
-      // Total/footer only on the final page.
       if(pageIndex === pageRowGroups.length - 1){
-        const totalTable = document.createElement('table');
-        totalTable.style.cssText = `
-          width:100%;
-          border-collapse:collapse;
-          table-layout:fixed;
-          font-size:12px;
-          margin-top:0;
-        `;
-        totalTable.innerHTML = `
-          <tfoot>
-            <tr style="background:#FFF7FA;font-weight:800;">
-              <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')}</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;"></td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
-            </tr>
-          </tfoot>
-        `;
-        page.appendChild(totalTable);
         page.insertAdjacentHTML('beforeend', footerHtml);
       }
 
@@ -7835,7 +7854,7 @@ async function exportPdf(){
     }
 
     const pdf = new jsPDF({
-      orientation:'landscape',
+      orientation:'portrait',
       unit:'mm',
       format:'a4',
       compress:true
@@ -7869,8 +7888,8 @@ async function exportPdf(){
         'JPEG',
         0,
         0,
-        297,
         210,
+        297,
         undefined,
         'FAST'
       );
