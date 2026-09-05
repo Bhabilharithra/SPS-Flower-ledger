@@ -4447,7 +4447,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 <!-- ============================================================
      LOGIN SCREEN
 ============================================================ -->
-<div id="loginScreen"><section class="login-brand"><div class="login-brand-copy"><div class="login-flower-mark" aria-hidden="true"><span>🌼</span><span>🌸</span><span>🌺</span></div><div class="brand-kicker">மலர் கணக்கு • FLOWER LEDGER</div><h1 class="headline">S.P.S. மலரகம்<br><em>மலர் கணக்கு</em></h1><p class="sub">மலர் வரவு, விற்பனை மற்றும் supplier கணக்குகளை எளிதாக நிர்வகிக்க.</p><div class="foot-note"><span class="dot"></span> S.P.சிங்கராஜா · செல்: 8870880301</div></div></section><section class="login-panel"><div class="login-card"><div class="login-welcome"><div class="login-icon">🌸</div><div><div class="login-eyebrow">WELCOME BACK</div><h2 class="lc-title">Sign in to the ledger</h2><p class="lc-sub">Open today's flower accounts.</p></div></div><div class="lc-error" id="lcError"></div><div class="google-wrap"><div id="gBtnSlot"></div></div><div class="divider"><span>or sign in with password</span></div><div class="lc-field"><label for="inpUsername">Email or Username</label><div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter email or username" autocomplete="username"></div></div><div class="lc-field"><label for="inpPassword">Password</label><div class="input-wrap password-wrap"><span>🔒</span><input type="password" id="inpPassword" placeholder="Enter password" autocomplete="current-password"><button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password">👁</button></div></div><div class="lc-row-between"><label class="remember-me"><input type="checkbox" id="chkRemember" checked> <span>Keep me signed in</span></label><button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button></div><button class="btn-signin" id="btnUnlock"><span>Sign in</span><span>→</span></button><button type="button" class="create-account-link" id="btnShowCreateAccount">Create account</button><div class="login-footer"><span>🌼</span> S.P.S. மலரகம் · ஆவரைகுளம்</div></div></section></div>
+<div id="loginScreen"><section class="login-brand"><div class="login-brand-copy"><div class="login-flower-mark" aria-hidden="true"><span>🌼</span><span>🌸</span><span>🌺</span></div><div class="brand-kicker">மலர் கணக்கு • FLOWER LEDGER</div><h1 class="headline">S.P.S. மலரகம்<br><em>மலர் கணக்கு</em></h1><p class="sub">மலர் வரவு, விற்பனை மற்றும் supplier கணக்குகளை எளிதாக நிர்வகிக்க.</p><div class="foot-note"><span class="dot"></span> S.P.சிங்கராஜா · செல்: 8870880301</div></div></section><section class="login-panel"><div class="login-card"><div class="login-welcome"><div class="login-icon">🌸</div><div><div class="login-eyebrow">WELCOME BACK</div><h2 class="lc-title">Sign in to the ledger</h2><p class="lc-sub">Open today's flower accounts.</p></div></div><div class="lc-error" id="lcError"></div><div class="google-wrap"><div id="gBtnSlot"></div></div><div class="divider"><span>or sign in with password</span></div><div class="lc-field"><label for="inpUsername">Email or Username</label><div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter email or username" autocomplete="username"></div></div><div class="lc-field"><label for="inpPassword">Password</label><div class="input-wrap password-wrap"><span>🔒</span><input type="password" id="inpPassword" placeholder="Enter password" autocomplete="current-password"><button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password">👁</button></div></div><div class="lc-row-between" style="justify-content:flex-end;"><button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button></div><button class="btn-signin" id="btnUnlock"><span>Sign in</span><span>→</span></button><button type="button" class="create-account-link" id="btnShowCreateAccount">Create account</button><div class="login-footer"><span>🌼</span> S.P.S. மலரகம் · ஆவரைகுளம்</div></div></section></div>
 <!-- CREATE ACCOUNT MODAL --><div class="account-modal" id="accountModal" aria-hidden="true"><div class="account-card" role="dialog" aria-modal="true"><h3>Create an account</h3><p>Enter your details. We will send a verification OTP to your email before creating the account.</p><div class="account-field"><label>Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun" autocomplete="name"></div><div class="account-field"><label>Gmail / Email</label><input id="newAccountEmail" type="email" placeholder="you@gmail.com" autocomplete="email"></div><div class="account-field"><label>Username</label><input id="newAccountUsername" type="text" placeholder="Choose a unique username" autocomplete="username"></div><div class="account-field"><label>Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword">👁</button></div></div><div class="account-field"><label>Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm">👁</button></div></div><div class="account-message" id="accountMessage"></div><div class="account-actions"><button type="button" class="account-cancel" id="btnCancelCreateAccount">Cancel</button><button type="button" class="account-submit" id="btnCreateAccount">Create account</button></div></div></div>
 <!-- OTP VERIFICATION MODAL --><div class="account-modal" id="otpModal" aria-hidden="true"><div class="account-card" role="dialog" aria-modal="true"><h3>Verify your email</h3><p id="otpDescription">Enter the 6-digit verification code sent to your email.</p><div class="account-field"><label>Verification code</label><input id="signupOtp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit OTP" autocomplete="one-time-code"></div><div class="account-message" id="otpMessage"></div><div class="account-actions"><button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button><button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button></div></div></div>
 
@@ -4744,15 +4744,15 @@ const API_BASE = window.FLOWER_API_BASE ||
 // ------------------------------------------------------------
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
-function readStoredSession(){
-  const sessionToken = sessionStorage.getItem("poo_kanakku_token");
-  const localToken = localStorage.getItem("poo_kanakku_token");
+// One-time cleanup: remove sessions saved by older versions that used
+// localStorage. Shared devices must never auto-sign-in a previous user.
+localStorage.removeItem("poo_kanakku_token");
+localStorage.removeItem("poo_kanakku_user");
 
-  // Prefer the session token, otherwise use the remembered local token.
-  const token = sessionToken || localToken || null;
-  const userRaw = sessionToken
-    ? sessionStorage.getItem("poo_kanakku_user")
-    : localStorage.getItem("poo_kanakku_user");
+function readStoredSession(){
+  // Session-only login. Closing the browser/tab clears this session.
+  const token = sessionStorage.getItem("poo_kanakku_token") || null;
+  const userRaw = sessionStorage.getItem("poo_kanakku_user");
 
   let user = null;
   try{
@@ -4819,17 +4819,16 @@ function authHeaders(){
   return authToken ? { "Authorization": "Bearer " + authToken } : {};
 }
 
-function persistSession(token, user, remember){
-  // Always remove both copies first so an old session token cannot win over
-  // the newly saved token on the next page load.
+function persistSession(token, user){
+  // Never persist to localStorage. This app can be used on shared devices,
+  // so a login must not survive closing the browser/tab.
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
 
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem("poo_kanakku_token", token);
-  store.setItem("poo_kanakku_user", JSON.stringify(user));
+  sessionStorage.setItem("poo_kanakku_token", token);
+  sessionStorage.setItem("poo_kanakku_user", JSON.stringify(user));
 }
 
 function clearSession(){
@@ -5232,7 +5231,7 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
 
 // ---- Google Sign-In ----
 const GOOGLE_CLIENT_ID="60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
-function handleGoogleCredential(response){if(!response?.credential){showLoginError("Google Sign-In did not return a credential.");return;}(async()=>{hideLoginError();try{const res=await fetch(API_BASE+"/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:response.credential})});const data=await res.json().catch(()=>({}));if(!res.ok){showLoginError(data.message||data.error||"Google Sign-In failed.");return;}if(data.token&&data.user){authToken=data.token;persistSession(authToken,data.user,document.getElementById("chkRemember").checked);showApp(data.user);return;}showLoginError(data.message||"Google Sign-In requires additional setup on the server.");}catch(e){showLoginError("Could not reach the server. Is it running?");}})();}
+function handleGoogleCredential(response){if(!response?.credential){showLoginError("Google Sign-In did not return a credential.");return;}(async()=>{hideLoginError();try{const res=await fetch(API_BASE+"/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:response.credential})});const data=await res.json().catch(()=>({}));if(!res.ok){showLoginError(data.message||data.error||"Google Sign-In failed.");return;}if(data.token&&data.user){authToken=data.token;persistSession(authToken,data.user);showApp(data.user);return;}showLoginError(data.message||"Google Sign-In requires additional setup on the server.");}catch(e){showLoginError("Could not reach the server. Is it running?");}})();}
 function showGoogleFallback(){
   const slot=document.getElementById("gBtnSlot");
   if(!slot || slot.dataset.ready==="true") return;
@@ -5280,7 +5279,6 @@ async function tryUnlock(){
   hideLoginError();
   const username = document.getElementById('inpUsername').value.trim();
   const password = document.getElementById('inpPassword').value;
-  const remember = document.getElementById('chkRemember').checked;
   if(!username || !password){ showLoginError("Enter your email or username and password."); return; }
   try{
     const res = await fetch(API_BASE + "/api/login", {
@@ -5291,7 +5289,7 @@ async function tryUnlock(){
     const data = await res.json().catch(()=>({}));
     if(!res.ok){ showLoginError(data.message || data.error || "Wrong email/username or password."); return; }
     authToken = data.token;
-    persistSession(authToken, data.user, remember);
+    persistSession(authToken, data.user);
     showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
@@ -5877,10 +5875,24 @@ function getRatesArray(payload){
   return [];
 }
 
+function normalizeDisplayRateSlot(value, fallbackIndex = null){
+  const n = Number(value);
+  if(Number.isInteger(n) && n >= 1 && n <= 3) return n;
+  if(Number.isInteger(fallbackIndex) && fallbackIndex >= 0 && fallbackIndex < 3) return fallbackIndex + 1;
+  return null;
+}
+
+function rateRowFreshness(row){
+  const updated = Date.parse(row?.updated_at || row?.created_at || '');
+  if(Number.isFinite(updated)) return updated;
+  const idNum = Number(row?.id);
+  return Number.isFinite(idNum) ? idNum : 0;
+}
+
 function ratesResponseToOptions(payload){
   const grouped = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
 
-  getRatesArray(payload).forEach(item=>{
+  getRatesArray(payload).forEach((item, index)=>{
     if(!item) return;
     const flower = canonicalFlowerKey(item.flower ?? item.name ?? item.english_name ?? item.englishName);
     if(!flower) return;
@@ -5895,17 +5907,36 @@ function ratesResponseToOptions(payload){
       price: Number(price),
       date,
       time,
-      updated_at: item.updated_at ?? item.created_at ?? ''
+      slot: normalizeDisplayRateSlot(item.rate_slot ?? item.rateSlot, index),
+      updated_at: item.updated_at ?? item.created_at ?? '',
+      created_at: item.created_at ?? ''
     });
   });
 
   Object.keys(grouped).forEach(flower=>{
-    grouped[flower].sort((a,b)=>{
-      const ta = String(a.time || '00:00:00');
-      const tb = String(b.time || '00:00:00');
-      if(ta !== tb) return ta.localeCompare(tb);
-      return String(a.id).localeCompare(String(b.id));
+    // One visible rate per slot. If the API returns an older duplicate,
+    // always keep the newest row for that exact 1st/2nd/3rd slot.
+    const bySlot = new Map();
+    const noSlot = [];
+    grouped[flower].forEach(rate=>{
+      if(rate.slot){
+        const old = bySlot.get(rate.slot);
+        if(!old || rateRowFreshness(rate) >= rateRowFreshness(old)) bySlot.set(rate.slot, rate);
+      }else{
+        noSlot.push(rate);
+      }
     });
+
+    grouped[flower] = [...bySlot.values(), ...noSlot]
+      .sort((a,b)=>{
+        const sa = a.slot || 99;
+        const sb = b.slot || 99;
+        if(sa !== sb) return sa - sb;
+        const ta = String(a.time || '00:00:00');
+        const tb = String(b.time || '00:00:00');
+        if(ta !== tb) return ta.localeCompare(tb);
+        return String(a.id).localeCompare(String(b.id));
+      });
   });
 
   return grouped;
@@ -6146,8 +6177,9 @@ async function loadRateCards(rateDate = null){
     lastRatePayload = selectedDateRates;
     displayFlowerRates = ratesResponseToMap(selectedDateRates);
 
-    // Only put rates from the currently selected date into the editable
-    // 1st time / 2nd time / 3rd time input boxes.
+    // Keep the saved rates in the slot cache for updates, but leave the
+    // editable 1st/2nd/3rd time fields empty. Saved values are shown only
+    // inside the CURRENT RATES section.
     const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
     fillMultiRateInputs(selectedDateOptions);
 
@@ -6172,17 +6204,35 @@ function fillMultiRateInputs(optionsByFlower){
     ['மல்லி',['rateMalli1','rateMalli2','rateMalli3']]
   ];
   const selectedDate = selectedRateCardDate();
+
   config.forEach(([flower,ids])=>{
-    const rates=(optionsByFlower[flower] || []).slice(-3);
+    const source=(optionsByFlower[flower] || []).slice();
+    const bySlot={};
+
+    source.forEach((rate,index)=>{
+      const slot=normalizeDisplayRateSlot(rate.slot ?? rate.rate_slot ?? rate.rateSlot, index);
+      if(!slot) return;
+      const old=bySlot[slot];
+      if(!old || rateRowFreshness(rate) >= rateRowFreshness(old)) bySlot[slot]=rate;
+    });
+
     const cacheKey=`${flower}|${selectedDate}`;
-    window.__rateSlotCache[cacheKey]=rates.map(rate=>({
-      id: rate.id ?? '',
-      price:Number(rate.price),
-      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8)
-    }));
-    ids.forEach((id,index)=>{
+    window.__rateSlotCache[cacheKey]=[1,2,3].map(slot=>{
+      const rate=bySlot[slot];
+      return rate ? {
+        id: rate.id ?? '',
+        price:Number(rate.price),
+        time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8),
+        slot
+      } : null;
+    });
+
+    // Keep the editable 1st/2nd/3rd time fields empty.
+    // Saved prices must be displayed ONLY in the CURRENT RATES section.
+    // The cache above still keeps the saved values so editing and slot updates work correctly.
+    ids.forEach(id=>{
       const input=document.getElementById(id);
-      if(input) input.value = rates[index]?.price ?? '';
+      if(input) input.value = '';
     });
   });
 }
@@ -6253,7 +6303,7 @@ function renderInlineCurrentRates(rates){
 
   const grouped={ 'முல்லை':[], 'பிச்சி':[], 'மல்லி':[] };
 
-  (rates || []).forEach(raw=>{
+  (rates || []).forEach((raw,index)=>{
     if(!raw) return;
     const flower=canonicalFlowerKey(raw.flower ?? raw.name ?? raw.english_name ?? raw.englishName);
     if(!flower) return;
@@ -6262,8 +6312,13 @@ function renderInlineCurrentRates(rates){
     const time=String(raw.rate_time ?? raw.rateTime ?? raw.time ?? '').slice(0,8);
     if(price === '' || price == null || !date) return;
     grouped[flower].push({
-      id:String(raw.id ?? ''), price:Number(price), date, time,
-      updated_at:raw.updated_at ?? raw.created_at ?? ''
+      id:String(raw.id ?? ''),
+      price:Number(price),
+      date,
+      time,
+      slot:normalizeDisplayRateSlot(raw.rate_slot ?? raw.rateSlot, index),
+      updated_at:raw.updated_at ?? raw.created_at ?? '',
+      created_at:raw.created_at ?? ''
     });
   });
 
@@ -6271,31 +6326,22 @@ function renderInlineCurrentRates(rates){
     const el=document.getElementById(map[flower]);
     if(!el) return;
 
-    const all=grouped[flower];
-    if(!all.length){
-      el.classList.add('is-empty');
-      // Keep the card clean when the selected date has no saved rates.
-      // Do not show the old price and do not show the words "Not set".
-      el.innerHTML='<span class="rate-current-label">Current rates</span>';
-      return;
-    }
-
-    // `rates` is already filtered by loadRateCards(), but filter once more
-    // against the date currently selected in the cards. This prevents an old
-    // date's values from remaining visible while the new date is loading.
     const selectedDate=selectedRateCardDate();
-    const selectedDay=all
-      .filter(r=>r.date===selectedDate)
-      .sort((a,b)=>{
-        const ta=`${a.date}T${a.time||'00:00:00'}`;
-        const tb=`${b.date}T${b.time||'00:00:00'}`;
-        if(ta!==tb) return ta.localeCompare(tb);
-        return String(a.id).localeCompare(String(b.id));
-      })
-      .slice(0,3);
+    const selectedDay=grouped[flower].filter(r=>r.date===selectedDate);
+    const bySlot={};
+    const noSlot=[];
 
-    // Never show rates from another date. A date with no saved rates stays blank.
-    if(!selectedDay.length){
+    selectedDay.forEach(rate=>{
+      if(rate.slot){
+        const old=bySlot[rate.slot];
+        if(!old || rateRowFreshness(rate) >= rateRowFreshness(old)) bySlot[rate.slot]=rate;
+      }else{
+        noSlot.push(rate);
+      }
+    });
+
+    const visible=[1,2,3].map(slot=>bySlot[slot]).filter(Boolean);
+    if(!visible.length){
       el.classList.add('is-empty');
       el.innerHTML='<span class="rate-current-label">Current rates</span>';
       return;
@@ -6306,12 +6352,12 @@ function renderInlineCurrentRates(rates){
 
     const list=document.createElement('div');
     list.className='current-rate-list';
-    selectedDay.forEach((rate,index)=>{
+    visible.forEach(rate=>{
       const row=document.createElement('div');
       row.className='current-rate-row';
       const slot=document.createElement('span');
       slot.className='current-rate-slot';
-      slot.textContent=`${ordinal(index+1)} rate`;
+      slot.textContent=`${ordinal(rate.slot)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
       value.textContent=`${fmtMoney(rate.price)}`;
@@ -6396,6 +6442,8 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
           name: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           englishName: flower==='முல்லை' ? 'Mullai' : flower==='பிச்சி' ? 'Royal Jasmine' : 'Malli',
           price:item.price,
+          rate_slot:item.slot + 1,
+          rateSlot:item.slot + 1,
           date,
           rate_date:date,
           rateDate:date,
@@ -6416,6 +6464,7 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
     // the exact saved rate_time values after an update.
     await loadRateCards(date);
     await loadFlowerRates(date);
+    await loadData(false);
 
     showToast(`${flower} rates saved`, `${saved.length} changed rate${saved.length===1?'':'s'} saved successfully.`, 'success');
   }catch(error){
@@ -7258,15 +7307,13 @@ function exportExcel(){
       "Flower": flowerLabel(e.flower),
       "Quantity": Number(e.qty || 0),
       "Price": Number(e.price || 0),
-      "Amount": Number(e.amount || 0),
-      "Paid": e.paid ? "Yes" : "No",
-      "Paid Date": e.paidDate || ""
+      "Amount": Number(e.amount || 0)
     }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   worksheet['!cols'] = [
     { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 16 },
-    { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 14 }
+    { wch: 14 }, { wch: 16 }
   ];
 
   const workbook = XLSX.utils.book_new();

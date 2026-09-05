@@ -1391,6 +1391,16 @@ app.get(
 // username/email/password, stashes them in pending_signups
 // along with a fresh OTP, emails the OTP, and waits for
 // POST /api/register/verify-otp to actually create the user.
+//
+// PERF FIX: bcrypt.hash(password, 12) and the DELETE of any earlier
+// unfinished signup attempt for this username/email used to run one
+// after another even though neither depends on the other's result -
+// the hash only needs `password`, and the DELETE only needs
+// username/email. Running them with Promise.all shaves the smaller
+// of the two durations (usually the DELETE, since it's an indexed
+// lookup) off the total request time. This does NOT fix cold-start
+// or Brevo API latency - see the SELF_PING_URL note in the startup
+// log for that.
 // ============================================================
 
 app.post(
@@ -1484,26 +1494,24 @@ app.post(
         });
       }
 
-      const passwordHash =
-        await bcrypt.hash(
-          password,
-          12
-        );
+      // PERF FIX: hash the password and clear out any earlier
+      // unfinished signup attempt for this username/email in
+      // parallel - neither needs the other's result first.
+      const [passwordHash] = await Promise.all([
+        bcrypt.hash(password, 12),
+        pool.query(
+          `
+          DELETE FROM pending_signups
+          WHERE LOWER(username) = LOWER($1)
+             OR LOWER(email) = LOWER($2)
+          `,
+          [username, email]
+        ),
+      ]);
 
       const otp = generateOtp();
       const otpExpiresAt = otpExpiryDate();
       const pendingId = crypto.randomUUID();
-
-      // Superseding: drop any earlier unfinished attempt for the
-      // same username or email so only the latest OTP is valid.
-      await pool.query(
-        `
-        DELETE FROM pending_signups
-        WHERE LOWER(username) = LOWER($1)
-           OR LOWER(email) = LOWER($2)
-        `,
-        [username, email]
-      );
 
       await pool.query(
         `
@@ -2866,6 +2874,23 @@ app.get(
 // ============================================================
 // SAVE FLOWER RATE
 // ============================================================
+//
+// FIX (rate correction not propagating): the auto-backfill UPDATE
+// below now always cascades to entries carrying THIS EXACT rate
+// slot, not just entries that were still "pending" (price/amount
+// null or zero). Previously the WHERE clause required
+// (price IS NULL OR (price = 0 AND amount = 0)) for every entry it
+// touched, which meant the very first save of a rate would fill in
+// matching pending entries correctly, but going back afterwards to
+// CORRECT that rate (e.g. Mullai 1st time 100 -> 120) would leave
+// every entry already priced at 100 untouched forever - only
+// brand-new pending entries would pick up the corrected price. Now:
+//   - entries tagged with this exact rate_slot always re-price when
+//     the rate for that slot/date/flower is corrected.
+//   - entries with NO slot chosen (rate_slot IS NULL) still only
+//     auto-fill while still pending, so a manually-priced unslotted
+//     entry is never silently overwritten.
+// ============================================================
 
 app.post(
   "/api/rates",
@@ -3042,6 +3067,11 @@ app.post(
           ]
         );
 
+      // FIX: entries carrying this exact rate_slot always cascade to
+      // the corrected price (whether they were pending or already
+      // priced). Entries with no slot chosen only auto-fill while
+      // still pending, so a manually-priced unslotted entry is never
+      // silently overwritten by a later rate save.
       await pool.query(
         `
         UPDATE entries
@@ -3058,18 +3088,20 @@ app.post(
           entry_date = $3
 
           AND
-          (
-            rate_slot IS NULL
-            OR rate_slot = $4
-          )
-
-          AND
           user_id = $5
 
           AND
           (
-           price IS NULL
-           OR (price = 0 AND amount = 0)
+            rate_slot = $4
+            OR
+            (
+              rate_slot IS NULL
+              AND
+              (
+                price IS NULL
+                OR (price = 0 AND amount = 0)
+              )
+            )
           )
         `,
         [
@@ -4305,6 +4337,10 @@ async function startServer() {
 
         console.log(
           "rate_slot on entry creation: OPTIONAL"
+        );
+
+        console.log(
+          "Rate correction cascades to already-priced entries: ENABLED"
         );
 
         console.log(
