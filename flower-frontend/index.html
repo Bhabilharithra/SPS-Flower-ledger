@@ -4981,6 +4981,12 @@ if(resetPasswordLink){
 if(cancelResetPassword){
   cancelResetPassword.addEventListener("click", (e)=>{
     e.preventDefault();
+    // Cancel only the reset-password flow. Never leave an old reset OTP
+    // session active, otherwise the next OTP verification can use the wrong flow.
+    pendingResetId = null;
+    pendingResetIdentifier = "";
+    pendingResetPassword = "";
+    if(otpFlow === "reset") otpFlow = null;
     closeResetPassword();
   });
 }
@@ -5018,6 +5024,9 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
   pendingResetId = null;
   pendingResetIdentifier = identifier;
   pendingResetPassword = password;
+  otpFlow = "reset";
+  // Hide the reset form while the reset OTP panel is active.
+  closeResetPassword();
 
   const otpModal = document.getElementById("otpModal");
   const otpInput = document.getElementById("signupOtp");
@@ -5047,6 +5056,7 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
 
     if(!res.ok){
       closeOtpModal();
+      otpFlow = null;
       openResetPassword();
       message.textContent = data.message || data.error || "Could not send reset OTP.";
       return;
@@ -5059,6 +5069,7 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
 
     if(!pendingResetId){
       closeOtpModal();
+      otpFlow = null;
       openResetPassword();
       message.textContent = "Server did not return a reset verification ID.";
       return;
@@ -5072,6 +5083,7 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
     setTimeout(()=>otpInput.focus(), 50);
   }catch(e){
     closeOtpModal();
+    otpFlow = null;
     openResetPassword();
     message.textContent = "Could not reach the server. Is it running?";
   }finally{
@@ -5085,6 +5097,9 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
 let pendingResetId = null;
 let pendingResetIdentifier = "";
 let pendingResetPassword = "";
+// Explicitly track which OTP flow owns the shared OTP modal.
+// This prevents a cancelled/reset OTP session from being mistaken for signup OTP.
+let otpFlow = null; // "reset" | "signup" | null
 
 let pendingSignupId = null;
 let pendingSignupEmail = "";
@@ -5102,6 +5117,11 @@ document.getElementById("btnCreateAccount").addEventListener("click", async ()=>
  btn.textContent="Sending OTP…";
  pendingSignupId=null;
  pendingSignupEmail=email;
+ // Signup owns this OTP session; clear any stale reset state.
+ pendingResetId=null;
+ pendingResetIdentifier="";
+ pendingResetPassword="";
+ otpFlow="signup";
  closeCreateAccount();
  const otpModal=document.getElementById("otpModal");
  const otpInput=document.getElementById("signupOtp");
@@ -5170,8 +5190,35 @@ function openOtpForReset(email){
   setTimeout(()=>otpInput.focus(),50);
 }
 
-function closeOtpModal(){const m=document.getElementById("otpModal");m.classList.remove("show");m.setAttribute("aria-hidden","true");}
-document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);
+function closeOtpModal(){
+  const m=document.getElementById("otpModal");
+  if(!m) return;
+  m.classList.remove("show");
+  m.setAttribute("aria-hidden","true");
+}
+
+// Cancel is flow-aware. Reset OTP returns to Reset Password; signup OTP returns
+// to Create Account. Both clear the pending OTP state so it cannot hijack another flow.
+document.getElementById("btnCancelOtp").addEventListener("click",()=>{
+  const flow = otpFlow;
+  closeOtpModal();
+  if(flow === "reset"){
+    pendingResetId=null;
+    pendingResetIdentifier="";
+    pendingResetPassword="";
+    otpFlow=null;
+    openResetPassword();
+    return;
+  }
+  if(flow === "signup"){
+    pendingSignupId=null;
+    pendingSignupEmail="";
+    otpFlow=null;
+    openCreateAccount();
+    return;
+  }
+  otpFlow=null;
+});
 // Keep the OTP panel open when the user clicks anywhere on the page/backdrop.
 // It can now be closed only with the Cancel button or after successful verification.
 document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
@@ -5189,7 +5236,11 @@ document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
   btn.textContent="Verifying…";
 
   try{
-    if(pendingResetId){
+    if(otpFlow === "reset"){
+      if(!pendingResetId){
+        message.textContent="Please start the password reset again.";
+        return;
+      }
       const res=await fetch(API_BASE+"/api/reset-password/verify-otp",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -5210,6 +5261,7 @@ document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
       pendingResetId=null;
       pendingResetIdentifier="";
       pendingResetPassword="";
+      otpFlow=null;
       closeOtpModal();
 
       document.getElementById("inpUsername").value=loginIdentifier;
@@ -5219,7 +5271,7 @@ document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
       return;
     }
 
-    if(!pendingSignupId){
+    if(otpFlow !== "signup" || !pendingSignupId){
       message.textContent="Please start account creation again.";
       return;
     }
@@ -5286,6 +5338,7 @@ document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
 
     pendingSignupId = null;
     pendingSignupEmail = "";
+    otpFlow = null;
 
     document.getElementById("inpUsername").value = loginIdentifier || "";
     document.getElementById("inpPassword").value = "";
@@ -5391,7 +5444,13 @@ async function tryUnlock(){
   hideLoginError();
   const username = document.getElementById('inpUsername').value.trim();
   const password = document.getElementById('inpPassword').value;
+  const loginBtn = document.getElementById('btnUnlock');
+  const originalLoginText = loginBtn ? loginBtn.textContent : 'Sign in';
   if(!username || !password){ showLoginError("Enter your email or username and password."); return; }
+  if(loginBtn){
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing...';
+  }
   try{
     const res = await fetch(API_BASE + "/api/login", {
       method: "POST",
@@ -5405,6 +5464,11 @@ async function tryUnlock(){
     showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
+  }finally{
+    if(loginBtn){
+      loginBtn.disabled = false;
+      loginBtn.textContent = originalLoginText;
+    }
   }
 }
 
@@ -7506,7 +7570,8 @@ async function exportPdf(){
         .filter(Boolean)
     ).size;
 
-    const scope = `${currentFilter ? `Supplier: ${escapeHtml(sorted[0]?.name || currentFilter)} · ` : ''}Date range: ${getReportScopeLabel()}`;
+    // Do not print the selected supplier/customer name in the PDF.
+    const scope = `Date range: ${getReportScopeLabel()}`;
 
     // A4 landscape ratio in CSS pixels.
     const PAGE_W = 1120;
@@ -7558,8 +7623,8 @@ async function exportPdf(){
     const tableHeadHtml = `
       <thead>
         <tr style="background:#FFE6EF;">
+          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;width:58px;">S.No</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
-          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Supplier</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
@@ -7568,10 +7633,10 @@ async function exportPdf(){
       </thead>
     `;
 
-    function pdfRowHtml(e){
+    function pdfRowHtml(e, serialNo){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(e.name||'')}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:center;vertical-align:top;white-space:nowrap;">${serialNo}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;white-space:nowrap;">${fmtDate(e.date)}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
@@ -7602,7 +7667,7 @@ async function exportPdf(){
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;">
         ${tableHeadHtml}
         <tbody>
-          ${sorted.map(pdfRowHtml).join('')}
+          ${sorted.map((e,index)=>pdfRowHtml(e,index+1)).join('')}
         </tbody>
       </table>
     `;
@@ -7716,6 +7781,7 @@ async function exportPdf(){
       rowIndexes.forEach(index=>{
         const tr = document.createElement('tr');
         tr.style.cssText = 'break-inside:avoid;page-break-inside:avoid;';
+        // Keep the global serial number continuous across A4 pages.
         tr.innerHTML = allRows[index].innerHTML;
         tbody.appendChild(tr);
       });
@@ -7810,16 +7876,9 @@ async function exportPdf(){
       );
     }
 
-    const safeName = (
-      currentFilter && sorted[0]?.name
-        ? sorted[0].name
-        : 'all_suppliers'
-    )
-      .replace(/[^a-zA-Z0-9_-]+/g,'_')
-      .replace(/^_+|_+$/g,'') || 'ledger';
-
+    // Do not include a supplier/customer name in the PDF file name.
     pdf.save(
-      `SPS_Malaragam_Flower_Ledger_${safeName}_${getReportFileSuffix()}.pdf`
+      `SPS_Malaragam_Flower_Ledger_${getReportFileSuffix()}.pdf`
     );
 
     showToast(
