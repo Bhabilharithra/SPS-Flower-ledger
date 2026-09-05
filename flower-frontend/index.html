@@ -5056,12 +5056,72 @@ let pendingSignupId = null;
 let pendingSignupEmail = "";
 document.getElementById("btnCreateAccount").addEventListener("click", async ()=>{
  const message=document.getElementById("accountMessage"), name=document.getElementById("newAccountName").value.trim(), email=document.getElementById("newAccountEmail").value.trim().toLowerCase(), username=document.getElementById("newAccountUsername").value.trim(), password=document.getElementById("newAccountPassword").value, confirm=document.getElementById("newAccountConfirm").value, btn=document.getElementById("btnCreateAccount");
- message.textContent=""; if(!name||!email||!username||!password){message.textContent="Name, email, username and password are required.";return;} if(!/^\S+@\S+\.\S+$/.test(email)){message.textContent="Enter a valid email address.";return;} if(password.length<6){message.textContent="Password must contain at least 6 characters.";return;} if(password!==confirm){message.textContent="Passwords do not match.";return;}
- btn.disabled=true;btn.textContent="Sending OTP…";
- try{const res=await fetch(API_BASE+"/api/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({name,email,username,password}),cache:"no-store"});const data=await res.json().catch(()=>({}));if(!res.ok){message.textContent=data.message||data.error||"Could not start account creation.";return;}if(!data.pendingId){message.textContent="Server did not return a signup verification ID.";return;}pendingSignupId=data.pendingId;pendingSignupEmail=email;closeCreateAccount();document.getElementById("otpDescription").textContent=`Enter the 6-digit verification code sent to ${email}.`;document.getElementById("otpMessage").textContent="";document.getElementById("signupOtp").value="";const m=document.getElementById("otpModal");m.classList.add("show");m.setAttribute("aria-hidden","false");setTimeout(()=>document.getElementById("signupOtp").focus(),50);}catch(e){console.error("Signup OTP request network error:",e);message.textContent="Connection error: "+(e?.message||"Could not reach the server.");}finally{btn.disabled=false;btn.textContent="Create account";}
+ message.textContent="";
+ if(!name||!email||!username||!password){message.textContent="Name, email, username and password are required.";return;}
+ if(!/^\S+@\S+\.\S+$/.test(email)){message.textContent="Enter a valid email address.";return;}
+ if(password.length<6){message.textContent="Password must contain at least 6 characters.";return;}
+ if(password!==confirm){message.textContent="Passwords do not match.";return;}
+
+ // Open the OTP panel immediately. Do not wait for the server/email request,
+ // so users see the verification screen right away even if the backend is slow.
+ btn.disabled=true;
+ btn.textContent="Sending OTP…";
+ pendingSignupId=null;
+ pendingSignupEmail=email;
+ closeCreateAccount();
+ const otpModal=document.getElementById("otpModal");
+ const otpInput=document.getElementById("signupOtp");
+ const otpMessage=document.getElementById("otpMessage");
+ const verifyBtn=document.getElementById("btnVerifyOtp");
+ document.getElementById("otpDescription").textContent=`Sending a 6-digit verification code to ${email}. Please wait…`;
+ otpMessage.textContent="Sending OTP…";
+ otpInput.value="";
+ otpInput.disabled=true;
+ verifyBtn.disabled=true;
+ otpModal.classList.add("show");
+ otpModal.setAttribute("aria-hidden","false");
+
+ try{
+   const res=await fetch(API_BASE+"/api/register",{
+     method:"POST",
+     headers:{"Content-Type":"application/json","Accept":"application/json"},
+     body:JSON.stringify({name,email,username,password}),
+     cache:"no-store"
+   });
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok){
+     closeOtpModal();
+     openCreateAccount();
+     message.textContent=data.message||data.error||"Could not start account creation.";
+     return;
+   }
+   if(!data.pendingId){
+     closeOtpModal();
+     openCreateAccount();
+     message.textContent="Server did not return a signup verification ID.";
+     return;
+   }
+   pendingSignupId=data.pendingId;
+   pendingSignupEmail=email;
+   document.getElementById("otpDescription").textContent=`Enter the 6-digit verification code sent to ${email}.`;
+   otpMessage.textContent="OTP sent successfully. Check your email.";
+   otpInput.disabled=false;
+   verifyBtn.disabled=false;
+   setTimeout(()=>otpInput.focus(),50);
+ }catch(e){
+   console.error("Signup OTP request network error:",e);
+   closeOtpModal();
+   openCreateAccount();
+   message.textContent="Connection error: "+(e?.message||"Could not reach the server.");
+ }finally{
+   btn.disabled=false;
+   btn.textContent="Create account";
+ }
 });
 function closeOtpModal(){const m=document.getElementById("otpModal");m.classList.remove("show");m.setAttribute("aria-hidden","true");}
-document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);document.getElementById("otpModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeOtpModal();});
+document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);
+// Keep the OTP panel open when the user clicks anywhere on the page/backdrop.
+// It can now be closed only with the Cancel button or after successful verification.
 document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
   const message=document.getElementById("otpMessage");
   const otp=document.getElementById("signupOtp").value.replace(/\D/g,"").trim();

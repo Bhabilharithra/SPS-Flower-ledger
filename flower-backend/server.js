@@ -1526,13 +1526,17 @@ app.post(
       // FIX: a fresh OTP means a fresh attempt budget.
       resetOtpAttempts("register", pendingId);
 
-      try {
-        await sendOtpEmail(email, name, otp, "signup");
-      } catch (emailError) {
+      // Fail fast (before responding) only on missing config - this
+      // check is synchronous/instant, so it doesn't add to the
+      // client's wait time.
+      if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
+        console.error(
+          "BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured in .env - cannot send OTP email"
+        );
+
         return res.status(502).json({
           success: false,
-          message:
-            emailError.message || "Could not send verification email.",
+          message: "Email service is not configured on this server.",
         });
       }
 
@@ -1542,6 +1546,29 @@ app.post(
           "A verification code was sent to your email.",
         pendingId,
         username,
+      });
+
+      // PERF FIX: the Brevo API call now happens AFTER the response
+      // above, not before it. Brevo's network round-trip (plus a
+      // cold-started Render instance) was the actual source of the
+      // ~10s wait before the OTP-entry panel could open - the panel
+      // was blocked on this awaiting before, even though nothing
+      // about validating/hashing/storing the signup needs the email
+      // to have actually been delivered yet. Now the client can open
+      // the OTP panel as soon as this endpoint returns, while the
+      // email sends in the background.
+      //
+      // Trade-off: if this send fails (Brevo outage, transient
+      // network error, etc.) there is no HTTP response left to
+      // report it on - it's only logged server-side below. This is
+      // acceptable because the pending_signups row already exists,
+      // so the person can simply resubmit the signup form to trigger
+      // a fresh OTP + fresh send, which supersedes this pendingId.
+      sendOtpEmail(email, name, otp, "signup").catch((emailError) => {
+        console.error(
+          `OTP email send failed (pendingId=${pendingId}, email=${email}):`,
+          emailError.message
+        );
       });
     } catch (error) {
       console.error(
@@ -1789,21 +1816,47 @@ app.post(
       // FIX: a fresh OTP means a fresh attempt budget.
       resetOtpAttempts("reset", user.id);
 
-      try {
-        await sendOtpEmail(user.email, user.name, otp, "reset");
-      } catch (emailError) {
+      // Fail fast (before responding) only on missing config - this
+      // check is synchronous/instant, so it doesn't add to the
+      // client's wait time.
+      if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
+        console.error(
+          "BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured in .env - cannot send OTP email"
+        );
+
         return res.status(502).json({
           success: false,
-          message:
-            emailError.message || "Could not send verification email.",
+          message: "Email service is not configured on this server.",
         });
       }
 
-      return res.status(200).json({
+      res.status(200).json({
         ...genericResponse,
         pendingId: String(user.id),
         email: user.email,
       });
+
+      // PERF FIX: same change as POST /api/register - the Brevo
+      // network round-trip now happens AFTER the response above, so
+      // the OTP-entry panel can open immediately instead of waiting
+      // out the email send. As a side benefit, this also closes a
+      // very minor timing side-channel that existed before: a
+      // nonexistent account/username always returned instantly
+      // (no email step to run), while a real account additionally
+      // waited on Brevo - now every request returns at the same
+      // speed regardless of whether the account exists.
+      //
+      // Trade-off: if this send fails, it's only logged server-side
+      // below - the person just requests a new code if theirs never
+      // arrives.
+      sendOtpEmail(user.email, user.name, otp, "reset").catch(
+        (emailError) => {
+          console.error(
+            `Password-reset OTP email send failed (userId=${user.id}, email=${user.email}):`,
+            emailError.message
+          );
+        }
+      );
     } catch (error) {
       console.error(
         "Reset password request-otp error:",
