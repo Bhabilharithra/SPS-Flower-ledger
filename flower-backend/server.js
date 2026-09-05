@@ -356,6 +356,52 @@ async function initializeDatabase() {
 
   try {
     // ========================================================
+    // SCHEMA VERSION GUARD (SIGN-IN DELAY FIX, PART 3)
+    // ========================================================
+    //
+    // Everything below this point is a chain of ~30 sequential,
+    // individually-awaited ALTER/CREATE/UPDATE statements. They
+    // are all IF NOT EXISTS / idempotent, so they are safe to
+    // run more than once - but "safe" still means every single
+    // one of them is a full network round-trip to Supabase, and
+    // startServer() does not call app.listen() until ALL of them
+    // finish. On every cold start (including every time Render's
+    // free tier wakes the process back up) this chain re-runs in
+    // full and delays the moment the server can accept the very
+    // first /api/login request - stacking extra seconds on top
+    // of Render's own spin-up time.
+    //
+    // This guard runs the whole migration chain once, the first
+    // time the schema is created, and then skips straight past
+    // it on every later boot. If you ever add a NEW migration
+    // below, bump SCHEMA_VERSION by 1 so it runs one more time
+    // and then goes back to being skipped.
+    // ========================================================
+
+    const SCHEMA_VERSION = 1;
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS _schema_migrations (
+        version INT PRIMARY KEY,
+        applied_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    const { rows: versionRows } =
+      await client.query(
+        `SELECT version FROM _schema_migrations WHERE version = $1 LIMIT 1`,
+        [SCHEMA_VERSION]
+      );
+
+    if (versionRows.length > 0) {
+      console.log(
+        `Database schema already at version ${SCHEMA_VERSION} - skipping migration chain.`
+      );
+
+      return;
+    }
+
+    // ========================================================
     // USERS
     // ========================================================
 
@@ -771,6 +817,11 @@ async function initializeDatabase() {
       idx_flower_rates_date
       ON flower_rates(rate_date);
     `);
+
+    await client.query(
+      `INSERT INTO _schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [SCHEMA_VERSION]
+    );
 
     console.log(
       "Database tables are ready."
@@ -1516,6 +1567,19 @@ app.post(
 app.post(
   "/api/login",
   async (req, res) => {
+    // ==========================================================
+    // TIMING INSTRUMENTATION (TEMPORARY - REMOVE ONCE DIAGNOSED)
+    // ==========================================================
+    //
+    // Logs how long each step of login takes so Render's logs
+    // show exactly where the delay is, instead of guessing.
+    // Look for a line starting with "[LOGIN TIMING]" in Render
+    // right after a slow sign-in.
+    // ==========================================================
+    const loginStart = Date.now();
+    let tDbDone = null;
+    let tBcryptDone = null;
+
     try {
       const username =
         String(
@@ -1561,6 +1625,8 @@ app.post(
           `,
           [username]
         );
+
+      tDbDone = Date.now();
 
       let user =
         result.rows[0];
@@ -1625,7 +1691,13 @@ app.post(
           user.password_hash
         );
 
+      tBcryptDone = Date.now();
+
       if (!passwordOK) {
+        console.log(
+          `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=WRONG_PASSWORD`
+        );
+
         return res.status(401).json({
           success: false,
           message:
@@ -1638,6 +1710,10 @@ app.post(
       const token =
         createToken(user);
 
+      console.log(
+        `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=SUCCESS`
+      );
+
       res.json({
         success: true,
         message:
@@ -1646,6 +1722,10 @@ app.post(
         user,
       });
     } catch (error) {
+      console.log(
+        `[LOGIN TIMING] db=${tDbDone ? tDbDone - loginStart : "N/A"}ms bcrypt=${tBcryptDone && tDbDone ? tBcryptDone - tDbDone : "N/A"}ms total=${Date.now() - loginStart}ms result=ERROR`
+      );
+
       console.error(
         "Login error:",
         error
