@@ -1073,6 +1073,58 @@ function rateSlotLabel(slot) {
 }
 
 // ============================================================
+// AUTO USERNAME FOR GOOGLE SIGNUPS
+// ============================================================
+//
+// New Google accounts are created automatically with no extra
+// screen asking the person to pick a username (per the "no OTP, no
+// extra step for Google" flow). A username is still required by the
+// users table, so one is derived from the email's local part and
+// de-duplicated against existing usernames.
+// ============================================================
+
+function usernameBaseFromEmail(email) {
+  const local =
+    String(email)
+      .split("@")[0]
+      .toLowerCase();
+
+  let base =
+    local.replace(/[^a-z0-9_]/g, "");
+
+  if (base.length < 3) {
+    base = `user${base}`;
+  }
+
+  return base.slice(0, 20);
+}
+
+async function generateUniqueUsernameFromEmail(email) {
+  const base =
+    usernameBaseFromEmail(email) ||
+    "user";
+
+  let candidate = base;
+  let suffix = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing =
+      await pool.query(
+        `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+        [candidate]
+      );
+
+    if (existing.rows.length === 0) {
+      return candidate;
+    }
+
+    suffix += 1;
+    candidate = `${base}${suffix}`;
+  }
+}
+
+// ============================================================
 // CURRENT SERVER TIME
 // ============================================================
 
@@ -1682,9 +1734,16 @@ app.post(
     let tBcryptDone = null;
 
     try {
-      const username =
+      // UPDATE: accepts EITHER a username or an email address here -
+      // the field is still called `username` in the request body for
+      // backward compatibility with the existing frontend, but the
+      // value the person types can be either. This matches the "Sign
+      // in with Username or Email" field on the login screen.
+      const identifier =
         String(
           req.body.username ||
+          req.body.identifier ||
+          req.body.email ||
             ""
         )
           .trim()
@@ -1697,20 +1756,21 @@ app.post(
         );
 
       if (
-        !username ||
+        !identifier ||
         !password
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "Username and password are required.",
+            "Username/email and password are required.",
         });
       }
 
-      // UPDATE: added `email` to the SELECT. Without it, `user.email`
-      // is always undefined below and every login silently skips the
-      // OTP step regardless of whether the account has an email on
-      // file.
+      // UPDATE: added `email` to the SELECT, and match on EITHER
+      // username or email (case-insensitive). Without `email` here,
+      // `user.email` would always be undefined further down; without
+      // matching on email too, a person who signed up with
+      // name@gmail.com couldn't log in by typing their email address.
       const result =
         await pool.query(
           `
@@ -1724,12 +1784,13 @@ app.post(
 
           FROM users
 
-          WHERE LOWER(username)
-                = LOWER($1)
+          WHERE
+            LOWER(username) = LOWER($1)
+            OR LOWER(email) = LOWER($1)
 
           LIMIT 1
           `,
-          [username]
+          [identifier]
         );
 
       tDbDone = Date.now();
@@ -1753,7 +1814,7 @@ app.post(
           );
 
         if (
-          username ===
+          identifier ===
             envUsername &&
           envPassword &&
           password ===
@@ -1805,7 +1866,7 @@ app.post(
 
       if (!passwordOK) {
         console.log(
-          `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=WRONG_PASSWORD`
+          `[LOGIN TIMING] user=${identifier} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=WRONG_PASSWORD`
         );
 
         return res.status(401).json({
@@ -1816,7 +1877,7 @@ app.post(
       }
 
       console.log(
-        `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=PASSWORD_OK`
+        `[LOGIN TIMING] user=${identifier} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=PASSWORD_OK`
       );
 
       // ==========================================================
@@ -1884,11 +1945,13 @@ app.post(
 //      and has any Google account can get in.
 //   5. Existing account -> a JWT is issued immediately, no OTP -
 //      Google's verification of the token IS the identity check.
-//      New account -> the frontend is asked for a username only
-//      (POST /api/auth/google/complete), then the account is
-//      created immediately, also with no OTP and no password.
-//      Either way authMiddleware, /api/me, etc. don't need to know
-//      or care that a given login came from Google.
+//      New account -> created immediately in this same request, no
+//      OTP, no password, and no username prompt - a username is
+//      auto-generated from the email address (see
+//      generateUniqueUsernameFromEmail) purely to satisfy the users
+//      table's NOT NULL UNIQUE constraint. Either way
+//      authMiddleware, /api/me, etc. don't need to know or care that
+//      a given login came from Google.
 // ============================================================
 
 app.post(
@@ -2037,35 +2100,50 @@ app.post(
       }
 
       // ==========================================================
-      // NEW ACCOUNT -> needs a username + password before it can be
-      // created. Stash the verified Google identity in
-      // pending_signups and ask the frontend to collect those, via
-      // POST /api/auth/google/complete.
+      // NEW ACCOUNT -> created automatically, right now. Google
+      // already verified this person's identity and email when it
+      // issued the ID token above, so there is no OTP and no extra
+      // screen asking for a password or username - a username is
+      // generated from the email's local part (see
+      // generateUniqueUsernameFromEmail) purely because the users
+      // table requires one; the person is never asked to choose it.
+      // Going forward this account signs in exclusively via
+      // "Continue with Google".
       // ==========================================================
-      const pendingId = crypto.randomUUID();
+      const generatedUsername =
+        await generateUniqueUsernameFromEmail(email);
 
-      await pool.query(
-        `DELETE FROM pending_signups WHERE google_sub = $1 OR LOWER(email) = LOWER($2)`,
-        [googleSub, email]
-      );
-
-      await pool.query(
+      const created = await pool.query(
         `
-        INSERT INTO pending_signups
-        (id, kind, name, email, google_sub, picture)
+        INSERT INTO users
+        (name, username, password_hash, email, email_verified, picture, google, google_sub)
         VALUES
-        ($1, 'google', $2, $3, $4, $5)
+        ($1, $2, NULL, $3, TRUE, $4, TRUE, $5)
+        RETURNING id, name, username, email, picture, created_at
         `,
-        [pendingId, displayName, email, googleSub, picture]
+        [
+          displayName,
+          generatedUsername,
+          email,
+          picture,
+          googleSub,
+        ]
       );
 
-      res.json({
+      const newUser = created.rows[0];
+      await syncUsersJson();
+
+      const token = createToken(newUser);
+
+      console.log(
+        `[GOOGLE SIGNUP] account auto-created - email=${email} username=${generatedUsername}`
+      );
+
+      res.status(201).json({
         success: true,
-        needsUsername: true,
-        pendingId,
-        email,
-        name: displayName,
-        picture,
+        message: "Account created successfully.",
+        token,
+        user: newUser,
       });
     } catch (error) {
       console.error(
@@ -2079,122 +2157,6 @@ app.post(
           "Google login failed.",
         error:
           error.message,
-      });
-    }
-  }
-);
-
-// ============================================================
-// GOOGLE SIGN-UP  (step 2 of 2: choose username, create account)
-// ============================================================
-//
-// No password and no OTP here. Google already verified this
-// person's identity and email when it issued the ID token back in
-// POST /api/auth/google - asking them to also set a password and
-// confirm an OTP would just be re-checking something already
-// confirmed. The account is created with password_hash = NULL,
-// same as any other Google account; going forward, that user signs
-// in exclusively via "Continue with Google".
-// ============================================================
-
-app.post(
-  "/api/auth/google/complete",
-  async (req, res) => {
-    try {
-      const pendingId =
-        String(req.body.pendingId || "").trim();
-
-      const username =
-        String(req.body.username || "")
-          .trim()
-          .toLowerCase();
-
-      if (!pendingId || !username) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Username is required.",
-        });
-      }
-
-      if (username.length < 3) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Username must contain at least 3 characters.",
-        });
-      }
-
-      const pendingResult = await pool.query(
-        `SELECT * FROM pending_signups WHERE id = $1 AND kind = 'google' LIMIT 1`,
-        [pendingId]
-      );
-
-      const pending = pendingResult.rows[0];
-
-      if (!pending) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "This signup request could not be found. Please continue with Google again.",
-        });
-      }
-
-      const clash = await pool.query(
-        `
-        SELECT id FROM users
-        WHERE LOWER(username) = LOWER($1)
-           OR LOWER(email) = LOWER($2)
-           OR google_sub = $3
-        LIMIT 1
-        `,
-        [username, pending.email, pending.google_sub]
-      );
-
-      if (clash.rows.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message:
-            "That username is taken, or this account already exists. Please choose another username or sign in with Google instead.",
-        });
-      }
-
-      const result = await pool.query(
-        `
-        INSERT INTO users
-        (name, username, password_hash, email, email_verified, picture, google, google_sub)
-        VALUES
-        ($1, $2, NULL, $3, TRUE, $4, TRUE, $5)
-        RETURNING id, name, username, email, picture, created_at
-        `,
-        [
-          pending.name,
-          username,
-          pending.email,
-          pending.picture,
-          pending.google_sub,
-        ]
-      );
-
-      await pool.query(`DELETE FROM pending_signups WHERE id = $1`, [pendingId]);
-
-      const user = result.rows[0];
-      await syncUsersJson();
-
-      const token = createToken(user);
-
-      res.status(201).json({
-        success: true,
-        message: "Account created successfully.",
-        token,
-        user,
-      });
-    } catch (error) {
-      console.error("Google signup complete error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Could not create account.",
-        error: error.message,
       });
     }
   }
