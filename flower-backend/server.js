@@ -1,4 +1,17 @@
-require("dotenv").config();
+const path = require("path");
+
+require("dotenv").config({
+  path: path.join(__dirname, ".env"),
+});
+
+// Quick startup check - confirms whether Brevo env vars actually
+// loaded, without printing the secret key itself. Remove these two
+// lines once OTP emails are confirmed working.
+console.log("BREVO_API_KEY loaded:", !!process.env.BREVO_API_KEY);
+console.log(
+  "BREVO_SENDER_EMAIL loaded:",
+  process.env.BREVO_SENDER_EMAIL || "(empty - check .env location)"
+);
 
 const express = require("express");
 const cors = require("cors");
@@ -6,7 +19,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const fs = require("fs");
-const path = require("path");
 const http = require("http");
 const https = require("https");
 const { Pool, types } = require("pg");

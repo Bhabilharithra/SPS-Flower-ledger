@@ -4545,37 +4545,25 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 <div class="account-modal" id="accountModal" aria-hidden="true">
   <div class="account-card" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
     <h3 id="accountTitle">Create an account</h3>
-    <p>Create an account with Google or with your name, email, username and password.</p>
+    <p>Create an account using Google, or create a username and password account. New Google users can be created automatically by the server.</p>
 
+    <!-- GOOGLE CREATE ACCOUNT / SIGN IN -->
     <div class="google-create-heading">Create an account with Google</div>
     <div class="google-signin-wrap google-account-wrap">
       <button type="button" id="btnGoogleCreateAccount" class="google-signin-button" aria-label="Create or continue with Google">
         <svg class="google-g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.25-.2-1.8H12v3.42h5.37c-.11.85-.72 2.13-2.08 2.99l-.02.11 3.02 2.34.21.02c1.93-1.78 3.04-4.4 3.04-7.08z"/><path fill="#34A853" d="M12 21.72c2.63 0 4.84-.87 6.45-2.41l-3.07-2.38c-.82.57-1.92.97-3.38.97-2.57 0-4.75-1.69-5.53-4.03l-.1.01-3.14 2.43-.03.1C4.8 19.62 8.14 21.72 12 21.72z"/><path fill="#FBBC05" d="M6.47 13.87A5.87 5.87 0 0 1 6.16 12c0-.65.11-1.28.3-1.87v-.12L3.29 7.55l-.1.05A9.7 9.7 0 0 0 2.28 12c0 1.57.38 3.05.91 4.4l3.28-2.53z"/><path fill="#EA4335" d="M12 6.1c1.84 0 3.08.8 3.79 1.47l2.77-2.7C16.83 3.26 14.63 2.28 12 2.28 8.14 2.28 4.8 4.38 3.19 7.6l3.27 2.54C7.25 7.79 9.43 6.1 12 6.1z"/></svg>
-        <span>Create account with Google</span>
+        <span>Create / continue with Google</span>
       </button>
       <div id="googleAccountButtonContainer" aria-label="Google account button"></div>
     </div>
+    <div class="divider"><span>or create with account</span></div>
 
-    <div class="divider"><span>or create with email</span></div>
-
-    <div class="account-field"><label for="newAccountName">Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun" autocomplete="name"></div>
-    <div class="account-field"><label for="newAccountEmail">Email</label><input id="newAccountEmail" type="email" placeholder="e.g. user@gmail.com" autocomplete="email"></div>
-    <div class="account-field"><label for="newAccountUsername">Username</label><input id="newAccountUsername" type="text" placeholder="e.g. arun" autocomplete="username"></div>
-    <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password">👁</button></div></div>
-    <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password">👁</button></div></div>
+    <div class="account-field"><label for="newAccountName">Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun"></div>
+    <div class="account-field"><label for="newAccountUsername">Username</label><input id="newAccountUsername" type="text" placeholder="e.g. arun"></div>
+    <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password">👁</button></div></div>
+    <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password">👁</button></div></div>
     <div class="account-message" id="accountMessage"></div>
     <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelCreateAccount">Cancel</button><button type="button" class="account-submit" id="btnCreateAccount">Create account</button></div>
-  </div>
-</div>
-
-<!-- OTP VERIFICATION MODAL -->
-<div class="account-modal" id="otpModal" aria-hidden="true">
-  <div class="account-card" role="dialog" aria-modal="true" aria-labelledby="otpTitle">
-    <h3 id="otpTitle">Verify your email</h3>
-    <p id="otpDescription">We sent a 6-digit verification code to your email address.</p>
-    <div class="account-field"><label for="otpCode">Verification code</label><input id="otpCode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit OTP" autocomplete="one-time-code"></div>
-    <div class="account-message" id="otpMessage"></div>
-    <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button><button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button></div>
   </div>
 </div>
 
@@ -4872,11 +4860,15 @@ const API_BASE = window.FLOWER_API_BASE ||
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
 function readStoredSession(){
-  const token = sessionStorage.getItem("poo_kanakku_token") || localStorage.getItem("poo_kanakku_token");
-  const rawUser = sessionStorage.getItem("poo_kanakku_user") || localStorage.getItem("poo_kanakku_user");
-  let user = null;
-  try{ user = rawUser ? JSON.parse(rawUser) : null; }catch(e){ user = null; }
-  return { token, user };
+  // SECURITY / MULTI-SHOP MODE:
+  // Never restore a previous browser session automatically.
+  // Every fresh page load must start on the login screen.
+  // Remove any token left behind by older versions.
+  sessionStorage.removeItem("poo_kanakku_token");
+  sessionStorage.removeItem("poo_kanakku_user");
+  localStorage.removeItem("poo_kanakku_token");
+  localStorage.removeItem("poo_kanakku_user");
+  return { token: null, user: null };
 }
 
 const storedSession = readStoredSession();
@@ -4934,17 +4926,16 @@ function authHeaders(){
   return authToken ? { "Authorization": "Bearer " + authToken } : {};
 }
 
-function persistSession(token, user, remember = false){
+function persistSession(token, user, remember){
+  // Multi-user / multi-shop mode:
+  // Keep authentication only in JavaScript memory for this open page.
+  // Refreshing or reopening the site always requires a new login.
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
-
-  const storage = remember ? localStorage : sessionStorage;
-  storage.setItem("poo_kanakku_token", token);
-  storage.setItem("poo_kanakku_user", JSON.stringify(user || {}));
   authToken = token;
-  currentUser = user || null;
+  currentUser = user;
 }
 
 function clearSession(){
@@ -5047,12 +5038,6 @@ function openCreateAccount(){
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
   document.getElementById("accountMessage").textContent = "";
-  if(!window.googlePendingSignup){
-    const nameEl=document.getElementById("newAccountName");
-    const emailEl=document.getElementById("newAccountEmail");
-    if(nameEl){ nameEl.readOnly=false; }
-    if(emailEl){ emailEl.readOnly=false; }
-  }
 
   // The modal is now visible, so the Google button can be rendered at the
   // correct width. The same Google flow handles both sign-in and sign-up.
@@ -5093,7 +5078,7 @@ if(accountModal){
   });
 }
 document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape"){ closeCreateAccount(); closeResetPassword(); closeOtpModal(); }
+  if(e.key === "Escape"){ closeCreateAccount(); closeResetPassword(); }
 });
 const resetPasswordLink = document.getElementById("btnShowResetPassword");
 const cancelResetPassword = document.getElementById("btnCancelResetPassword");
@@ -5169,120 +5154,40 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
   }
 });
 
-let pendingAuth = null;
-window.googlePendingSignup = null;
-
-function openOtpModal(description){
-  const modal = document.getElementById("otpModal");
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden","false");
-  document.getElementById("otpDescription").textContent = description || "We sent a verification code to your email.";
-  document.getElementById("otpCode").value = "";
-  document.getElementById("otpMessage").textContent = "";
-  setTimeout(()=>document.getElementById("otpCode").focus(),100);
-}
-function closeOtpModal(){
-  const modal=document.getElementById("otpModal");
-  if(!modal) return;
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden","true");
-}
-document.getElementById("btnCancelOtp")?.addEventListener("click",()=>{ pendingAuth=null; closeOtpModal(); });
-
 document.getElementById("btnCreateAccount").addEventListener("click", async ()=>{
   const message = document.getElementById("accountMessage");
   const name = document.getElementById("newAccountName").value.trim();
-  const email = document.getElementById("newAccountEmail").value.trim();
   const username = document.getElementById("newAccountUsername").value.trim();
   const password = document.getElementById("newAccountPassword").value;
   const confirm = document.getElementById("newAccountConfirm").value;
-  const btn = document.getElementById("btnCreateAccount");
   message.textContent = "";
 
-  if(!name){ message.textContent="Name is required."; return; }
-  if(!email){ message.textContent="Email is required."; return; }
-  if(!username){ message.textContent="Username is required."; return; }
-  if(password.length < 6){ message.textContent="Password must contain at least 6 characters."; return; }
-  if(password !== confirm){ message.textContent="Passwords do not match."; return; }
+  if(!username || !password){ message.textContent = "Username and password are required."; return; }
+  if(password !== confirm){ message.textContent = "Passwords do not match."; return; }
 
-  btn.disabled=true; btn.textContent="Sending OTP…";
+  const btn = document.getElementById("btnCreateAccount");
+  btn.disabled = true;
+  btn.textContent = "Creating…";
   try{
-    const googleSignup = window.googlePendingSignup;
-    let endpoint, body;
-    if(googleSignup){
-      endpoint="/api/auth/google/complete";
-      body={ pendingId:googleSignup.pendingId, username, password };
-    }else{
-      endpoint="/api/register";
-      body={ name, email, username, password };
-    }
+    const res = await fetch(API_BASE + "/api/register", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name, username, password})
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ message.textContent = data.error || "Could not create account."; return; }
 
-    const res=await fetch(API_BASE+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok){ message.textContent=data.message||data.error||"Could not create account."; return; }
-
-    pendingAuth={
-      type: googleSignup ? "google-register" : "register",
-      pendingId:data.pendingId,
-      username,
-      email: googleSignup?.email || email
-    };
-    window.googlePendingSignup=null;
     closeCreateAccount();
-    openOtpModal("We sent a 6-digit OTP to "+pendingAuth.email+". Enter the code to verify your account.");
-  }catch(e){
-    console.error(e);
-    message.textContent="Could not reach the server. Is it running?";
-  }finally{
-    btn.disabled=false; btn.textContent="Create account";
-  }
-});
-
-document.getElementById("btnVerifyOtp")?.addEventListener("click",async ()=>{
-  const otp=document.getElementById("otpCode").value.trim();
-  const message=document.getElementById("otpMessage");
-  const btn=document.getElementById("btnVerifyOtp");
-  message.textContent="";
-  if(!pendingAuth){ message.textContent="Verification session expired. Please start again."; return; }
-  if(!/^\d{6}$/.test(otp)){ message.textContent="Enter a valid 6-digit OTP."; return; }
-
-  let endpoint="/api/register/verify-otp";
-  let body={pendingId:pendingAuth.pendingId,otp};
-  if(pendingAuth.type==="google-register"){
-    endpoint="/api/auth/google/verify";
-  }else if(pendingAuth.type==="login" || pendingAuth.type==="google-login"){
-    endpoint="/api/login/verify-otp";
-    body={username:pendingAuth.username,otp};
-  }
-
-  btn.disabled=true; btn.textContent="Verifying…";
-  try{
-    const res=await fetch(API_BASE+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok){ message.textContent=data.message||data.error||"Incorrect or expired OTP."; return; }
-
-    if(data.token && data.user){
-      const remember=document.getElementById("chkRemember")?.checked || false;
-      persistSession(data.token,data.user,remember);
-      pendingAuth=null;
-      closeOtpModal();
-      showApp(data.user);
-      return;
-    }
-    message.textContent=data.message||"Verification successful. Please sign in.";
-    pendingAuth=null;
-    closeOtpModal();
-    document.getElementById("inpUsername").value=data.user?.username||"";
+    document.getElementById("inpUsername").value = data.user.username;
+    document.getElementById("inpPassword").value = "";
+    showLoginError("Account created successfully. Enter your password and sign in.");
     document.getElementById("inpPassword").focus();
   }catch(e){
-    console.error(e); message.textContent="Could not reach the server.";
+    message.textContent = "Could not reach the server. Is it running?";
   }finally{
-    btn.disabled=false; btn.textContent="Verify OTP";
+    btn.disabled = false;
+    btn.textContent = "Create account";
   }
-});
-
-document.getElementById("otpCode")?.addEventListener("keydown",e=>{
-  if(e.key==="Enter") document.getElementById("btnVerifyOtp").click();
 });
 
 // Password view buttons for account and reset-password forms.
@@ -5318,58 +5223,46 @@ let googleInitialized = false;
 
 async function handleGoogleCredentialResponse(response){
   hideLoginError();
-  const accountMessage=document.getElementById("accountMessage");
-  if(accountMessage) accountMessage.textContent="";
+  const accountMessage = document.getElementById("accountMessage");
+  if(accountMessage) accountMessage.textContent = "";
+
   if(!response?.credential){
     showLoginError("Google did not return a sign-in credential.");
+    if(accountMessage) accountMessage.textContent = "Google did not return a sign-in credential.";
     return;
   }
+
   try{
-    const res=await fetch(API_BASE+"/api/auth/google",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({credential:response.credential}),cache:"no-store"
+    // The server should verify this Google credential. For a new Google user,
+    // /api/auth/google should automatically create the user, then return the
+    // normal app token and user object. Existing Google users simply sign in.
+    const res = await fetch(API_BASE + "/api/auth/google", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({credential:response.credential}),
+      cache:"no-store"
     });
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok){
-      const msg=data.message||data.error||"Google Sign-In failed. Please try again.";
-      showLoginError(msg); if(accountMessage) accountMessage.textContent=msg; return;
-    }
 
-    // Existing Google user: server has sent OTP.
-    if(data.requiresOtp){
-      if(document.getElementById("accountModal")?.classList.contains("show")) closeCreateAccount();
-      pendingAuth={type:"google-login",username:data.username||""};
-      openOtpModal(data.message||"We sent a verification code to your registered email.");
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || !data.token || !data.user){
+      const msg = data.message || data.error || "Google Sign-In failed. Please try again.";
+      showLoginError(msg);
+      if(accountMessage) accountMessage.textContent = msg;
       return;
     }
 
-    // New Google user: choose app username and password, then verify OTP.
-    if(data.needsUsername){
-      openCreateAccount();
-      window.googlePendingSignup={pendingId:data.pendingId,email:data.email,name:data.name};
-      setTimeout(()=>{
-        document.getElementById("newAccountName").value=data.name||"";
-        document.getElementById("newAccountEmail").value=data.email||"";
-        document.getElementById("newAccountName").readOnly=true;
-        document.getElementById("newAccountEmail").readOnly=true;
-        document.getElementById("newAccountUsername").focus();
-        if(accountMessage) accountMessage.textContent="Choose a username and password to complete your Google account.";
-      },100);
-      return;
+    // Whether the person clicked Google from "Sign in" or "Create account",
+    // a successful response logs them straight into the application.
+    if(document.getElementById("accountModal")?.classList.contains("show")){
+      closeCreateAccount();
     }
-
-    // Compatibility: direct token response.
-    if(data.token && data.user){
-      if(document.getElementById("accountModal")?.classList.contains("show")) closeCreateAccount();
-      persistSession(data.token,data.user,false);
-      showApp(data.user);
-      return;
-    }
-
-    showLoginError(data.message||"Could not continue with Google.");
+    persistSession(data.token, data.user, false);
+    showApp(data.user);
   }catch(error){
-    console.error("Google login error:",error);
-    showLoginError("Could not reach the server. Please try again.");
+    console.error("Google login error:", error);
+    const msg = "Could not reach the server. Please try again.";
+    showLoginError(msg);
+    if(accountMessage) accountMessage.textContent = msg;
   }
 }
 
@@ -5467,36 +5360,48 @@ document.getElementById('inpUsername').addEventListener('keydown', (e)=>{ if(e.k
 
 async function tryUnlock(){
   hideLoginError();
-  const username=document.getElementById('inpUsername').value.trim();
-  const password=document.getElementById('inpPassword').value;
-  const remember=document.getElementById('chkRemember').checked;
-  const loginButton=document.getElementById('btnUnlock');
-  if(!username||!password){showLoginError("Enter both a username and password.");return;}
-  if(loginButton?.disabled)return;
-  const originalButtonText=loginButton?loginButton.innerHTML:'';
-  if(loginButton){loginButton.disabled=true;loginButton.textContent='Signing in...';loginButton.style.opacity='0.8';loginButton.style.cursor='wait';}
+  const username = document.getElementById('inpUsername').value.trim();
+  const password = document.getElementById('inpPassword').value;
+  const remember = document.getElementById('chkRemember').checked;
+  const loginButton = document.getElementById('btnUnlock');
+  if(!username || !password){ showLoginError("Enter both a username and password."); return; }
+
+  if(loginButton?.disabled) return;
+  const originalButtonText = loginButton ? loginButton.innerHTML : '';
+  if(loginButton){
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
+    loginButton.style.opacity = '0.8';
+    loginButton.style.cursor = 'wait';
+  }
+
   try{
-    const res=await fetch(API_BASE+"/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok){showLoginError(data.message||data.error||"Wrong username or password.");return;}
-
-    if(data.requiresOtp){
-      pendingAuth={type:"login",username:data.username||username};
-      openOtpModal(data.message||"We sent a verification code to your registered email.");
+    const res = await fetch(API_BASE + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+      cache: "no-store"
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      showLoginError(data.error || "Wrong username or password.");
       return;
     }
 
-    if(data.token&&data.user){
-      persistSession(data.token,data.user,remember);
-      showApp(data.user);
-      return;
-    }
-    showLoginError(data.message||"Login could not be completed.");
+    authToken = data.token;
+    persistSession(authToken, data.user, remember);
+
+    // Show the app immediately after authentication. Data and rates continue
+    // loading in the background instead of delaying the screen transition.
+    showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
   }finally{
-    if(loginButton&&document.getElementById('loginScreen').style.display!=='none'){
-      loginButton.disabled=false;loginButton.innerHTML=originalButtonText;loginButton.style.opacity='';loginButton.style.cursor='';
+    if(loginButton && document.getElementById('loginScreen').style.display !== 'none'){
+      loginButton.disabled = false;
+      loginButton.innerHTML = originalButtonText;
+      loginButton.style.opacity = '';
+      loginButton.style.cursor = '';
     }
   }
 }
