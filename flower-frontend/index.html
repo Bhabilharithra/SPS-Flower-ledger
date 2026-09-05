@@ -4439,7 +4439,10 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 .multi-rate-card .rate-card-save{width:100%;margin-top:12px;}
 </style>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 </head>
 <body>
 <div id="toastHolder"></div>
@@ -4474,7 +4477,13 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       <div class="lc-error" id="lcError"></div>
 
       <!-- GOOGLE SIGN-IN -->
-      <div id="googleSignInWrap" style="display:flex;justify-content:center;margin:18px 0 16px;"></div>
+      <div class="google-wrap" id="googleSignInWrap">
+        <div id="gBtnSlot"></div>
+        <button type="button" class="g-fallback-btn" id="btnGoogleFallback" style="display:none;">
+          <span style="font-size:18px;line-height:1;">G</span>
+          <span>Continue with Google</span>
+        </button>
+      </div>
 
       <div class="divider"><span>or continue with account</span></div>
 
@@ -5163,93 +5172,121 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
   }
 });
 
-// ---- Username / password login ----
-document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
-document.getElementById('inpPassword').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
 
-// Show / hide password
 // ============================================================
 // GOOGLE SIGN-IN
 // ============================================================
 const GOOGLE_CLIENT_ID = "60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
 
-function initGoogleSignIn(){
-  const wrap = document.getElementById('googleSignInWrap');
-  if(!wrap || !window.google?.accounts?.id) return;
-
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleGoogleCredential,
-    auto_select: false,
-    cancel_on_tap_outside: true
-  });
-
-  google.accounts.id.renderButton(wrap, {
-    type: 'standard',
-    theme: 'outline',
-    size: 'large',
-    text: 'continue_with',
-    shape: 'rectangular',
-    logo_alignment: 'left',
-    width: Math.min(360, Math.max(250, wrap.clientWidth || 320))
-  });
-}
-
 async function handleGoogleCredential(response){
   hideLoginError();
-  if(!response?.credential){
-    showLoginError('Google Sign-In did not return a credential. Please try again.');
+
+  const credential = String(response?.credential || "").trim();
+  if(!credential){
+    showLoginError("Google Sign-In did not return a credential. Please try again.");
     return;
   }
 
-  const wrap = document.getElementById('googleSignInWrap');
-  if(wrap) wrap.style.pointerEvents = 'none';
+  const slot = document.getElementById("gBtnSlot");
+  const fallback = document.getElementById("btnGoogleFallback");
+
+  if(slot) slot.style.pointerEvents = "none";
+  if(fallback){
+    fallback.disabled = true;
+    fallback.textContent = "Signing in with Google...";
+  }
 
   try{
-    const res = await fetch(API_BASE + '/api/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential: response.credential }),
-      cache: 'no-store'
+    const res = await fetch(API_BASE + "/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential }),
+      cache: "no-store"
     });
 
     const data = await res.json().catch(()=>({}));
+
     if(!res.ok){
-      showLoginError(data.message || data.error || 'Google Sign-In failed.');
+      showLoginError(data.message || data.error || "Google Sign-In failed.");
       return;
     }
 
-    if(!data.token){
-      showLoginError('Google Sign-In failed: no login token was returned.');
+    if(!data.token || !data.user){
+      showLoginError("Google Sign-In returned an invalid response.");
       return;
     }
 
-    authToken = data.token;
-    persistSession(authToken, data.user, true);
+    persistSession(data.token, data.user, false);
     showApp(data.user);
+
   }catch(error){
-    console.error('Google Sign-In error:', error);
-    showLoginError('Could not complete Google Sign-In. Please try again.');
+    console.error("Google Sign-In error:", error);
+    showLoginError("Could not reach the server for Google Sign-In. Please try again.");
   }finally{
-    if(wrap && document.getElementById('loginScreen')?.style.display !== 'none'){
-      wrap.style.pointerEvents = '';
+    if(slot) slot.style.pointerEvents = "";
+    if(fallback){
+      fallback.disabled = false;
+      fallback.innerHTML = '<span style="font-size:18px;line-height:1;">G</span><span>Continue with Google</span>';
     }
   }
 }
 
-window.addEventListener('load', ()=>{
-  let attempts = 0;
-  const timer = setInterval(()=>{
-    if(window.google?.accounts?.id){
-      clearInterval(timer);
-      initGoogleSignIn();
-    }else if(++attempts >= 50){
-      clearInterval(timer);
-      console.warn('Google Identity Services failed to load.');
-    }
-  }, 100);
+function renderGoogleButton(){
+  const slot = document.getElementById("gBtnSlot");
+  const fallback = document.getElementById("btnGoogleFallback");
+
+  if(!slot) return;
+
+  if(!(window.google && google.accounts && google.accounts.id)){
+    // Retry briefly while Google's script is loading.
+    setTimeout(renderGoogleButton, 300);
+    return;
+  }
+
+  try{
+    slot.innerHTML = "";
+
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+
+    google.accounts.id.renderButton(slot, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+      width: 380
+    });
+
+    if(fallback) fallback.style.display = "none";
+  }catch(error){
+    console.error("Google button render error:", error);
+    if(fallback) fallback.style.display = "flex";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const fallback = document.getElementById("btnGoogleFallback");
+  if(fallback){
+    fallback.addEventListener("click", ()=>{
+      showLoginError("Google Sign-In could not load. Please refresh the page and check your internet connection.");
+    });
+  }
+
+  renderGoogleButton();
 });
 
+
+// ---- Username / password login ----
+document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
+document.getElementById('inpPassword').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
+
+// Show / hide password
 document.getElementById('btnTogglePassword').addEventListener('click', ()=>{
   const input = document.getElementById('inpPassword');
   const button = document.getElementById('btnTogglePassword');
