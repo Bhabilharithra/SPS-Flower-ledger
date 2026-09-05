@@ -4440,23 +4440,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 </style>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-<style id="auth-upgrade-styles">
-.google-auth-wrap{margin:0 0 18px;}
-.google-auth-wrap #gBtnSlot{width:100%;min-height:44px;}
-.google-fallback-real{
-  width:100%;min-height:46px;border:1px solid #E2B4C5;border-radius:10px;background:#fff;
-  display:flex;align-items:center;justify-content:center;gap:10px;font:600 14px inherit;cursor:pointer;
-  color:#3c4043;
-}
-.google-fallback-real:hover{background:#fafafa;}
-.google-g-icon{font-size:20px;font-weight:700;color:#4285f4;}
-.otp-modal{z-index:2200;}
-.otp-box{max-width:430px;}
-.otp-input{letter-spacing:.35em;text-align:center;font-size:24px;font-weight:700;}
-.otp-help{font-size:12px;color:#7A5664;line-height:1.5;margin-top:8px;}
+<style id="google-otp-only">
+.google-auth-wrap{margin:0 0 18px}.google-fallback-real{width:100%;height:48px;border:1px solid #ddd;border-radius:10px;background:#fff;font-weight:600;cursor:pointer}.otp-modal{z-index:9999}.otp-box{max-width:430px}.otp-input{text-align:center;letter-spacing:.3em;font-size:22px}
 </style>
-
 </head>
 <body>
 <div id="toastHolder"></div>
@@ -4490,20 +4476,12 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 
       <div class="lc-error" id="lcError"></div>
 
-      <div class="google-auth-wrap">
-        <div id="gBtnSlot">
-          <button type="button" class="google-fallback-real" id="btnGoogleFallback">
-            <span class="google-g-icon">G</span>
-            <span>Sign in with Google</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="divider"><span>or sign in with password</span></div>
+      <div class="google-auth-wrap"><div id="gBtnSlot"><button type="button" class="google-fallback-real" id="btnGoogleFallback">G&nbsp;&nbsp;Sign in with Google</button></div></div>
+<div class="divider"><span>or continue with account</span></div>
 
       <div class="lc-field">
-        <label for="inpUsername">Email or Username</label>
-        <div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter email or username" autocomplete="username"></div>
+        <label for="inpUsername">Username</label>
+        <div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter username" autocomplete="username"></div>
       </div>
 
       <div class="lc-field">
@@ -4536,7 +4514,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
     <h3 id="accountTitle">Create an account</h3>
     <p>Create a separate login for a staff/admin user. The main shop admin username remains protected by the server .env settings.</p>
     <div class="account-field"><label for="newAccountName">Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun"></div>
-    <div class="account-field"><label for="newAccountEmail">Gmail / Email</label><input id="newAccountEmail" type="email" placeholder="e.g. you@gmail.com" autocomplete="email"></div>
+    <div class="account-field"><label for="newAccountEmail">Gmail / Email</label><input id="newAccountEmail" type="email" placeholder="you@gmail.com"></div>
     <div class="account-field"><label for="newAccountUsername">Username</label><input id="newAccountUsername" type="text" placeholder="e.g. arun"></div>
     <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password">👁</button></div></div>
     <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password">👁</button></div></div>
@@ -4545,25 +4523,15 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
   </div>
 </div>
 
-
-<!-- OTP VERIFICATION MODAL -->
+<!-- OTP VERIFICATION -->
 <div class="account-modal otp-modal" id="otpModal" aria-hidden="true">
-  <div class="account-card otp-box" role="dialog" aria-modal="true" aria-labelledby="otpTitle">
-    <h3 id="otpTitle">Verify your email</h3>
-    <p id="otpText">We sent a 6-digit verification code to your email.</p>
-    <div class="account-field">
-      <label for="signupOtp">Enter OTP</label>
-      <input id="signupOtp" class="otp-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
-    </div>
-    <div class="otp-help">The OTP expires in 10 minutes.</div>
-    <div class="account-message" id="otpMessage"></div>
-    <div class="account-actions">
-      <button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button>
-      <button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button>
-    </div>
-  </div>
+ <div class="account-card otp-box">
+  <h3>Verify your email</h3><p id="otpText">Enter the OTP sent to your email.</p>
+  <div class="account-field"><label>OTP</label><input id="signupOtp" class="otp-input" maxlength="6" inputmode="numeric" placeholder="000000"></div>
+  <div class="account-message" id="otpMessage"></div>
+  <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button><button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button></div>
+ </div>
 </div>
-
 
 <!-- ENTRY EDIT MODAL -->
 <div class="entry-edit-modal" id="entryEditModal" aria-hidden="true">
@@ -4812,7 +4780,6 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
         <div class="person-summary" id="personSummary">
           <div class="grid4">
             <div class="item"><div class="label">Total visits</div><div class="value" id="psVisits">0</div></div>
-            <div class="item"><div class="label">Total quantity</div><div class="value" id="psQty">0</div></div>
             <div class="item"><div class="label">Total billed</div><div class="value" id="psAmount">₹0</div></div>
             <div class="item"><div class="label">Last visit</div><div class="value" id="psLast">-</div></div>
           </div>
@@ -5148,117 +5115,32 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
 });
 
 
-let pendingSignupId = null;
-let pendingSignupEmail = "";
-
-function openOtpModal(email){
-  pendingSignupEmail = email || "";
-  const modal = document.getElementById("otpModal");
-  document.getElementById("otpMessage").textContent = "";
-  document.getElementById("signupOtp").value = "";
-  document.getElementById("otpText").textContent =
-    "We sent a 6-digit verification code to " + pendingSignupEmail + ".";
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden","false");
-  setTimeout(()=>document.getElementById("signupOtp").focus(), 50);
-}
-function closeOtpModal(){
-  const modal = document.getElementById("otpModal");
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden","true");
-}
-document.getElementById("btnCancelOtp")?.addEventListener("click", closeOtpModal);
-
-document.getElementById("btnCreateAccount").addEventListener("click", async ()=>{
-  const message = document.getElementById("accountMessage");
-  const name = document.getElementById("newAccountName").value.trim();
-  const email = document.getElementById("newAccountEmail").value.trim();
-  const username = document.getElementById("newAccountUsername").value.trim();
-  const password = document.getElementById("newAccountPassword").value;
-  const confirm = document.getElementById("newAccountConfirm").value;
-  message.textContent = "";
-
-  if(!name){ message.textContent = "Name is required."; return; }
-  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    message.textContent = "Enter a valid Gmail / email address."; return;
-  }
-  if(!username){ message.textContent = "Username is required."; return; }
-  if(password.length < 6){ message.textContent = "Password must contain at least 6 characters."; return; }
-  if(password !== confirm){ message.textContent = "Passwords do not match."; return; }
-
-  const btn = document.getElementById("btnCreateAccount");
-  btn.disabled = true;
-  btn.textContent = "Sending OTP…";
-  try{
-    const res = await fetch(API_BASE + "/api/register", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name, email, username, password})
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){
-      message.textContent = data.message || data.error || "Could not send verification OTP.";
-      return;
-    }
-
-    pendingSignupId = data.pendingSignupId || data.pending_signup_id || data.pendingId || data.id || null;
-    closeCreateAccount();
-    openOtpModal(email);
-  }catch(e){
-    message.textContent = "Could not reach the server. Is it running?";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Create account";
-  }
+let pendingSignupId=null, pendingSignupEmail="";
+function openOtpModal(email){pendingSignupEmail=email;const m=document.getElementById("otpModal");document.getElementById("otpText").textContent="We sent a 6-digit OTP to "+email;document.getElementById("signupOtp").value="";document.getElementById("otpMessage").textContent="";m.classList.add("show");m.setAttribute("aria-hidden","false");}
+function closeOtpModal(){const m=document.getElementById("otpModal");m.classList.remove("show");m.setAttribute("aria-hidden","true");}
+document.getElementById("btnCancelOtp")?.addEventListener("click",closeOtpModal);
+document.getElementById("btnCreateAccount").addEventListener("click",async()=>{
+ const msg=document.getElementById("accountMessage");
+ const name=document.getElementById("newAccountName").value.trim(), email=document.getElementById("newAccountEmail").value.trim(), username=document.getElementById("newAccountUsername").value.trim(), password=document.getElementById("newAccountPassword").value, confirm=document.getElementById("newAccountConfirm").value;
+ if(!name||!email||!username||!password){msg.textContent="Please fill all fields.";return;}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent="Enter a valid email.";return;}
+ if(password!==confirm){msg.textContent="Passwords do not match.";return;}
+ const btn=document.getElementById("btnCreateAccount");btn.disabled=true;
+ try{
+  const r=await fetch(API_BASE+"/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,username,password})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){msg.textContent=d.message||d.error||"Could not send OTP.";return;}
+  pendingSignupId=d.pendingSignupId||d.pending_signup_id||d.id||null;closeCreateAccount();openOtpModal(email);
+ }catch(e){msg.textContent="Could not reach the server.";}finally{btn.disabled=false;}
 });
-
-document.getElementById("btnVerifyOtp")?.addEventListener("click", async ()=>{
-  const message = document.getElementById("otpMessage");
-  const otp = document.getElementById("signupOtp").value.trim();
-  const btn = document.getElementById("btnVerifyOtp");
-  message.textContent = "";
-
-  if(!/^\d{6}$/.test(otp)){
-    message.textContent = "Enter the 6-digit OTP.";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Verifying…";
-  try{
-    const payload = { otp, code: otp, email: pendingSignupEmail };
-    if(pendingSignupId) payload.pendingSignupId = pendingSignupId;
-
-    const res = await fetch(API_BASE + "/api/register/verify-otp", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){
-      message.textContent = data.message || data.error || "Invalid or expired OTP.";
-      return;
-    }
-
-    closeOtpModal();
-    const user = data.user || {};
-    document.getElementById("inpUsername").value = user.username || user.email || pendingSignupEmail;
-    document.getElementById("inpPassword").value = "";
-    showLoginError("Account verified successfully. You can now sign in.");
-    document.getElementById("inpPassword").focus();
-    pendingSignupId = null;
-  }catch(e){
-    message.textContent = "Could not reach the server.";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Verify OTP";
-  }
+document.getElementById("btnVerifyOtp")?.addEventListener("click",async()=>{
+ const otp=document.getElementById("signupOtp").value.trim(), msg=document.getElementById("otpMessage");
+ if(!/^\d{6}$/.test(otp)){msg.textContent="Enter the 6-digit OTP.";return;}
+ const r=await fetch(API_BASE+"/api/register/verify-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({otp,code:otp,email:pendingSignupEmail,pendingSignupId})});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok){msg.textContent=d.message||d.error||"Invalid OTP.";return;}
+ closeOtpModal();document.getElementById("inpUsername").value=pendingSignupEmail;showLoginError("Account verified. Please sign in.");
 });
-
-document.getElementById("signupOtp")?.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter") document.getElementById("btnVerifyOtp").click();
-});
-
 // Password view buttons for account and reset-password forms.
 document.querySelectorAll("[data-toggle-password]").forEach(button=>{
   button.addEventListener("click", ()=>{
@@ -5286,84 +5168,24 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
 
 
 // ---- Google Sign-In ----
-const GOOGLE_CLIENT_ID = "60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
-
-function handleGoogleCredential(response){
-  if(!response || !response.credential){
-    showLoginError("Google sign-in did not return a credential.");
-    return;
-  }
-  googleSignInWithToken(response.credential);
+const GOOGLE_CLIENT_ID="60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
+async function handleGoogleCredential(resp){
+ if(!resp?.credential)return;
+ try{
+  const r=await fetch(API_BASE+"/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:resp.credential,idToken:resp.credential})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){showLoginError(d.message||d.error||"Google sign-in failed.");return;}
+  authToken=d.token;persistSession(authToken,d.user,true);showApp(d.user);
+ }catch(e){showLoginError("Google sign-in failed.");}
 }
-
-async function googleSignInWithToken(idToken){
-  hideLoginError();
-  try{
-    const res = await fetch(API_BASE + "/api/auth/google", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ credential:idToken, idToken })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){
-      showLoginError(data.message || data.error || "Google sign-in failed.");
-      return;
-    }
-    if(!data.token || !data.user){
-      showLoginError("Google sign-in response was incomplete.");
-      return;
-    }
-    authToken = data.token;
-    persistSession(authToken, data.user, true);
-    showApp(data.user);
-  }catch(e){
-    showLoginError("Could not reach the server for Google sign-in.");
-  }
-}
-
 function initGoogleSignIn(){
-  const slot = document.getElementById("gBtnSlot");
-  const fallback = document.getElementById("btnGoogleFallback");
-  if(!slot) return;
-
-  const tryInit = ()=>{
-    if(!(window.google && google.accounts && google.accounts.id)) return false;
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredential,
-      auto_select: false,
-      cancel_on_tap_outside: true
-    });
-    slot.innerHTML = "";
-    google.accounts.id.renderButton(slot, {
-      type:"standard",
-      theme:"outline",
-      size:"large",
-      text:"signin_with",
-      shape:"rectangular",
-      width:350
-    });
-    return true;
-  };
-
-  if(!tryInit()){
-    let attempts = 0;
-    const timer = setInterval(()=>{
-      attempts++;
-      if(tryInit() || attempts > 20) clearInterval(timer);
-    }, 250);
-  }
-
-  fallback?.addEventListener("click", ()=>{
-    if(window.google && google.accounts && google.accounts.id){
-      google.accounts.id.prompt();
-    }else{
-      showLoginError("Google Sign-In is still loading. Please wait a moment and try again.");
-    }
-  });
+ const slot=document.getElementById("gBtnSlot");if(!slot)return;
+ if(window.google?.accounts?.id){
+  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential});
+  slot.innerHTML="";google.accounts.id.renderButton(slot,{theme:"outline",size:"large",text:"signin_with",width:350});
+ }else setTimeout(initGoogleSignIn,500);
 }
-window.addEventListener("load", initGoogleSignIn);
-
+window.addEventListener("load",initGoogleSignIn);
 
 // ---- Username / password login ----
 document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
@@ -5386,20 +5208,46 @@ async function tryUnlock(){
   const username = document.getElementById('inpUsername').value.trim();
   const password = document.getElementById('inpPassword').value;
   const remember = document.getElementById('chkRemember').checked;
-  if(!username || !password){ showLoginError("Enter your email or username and password."); return; }
+  const loginButton = document.getElementById('btnUnlock');
+  if(!username || !password){ showLoginError("Enter both a username and password."); return; }
+
+  if(loginButton?.disabled) return;
+  const originalButtonText = loginButton ? loginButton.innerHTML : '';
+  if(loginButton){
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
+    loginButton.style.opacity = '0.8';
+    loginButton.style.cursor = 'wait';
+  }
+
   try{
     const res = await fetch(API_BASE + "/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, identifier: username, email: username.includes("@") ? username : undefined, password })
+      body: JSON.stringify({ username, password }),
+      cache: "no-store"
     });
     const data = await res.json().catch(()=>({}));
-    if(!res.ok){ showLoginError(data.error || "Wrong username or password."); return; }
+    if(!res.ok){
+      showLoginError(data.error || "Wrong username or password.");
+      return;
+    }
+
     authToken = data.token;
     persistSession(authToken, data.user, remember);
+
+    // Show the app immediately after authentication. Data and rates continue
+    // loading in the background instead of delaying the screen transition.
     showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
+  }finally{
+    if(loginButton && document.getElementById('loginScreen').style.display !== 'none'){
+      loginButton.disabled = false;
+      loginButton.innerHTML = originalButtonText;
+      loginButton.style.opacity = '';
+      loginButton.style.cursor = '';
+    }
   }
 }
 
@@ -5440,7 +5288,7 @@ document.getElementById('btnLogout').addEventListener('click', async (e)=>{
 
   if(menu) menu.classList.remove('show');
   if(app) app.style.display = 'none';
-  if(login) login.style.display = 'flex';
+  if(login) login.style.display = 'grid';
 
   // Clear login fields for the next sign-in.
   const usernameInput = document.getElementById('inpUsername');
@@ -7173,11 +7021,9 @@ function render(){
   const summaryBox = document.getElementById('personSummary');
   if(currentFilter && filtered.length > 0){
     const visits = filtered.length;
-    const totalQty = filtered.reduce((s,e)=>s+(Number(e.qty)||0),0);
     const totalAmt = filtered.reduce((s,e)=>s+(Number(e.amount)||0),0);
     const lastDate = filtered.reduce((latest,e)=> (e.date > latest ? e.date : latest), filtered[0].date);
     document.getElementById('psVisits').textContent = visits;
-    document.getElementById('psQty').textContent = totalQty;
     document.getElementById('psAmount').textContent = fmtMoney(totalAmt);
     document.getElementById('psLast').textContent = fmtDate(lastDate);
     summaryBox.classList.add('show');
@@ -7220,7 +7066,7 @@ function render(){
       <td class="mono-cell">${fmtDate(e.date)}</td>
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
-      <td class="mono-cell">${e.qty} kg</td>
+      <td class="mono-cell">${e.qty}</td>
       <td class="mono-cell">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
       <td class="amount-cell">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
@@ -7292,29 +7138,25 @@ function exportExcel(){
       "Flower": flowerLabel(e.flower),
       "Quantity": Number(e.qty || 0),
       "Price": Number(e.price || 0),
-      "Amount": Number(e.amount || 0),
-      "Paid": e.paid ? "Yes" : "No",
-      "Paid Date": e.paidDate || ""
+      "Amount": Number(e.amount || 0)
     }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   worksheet['!cols'] = [
     { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 16 },
-    { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 14 }
+    { wch: 14 }, { wch: 16 }
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Flower Ledger");
 
   // Add a small summary sheet so the Excel file is useful for accounting.
-  const totalQty = toExport.reduce((sum,e)=>sum + Number(e.qty || 0), 0);
   const totalAmount = toExport.reduce((sum,e)=>sum + Number(e.amount || 0), 0);
   const supplierCount = new Set(toExport.map(e => String(e.name || '').trim().toLowerCase()).filter(Boolean)).size;
   const summaryRows = [
     ["S.P.S. மலரகம்", "Flower Ledger"],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
-        ["Total quantity", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7372,7 +7214,6 @@ async function exportPdf(){
       return da.localeCompare(db);
     });
 
-    const totalQty = sorted.reduce((sum,e)=>sum+Number(e.qty||0),0);
     const totalAmount = sorted.reduce((sum,e)=>sum+Number(e.amount||0),0);
     const supplierNames = new Set(
       sorted
@@ -7428,6 +7269,7 @@ async function exportPdf(){
     const tableHeadHtml = `
       <thead>
         <tr style="background:#FFE6EF;">
+          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;width:52px;">#</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
@@ -7437,8 +7279,9 @@ async function exportPdf(){
       </thead>
     `;
 
-    function pdfRowHtml(e){
+    function pdfRowHtml(e, serialNo){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:center;vertical-align:top;font-weight:700;">${serialNo}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
@@ -7470,7 +7313,7 @@ async function exportPdf(){
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;">
         ${tableHeadHtml}
         <tbody>
-          ${sorted.map(pdfRowHtml).join('')}
+          ${sorted.map((e,index)=>pdfRowHtml(e,index + 1)).join('')}
         </tbody>
       </table>
     `;
@@ -7603,9 +7446,7 @@ async function exportPdf(){
         totalTable.innerHTML = `
           <tfoot>
             <tr style="background:#FFF7FA;font-weight:800;">
-              <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')} kg</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;"></td>
+              <td colspan="5" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
               <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
             </tr>
           </tfoot>
