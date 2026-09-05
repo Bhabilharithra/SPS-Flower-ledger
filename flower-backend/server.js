@@ -101,6 +101,8 @@ async function sendOtpEmail(toEmail, toName, otp, purpose) {
   const subject =
     purpose === "login"
       ? "Your sign-in code"
+      : purpose === "reset"
+      ? "Your password reset code"
       : "Your account verification code";
 
   const html = `
@@ -422,15 +424,22 @@ async function initializeDatabase() {
     await pool.connect();
 
   try {
-    // UPDATE: bumped 3 -> 4. If an earlier deploy of this file
-    // already recorded version 3 in _schema_migrations BEFORE the
-    // OTP/email/google_sub columns existed, the old check would
-    // have skipped this whole block forever and those columns
-    // would never get created on that database. Bumping forces
-    // the migration chain to run one more time on any existing
-    // database that's missing them. Leave this at 4 after it has
-    // run once.
-    const SCHEMA_VERSION = 4;
+    // UPDATE: bumped 4 -> 5. Version 4 was already recorded in
+    // _schema_migrations on the live database WITHOUT the
+    // pending_signups table having actually been created (it was
+    // missing from Supabase's table list even though this file's
+    // CREATE TABLE IF NOT EXISTS pending_signups statement is right
+    // below). Because the old check saw version 4 already present,
+    // it skipped the whole migration block forever and
+    // pending_signups was never created, breaking OTP signup with
+    // "relation pending_signups does not exist". Bumping the version
+    // number forces the migration chain to run one more time on the
+    // existing database. Every statement in this block uses
+    // IF NOT EXISTS / IF EXISTS, so re-running it is safe even for
+    // columns/tables/indexes that already exist. Leave this at 5
+    // after it has run once and pending_signups is confirmed present
+    // in Supabase's table list.
+    const SCHEMA_VERSION = 5;
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS _schema_migrations (
