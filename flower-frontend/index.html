@@ -5118,6 +5118,24 @@ document.getElementById("btnCreateAccount").addEventListener("click", async ()=>
    btn.textContent="Create account";
  }
 });
+function openOtpForReset(email){
+  const otpModal=document.getElementById("otpModal");
+  const otpInput=document.getElementById("signupOtp");
+  const otpMessage=document.getElementById("otpMessage");
+  const verifyBtn=document.getElementById("btnVerifyOtp");
+  if(!otpModal || !otpInput || !otpMessage || !verifyBtn) return;
+
+  document.getElementById("otpDescription").textContent=`Enter the 6-digit verification code sent to ${email}.`;
+  otpMessage.textContent="OTP sent successfully. Check your email.";
+  otpInput.value="";
+  otpInput.disabled=false;
+  verifyBtn.disabled=false;
+  verifyBtn.textContent="Verify OTP";
+  otpModal.classList.add("show");
+  otpModal.setAttribute("aria-hidden","false");
+  setTimeout(()=>otpInput.focus(),50);
+}
+
 function closeOtpModal(){const m=document.getElementById("otpModal");m.classList.remove("show");m.setAttribute("aria-hidden","true");}
 document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);
 // Keep the OTP panel open when the user clicks anywhere on the page/backdrop.
