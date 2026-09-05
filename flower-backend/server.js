@@ -53,11 +53,16 @@ const googleClient = GOOGLE_CLIENT_ID
 // OTP EMAIL VERIFICATION (Brevo)
 // ============================================================
 //
-// Every signup (password-based or Google-based) and every login
-// requires a 6-digit OTP emailed to the account's address before
-// a JWT is issued. BREVO_API_KEY and BREVO_SENDER_EMAIL must be
-// set in .env; BREVO_SENDER_EMAIL must be a sender verified in
-// your Brevo account (Settings -> Senders), or sends will fail.
+// A 6-digit OTP is required exactly once: during password-based
+// signup (POST /api/register -> /api/register/verify-otp), to
+// confirm the person owns the email address before their account
+// is activated. Google signups skip this - Google already verified
+// the email when it issued the ID token - and no login (password or
+// Google) requires an OTP; a correct password, or a valid Google ID
+// token, is sufficient on its own. BREVO_API_KEY and
+// BREVO_SENDER_EMAIL must be set in .env; BREVO_SENDER_EMAIL must be
+// a sender verified in your Brevo account (Settings -> Senders), or
+// sends will fail.
 // ============================================================
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
@@ -1803,51 +1808,25 @@ app.post(
       );
 
       // ==========================================================
-      // OTP STEP
+      // NO OTP ON LOGIN
       // ==========================================================
       //
-      // Accounts created before this feature (or that never set an
-      // email) have no email on file - there is nothing to send an
-      // OTP to, so those accounts skip straight to a normal login.
-      // Every account with an email on file must verify an OTP
-      // before a token is issued.
+      // OTP is only required once, during account creation (see
+      // /api/register/verify-otp). A correct password on an already-
+      // activated account is sufficient to log in - re-verifying
+      // email on every login would just slow people down for no
+      // real security benefit, since the address was already
+      // confirmed at signup.
       // ==========================================================
 
-      if (!user.email) {
-        delete user.password_hash;
-        const token = createToken(user);
+      delete user.password_hash;
+      const token = createToken(user);
 
-        return res.json({
-          success: true,
-          message: "Login successful.",
-          token,
-          user,
-        });
-      }
-
-      const otp = generateOtp();
-      const otpExpiresAt = otpExpiryDate();
-
-      await pool.query(
-        `UPDATE users SET otp_code = $1, otp_expires_at = $2 WHERE id = $3`,
-        [otp, otpExpiresAt, user.id]
-      );
-
-      try {
-        await sendOtpEmail(user.email, user.name, otp, "login");
-      } catch (emailError) {
-        return res.status(502).json({
-          success: false,
-          message:
-            emailError.message || "Could not send verification email.",
-        });
-      }
-
-      res.json({
+      return res.json({
         success: true,
-        requiresOtp: true,
-        message: "A verification code was sent to your email.",
-        username: user.username,
+        message: "Login successful.",
+        token,
+        user,
       });
     } catch (error) {
       console.log(
@@ -1863,89 +1842,6 @@ app.post(
         success: false,
         message:
           "Login failed.",
-        error:
-          error.message,
-      });
-    }
-  }
-);
-
-// ============================================================
-// LOGIN  (step 2 of 2: verify OTP, issue token)
-// ============================================================
-
-app.post(
-  "/api/login/verify-otp",
-  async (req, res) => {
-    try {
-      const username =
-        String(req.body.username || "")
-          .trim()
-          .toLowerCase();
-
-      const otp =
-        String(req.body.otp || "").trim();
-
-      if (!username || !otp) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Verification code is required.",
-        });
-      }
-
-      const result = await pool.query(
-        `
-        SELECT id, name, username, email, otp_code, otp_expires_at
-        FROM users
-        WHERE LOWER(username) = LOWER($1)
-        LIMIT 1
-        `,
-        [username]
-      );
-
-      const user = result.rows[0];
-
-      if (
-        !user ||
-        !user.otp_code ||
-        user.otp_code !== otp ||
-        !user.otp_expires_at ||
-        new Date(user.otp_expires_at).getTime() < Date.now()
-      ) {
-        return res.status(401).json({
-          success: false,
-          message:
-            "Incorrect or expired code.",
-        });
-      }
-
-      await pool.query(
-        `UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = $1`,
-        [user.id]
-      );
-
-      delete user.otp_code;
-      delete user.otp_expires_at;
-
-      const token = createToken(user);
-
-      res.json({
-        success: true,
-        message: "Login successful.",
-        token,
-        user,
-      });
-    } catch (error) {
-      console.error(
-        "Login verify-otp error:",
-        error
-      );
-
-      res.status(500).json({
-        success: false,
-        message:
-          "Could not verify code.",
         error:
           error.message,
       });
@@ -1974,10 +1870,13 @@ app.post(
 //      that email/Google id. Access to this app is therefore only
 //      as private as the URL - anyone who reaches the login page
 //      and has any Google account can get in.
-//   5. find-or-create the user row, then issue our own JWT exactly
-//      like /api/login does, so the rest of the app (authMiddleware,
-//      /api/me, etc.) doesn't need to know or care that this login
-//      came from Google.
+//   5. Existing account -> a JWT is issued immediately, no OTP -
+//      Google's verification of the token IS the identity check.
+//      New account -> the frontend is asked for a username only
+//      (POST /api/auth/google/complete), then the account is
+//      created immediately, also with no OTP and no password.
+//      Either way authMiddleware, /api/me, etc. don't need to know
+//      or care that a given login came from Google.
 // ============================================================
 
 app.post(
@@ -2110,41 +2009,18 @@ app.post(
         const user = updated.rows[0];
         await syncUsersJson();
 
-        if (!user.email) {
-          // Legacy account with no email on file - nothing to OTP.
-          const token = createToken(user);
-          return res.json({
-            success: true,
-            message: "Login successful.",
-            token,
-            user,
-          });
-        }
+        // Google already verified this identity when it issued the
+        // ID token above - no additional app-level OTP is needed for
+        // login, unlike a password account.
+        const token = createToken(user);
 
-        const otp = generateOtp();
-        const otpExpiresAt = otpExpiryDate();
-
-        await pool.query(
-          `UPDATE users SET otp_code = $1, otp_expires_at = $2 WHERE id = $3`,
-          [otp, otpExpiresAt, user.id]
-        );
-
-        try {
-          await sendOtpEmail(user.email, user.name, otp, "login");
-        } catch (emailError) {
-          return res.status(502).json({
-            success: false,
-            message: emailError.message || "Could not send verification email.",
-          });
-        }
-
-        console.log(`[GOOGLE LOGIN] OTP sent - email=${email}`);
+        console.log(`[GOOGLE LOGIN] token issued - email=${email}`);
 
         return res.json({
           success: true,
-          requiresOtp: true,
-          message: "A verification code was sent to your email.",
-          username: user.username,
+          message: "Login successful.",
+          token,
+          user,
         });
       }
 
@@ -2197,7 +2073,16 @@ app.post(
 );
 
 // ============================================================
-// GOOGLE SIGN-UP  (step 2 of 3: choose username/password, send OTP)
+// GOOGLE SIGN-UP  (step 2 of 2: choose username, create account)
+// ============================================================
+//
+// No password and no OTP here. Google already verified this
+// person's identity and email when it issued the ID token back in
+// POST /api/auth/google - asking them to also set a password and
+// confirm an OTP would just be re-checking something already
+// confirmed. The account is created with password_hash = NULL,
+// same as any other Google account; going forward, that user signs
+// in exclusively via "Continue with Google".
 // ============================================================
 
 app.post(
@@ -2212,14 +2097,11 @@ app.post(
           .trim()
           .toLowerCase();
 
-      const password =
-        String(req.body.password || "");
-
-      if (!pendingId || !username || !password) {
+      if (!pendingId || !username) {
         return res.status(400).json({
           success: false,
           message:
-            "Username and password are required.",
+            "Username is required.",
         });
       }
 
@@ -2228,14 +2110,6 @@ app.post(
           success: false,
           message:
             "Username must contain at least 3 characters.",
-        });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Password must contain at least 6 characters.",
         });
       }
 
@@ -2254,104 +2128,6 @@ app.post(
         });
       }
 
-      const existingUser = await pool.query(
-        `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
-        [username]
-      );
-
-      if (existingUser.rows.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message:
-            "That username is already taken. Please choose another.",
-        });
-      }
-
-      const passwordHash = await bcrypt.hash(password, 12);
-      const otp = generateOtp();
-      const otpExpiresAt = otpExpiryDate();
-
-      await pool.query(
-        `
-        UPDATE pending_signups
-        SET username = $1, password_hash = $2, otp_code = $3, otp_expires_at = $4
-        WHERE id = $5
-        `,
-        [username, passwordHash, otp, otpExpiresAt, pendingId]
-      );
-
-      try {
-        await sendOtpEmail(pending.email, pending.name, otp, "signup");
-      } catch (emailError) {
-        return res.status(502).json({
-          success: false,
-          message: emailError.message || "Could not send verification email.",
-        });
-      }
-
-      res.json({
-        success: true,
-        message: "A verification code was sent to your email.",
-        pendingId,
-      });
-    } catch (error) {
-      console.error("Google signup complete error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Could not continue account creation.",
-        error: error.message,
-      });
-    }
-  }
-);
-
-// ============================================================
-// GOOGLE SIGN-UP  (step 3 of 3: verify OTP, create the account)
-// ============================================================
-
-app.post(
-  "/api/auth/google/verify",
-  async (req, res) => {
-    try {
-      const pendingId =
-        String(req.body.pendingId || "").trim();
-
-      const otp =
-        String(req.body.otp || "").trim();
-
-      if (!pendingId || !otp) {
-        return res.status(400).json({
-          success: false,
-          message: "Verification code is required.",
-        });
-      }
-
-      const pendingResult = await pool.query(
-        `SELECT * FROM pending_signups WHERE id = $1 AND kind = 'google' LIMIT 1`,
-        [pendingId]
-      );
-
-      const pending = pendingResult.rows[0];
-
-      if (!pending || !pending.username || !pending.password_hash) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "This signup request could not be found. Please continue with Google again.",
-        });
-      }
-
-      if (
-        !pending.otp_code ||
-        pending.otp_code !== otp ||
-        new Date(pending.otp_expires_at).getTime() < Date.now()
-      ) {
-        return res.status(401).json({
-          success: false,
-          message: "Incorrect or expired code.",
-        });
-      }
-
       const clash = await pool.query(
         `
         SELECT id FROM users
@@ -2360,14 +2136,14 @@ app.post(
            OR google_sub = $3
         LIMIT 1
         `,
-        [pending.username, pending.email, pending.google_sub]
+        [username, pending.email, pending.google_sub]
       );
 
       if (clash.rows.length > 0) {
         return res.status(409).json({
           success: false,
           message:
-            "That account was already created while your code was pending. Please sign in instead.",
+            "That username is taken, or this account already exists. Please choose another username or sign in with Google instead.",
         });
       }
 
@@ -2376,13 +2152,12 @@ app.post(
         INSERT INTO users
         (name, username, password_hash, email, email_verified, picture, google, google_sub)
         VALUES
-        ($1, $2, $3, $4, TRUE, $5, TRUE, $6)
+        ($1, $2, NULL, $3, TRUE, $4, TRUE, $5)
         RETURNING id, name, username, email, picture, created_at
         `,
         [
           pending.name,
-          pending.username,
-          pending.password_hash,
+          username,
           pending.email,
           pending.picture,
           pending.google_sub,
@@ -2403,10 +2178,10 @@ app.post(
         user,
       });
     } catch (error) {
-      console.error("Google signup verify error:", error);
+      console.error("Google signup complete error:", error);
       res.status(500).json({
         success: false,
-        message: "Could not verify code.",
+        message: "Could not create account.",
         error: error.message,
       });
     }
@@ -4297,7 +4072,7 @@ async function startServer() {
         );
 
         console.log(
-          "OTP email verification (signup + login): " +
+          "OTP email verification (password signup only): " +
             (BREVO_API_KEY && BREVO_SENDER_EMAIL
               ? "ENABLED (Brevo)"
               : "disabled (set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env)")
