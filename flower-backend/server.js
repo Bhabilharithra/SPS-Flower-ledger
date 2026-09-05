@@ -10,6 +10,7 @@ const path = require("path");
 const http = require("http");
 const https = require("https");
 const { Pool, types } = require("pg");
+const { OAuth2Client } = require("google-auth-library");
 
 // ============================================================
 // DATE FIX
@@ -26,6 +27,35 @@ const PORT = process.env.PORT || 4000;
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   "flower-ledger-change-this-secret";
+
+// ============================================================
+// GOOGLE SIGN-IN CONFIG
+// ============================================================
+//
+// GOOGLE_CLIENT_ID must match the OAuth Client ID configured in
+// Google Cloud Console for this app's "Continue with Google"
+// button (index.html sends back an ID token; this server
+// verifies it was issued for THIS client id, so a token minted
+// for some other app/site can't be replayed here).
+//
+// ALLOWED_GOOGLE_EMAILS is a comma-separated allowlist of Gmail
+// addresses permitted to sign in via Google ("Option B"). Anyone
+// whose verified Google email is not in this list gets a 403,
+// even though their Google identity itself checked out fine.
+// ============================================================
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+
+const googleClient = GOOGLE_CLIENT_ID
+  ? new OAuth2Client(GOOGLE_CLIENT_ID)
+  : null;
+
+function getAllowedGoogleEmails() {
+  return String(process.env.ALLOWED_GOOGLE_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 // ============================================================
 // MIDDLEWARE
@@ -76,52 +106,10 @@ const pool = new Pool({
 
   connectionTimeoutMillis: 10000,
 
-  // ============================================================
-  // KEEP-ALIVE (SIGN-IN DELAY FIX, PART 1)
-  // ============================================================
-  //
-  // Without TCP keep-alive, a connection that has sat idle for a
-  // while (e.g. overnight, or between logins) can be silently
-  // dropped by the OS, a load balancer, or Supabase's own pooler.
-  // The pg driver doesn't always notice immediately, so the NEXT
-  // query (often the login query) has to wait for a failed write,
-  // time out, and retry a fresh connection - this alone can look
-  // like a multi-second "hang" on sign-in even when Supabase
-  // itself is fully awake.
-  //
-  // keepAlive sends TCP keep-alive probes on open connections so
-  // dead ones are detected and recycled proactively instead of on
-  // the next real query.
-  // ============================================================
-
   keepAlive: true,
 
   keepAliveInitialDelayMillis: 10000,
 });
-
-// ============================================================
-// KEEP THE DATABASE CONNECTION WARM (SIGN-IN DELAY FIX, PART 2)
-// ============================================================
-//
-// Two DIFFERENT things can cause the "waking up" delay on login:
-//
-// 1. Supabase / the Postgres connection pool going idle and
-//    needing to re-establish a connection on the next query.
-//    This interval fixes THAT part, by running a trivial query
-//    every few minutes so the pool never sits fully idle.
-//
-// 2. The Node process itself being spun down by a free-tier host
-//    (Render, Railway, Fly.io free tiers, etc.) after a period
-//    with no incoming HTTP requests. This interval CANNOT fix
-//    that part on its own, because if the process is asleep, the
-//    interval isn't running either. For that you still need
-//    something external hitting this server periodically -
-//    either a free uptime monitor (UptimeRobot, cron-job.org)
-//    pointed at GET /api/health, or the optional SELF_PING_URL
-//    fallback below (only helps once the process is already up
-//    and running, e.g. to stop it going to sleep in the first
-//    place - it can't wake itself up from a full stop).
-// ============================================================
 
 setInterval(() => {
   pool.query("SELECT 1").catch((error) => {
@@ -132,12 +120,6 @@ setInterval(() => {
   });
 }, 4 * 60 * 1000); // every 4 minutes
 
-// Optional: set SELF_PING_URL in .env to your server's own public
-// URL (e.g. https://your-app.onrender.com/api/health) to have the
-// server ping itself periodically, on top of the DB keep-alive
-// above. This is a lightweight built-in substitute for an external
-// uptime monitor - an external monitor is still the more reliable
-// option since it works even after a cold restart.
 if (process.env.SELF_PING_URL) {
   const selfPingUrl = process.env.SELF_PING_URL;
 
@@ -355,30 +337,7 @@ async function initializeDatabase() {
     await pool.connect();
 
   try {
-    // ========================================================
-    // SCHEMA VERSION GUARD (SIGN-IN DELAY FIX, PART 3)
-    // ========================================================
-    //
-    // Everything below this point is a chain of ~30 sequential,
-    // individually-awaited ALTER/CREATE/UPDATE statements. They
-    // are all IF NOT EXISTS / idempotent, so they are safe to
-    // run more than once - but "safe" still means every single
-    // one of them is a full network round-trip to Supabase, and
-    // startServer() does not call app.listen() until ALL of them
-    // finish. On every cold start (including every time Render's
-    // free tier wakes the process back up) this chain re-runs in
-    // full and delays the moment the server can accept the very
-    // first /api/login request - stacking extra seconds on top
-    // of Render's own spin-up time.
-    //
-    // This guard runs the whole migration chain once, the first
-    // time the schema is created, and then skips straight past
-    // it on every later boot. If you ever add a NEW migration
-    // below, bump SCHEMA_VERSION by 1 so it runs one more time
-    // and then goes back to being skipped.
-    // ========================================================
-
-    const SCHEMA_VERSION = 1;
+    const SCHEMA_VERSION = 2;
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS _schema_migrations (
@@ -418,27 +377,42 @@ async function initializeDatabase() {
     `);
 
     // ========================================================
-    // FLOWER RATES
+    // GOOGLE SIGN-IN SUPPORT ON USERS
     // ========================================================
     //
-    // IMPORTANT:
+    // Google-created accounts have no password at all, so
+    // password_hash must become nullable (it was NOT NULL when
+    // only username/password accounts existed).
     //
-    // A flower can have MULTIPLE rates on the same date.
-    //
-    // Example:
-    //
-    // Malli
-    // 25 Aug 2026
-    // 07:00 AM
-    // ₹80
-    //
-    // Malli
-    // 25 Aug 2026
-    // 01:00 PM
-    // ₹100
-    //
-    // Both are stored.
-    //
+    // google_sub stores Google's stable per-account subject id
+    // (from the verified ID token's "sub" claim) so the same
+    // Google account is recognized as the same user even if its
+    // email or display name ever changes. It is unique only
+    // among non-null values, since normal password accounts
+    // never have one.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE users
+      ALTER COLUMN password_hash
+      DROP NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS
+      google_sub TEXT;
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS
+      users_google_sub_unique
+      ON users(google_sub)
+      WHERE google_sub IS NOT NULL;
+    `);
+
+    // ========================================================
+    // FLOWER RATES
     // ========================================================
 
     await client.query(`
@@ -455,22 +429,18 @@ async function initializeDatabase() {
       );
     `);
 
-    // Remove the OLD unique restriction
-    // that allowed only one rate per flower.
     await client.query(`
       ALTER TABLE flower_rates
       DROP CONSTRAINT IF EXISTS
       flower_rates_flower_key;
     `);
 
-    // Add rate_time to existing databases.
     await client.query(`
       ALTER TABLE flower_rates
       ADD COLUMN IF NOT EXISTS
       rate_time TIME;
     `);
 
-    // Existing rates are treated as midnight.
     await client.query(`
       UPDATE flower_rates
       SET rate_time = '00:00:00'::time
@@ -489,40 +459,12 @@ async function initializeDatabase() {
       SET NOT NULL;
     `);
 
-    // ========================================================
-    // RATE SLOTS (1st / 2nd / 3rd Rate)
-    // ========================================================
-    //
-    // BUG FIX + WORKFLOW CHANGE:
-    //
-    // Previously, entries were matched to a flower_rates row by
-    // clock TIME (rate_time), and the New Flower Entry dropdown
-    // only showed rate options that already existed - so it had
-    // to be disabled/hidden until a rate was saved.
-    //
-    // The new workflow always shows exactly three fixed slots -
-    // "1st Rate", "2nd Rate", "3rd Rate" - for every flower/date,
-    // even before any price has been entered. The user picks a
-    // slot up front; the entry is stored as "Pending" against
-    // that slot until a matching price is saved later.
-    //
-    // rate_slot (1, 2, or 3) is the new join key between
-    // flower_rates and entries, replacing rate_time for this
-    // purpose. rate_time is kept only as an informational
-    // timestamp (auto-set to when the rate was saved) - it is no
-    // longer used to decide which entries get which price.
-    // ========================================================
-
     await client.query(`
       ALTER TABLE flower_rates
       ADD COLUMN IF NOT EXISTS
       rate_slot SMALLINT;
     `);
 
-    // Backfill rate_slot for pre-existing rows: order each
-    // flower/date's rates by rate_time and number them 1, 2, 3.
-    // Anything beyond a 3rd rate on the same day (rare legacy
-    // data) is clipped into slot 3.
     await client.query(`
       WITH ranked AS (
         SELECT
@@ -540,10 +482,6 @@ async function initializeDatabase() {
       WHERE fr.id = ranked.id;
     `);
 
-    // Safety cleanup so the new unique index below can never
-    // fail: if legacy data ever produced two rows clipped into
-    // the same (flower, rate_date, rate_slot), keep only the
-    // most recently saved row.
     await client.query(`
       DELETE FROM flower_rates a
       USING flower_rates b
@@ -579,7 +517,6 @@ async function initializeDatabase() {
       CHECK (rate_slot BETWEEN 1 AND 3);
     `);
 
-    // Remove old indexes if they exist.
     await client.query(`
       DROP INDEX IF EXISTS
       flower_rates_flower_date_unique;
@@ -590,8 +527,6 @@ async function initializeDatabase() {
       flower_rates_flower_unique;
     `);
 
-    // Old time-based unique key is retired in favour of the
-    // slot-based key below.
     await client.query(`
       DROP INDEX IF EXISTS
       flower_rates_flower_date_time_unique;
@@ -599,17 +534,6 @@ async function initializeDatabase() {
 
     // ========================================================
     // USER OWNERSHIP ON FLOWER_RATES
-    // ========================================================
-    //
-    // WORKFLOW CHANGE:
-    //
-    // Rates were previously global - one shared price list for
-    // every login. Saving a rate under any account backfilled
-    // EVERY account's pending entries for that flower/date/slot.
-    //
-    // Each login now keeps its own independent rate list: rates
-    // are scoped by user_id, and the backfill in POST /api/rates
-    // only ever updates that same account's own pending entries.
     // ========================================================
 
     await client.query(`
@@ -624,15 +548,11 @@ async function initializeDatabase() {
       ON flower_rates(user_id);
     `);
 
-    // Old shared-across-everyone unique key is retired - a rate
-    // is now unique per (user, flower, date, slot) instead.
     await client.query(`
       DROP INDEX IF EXISTS
       flower_rates_flower_date_slot_unique;
     `);
 
-    // One rate for:
-    // USER + FLOWER + DATE + SLOT (1st / 2nd / 3rd)
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS
       flower_rates_user_flower_date_slot_unique
@@ -667,21 +587,6 @@ async function initializeDatabase() {
       );
     `);
 
-    // ========================================================
-    // ALLOW PENDING ENTRIES (NULL price / amount)
-    // ========================================================
-    //
-    // Entries created before a flower rate has been saved for
-    // that flower/date need to be insertable with price = NULL
-    // and amount = NULL, showing as "Pending" in the frontend
-    // until a matching rate is saved (see POST /api/rates,
-    // which then backfills these rows).
-    //
-    // These ALTER statements are idempotent - safe to run on
-    // every startup, whether the columns are already nullable
-    // or not.
-    // ========================================================
-
     await client.query(`
       ALTER TABLE entries ALTER COLUMN price DROP NOT NULL;
     `);
@@ -698,15 +603,6 @@ async function initializeDatabase() {
       ALTER TABLE entries ALTER COLUMN amount DROP DEFAULT;
     `);
 
-    // ========================================================
-    // STOP DEFAULTING / LABELING UNIT AS "kg"
-    // ========================================================
-    //
-    // Quantity is not measured in kg for this ledger, so the
-    // "kg" default/wording is removed. Existing rows that were
-    // previously stamped with the old default are cleared too.
-    // ========================================================
-
     await client.query(`
       ALTER TABLE entries
       ALTER COLUMN unit
@@ -719,27 +615,6 @@ async function initializeDatabase() {
       WHERE unit = 'kg';
     `);
 
-    // ========================================================
-    // USER OWNERSHIP ON ENTRIES
-    // ========================================================
-    //
-    // SECURITY FIX:
-    //
-    // Entries previously had no owner column at all, so every
-    // logged-in user could see and query every other user's
-    // entries (GET /api/entries, /api/summary, supplier search,
-    // etc. returned the whole table to anyone with a valid
-    // token). user_id now records which account created the
-    // entry, and every entries route below filters by
-    // req.user.id so each login only ever sees its own data.
-    //
-    // NOTE: entries created before this fix have user_id = NULL
-    // and will not appear for ANY user until they are manually
-    // reassigned - this is intentional, since we cannot safely
-    // guess which account they used to belong to, and showing
-    // them to everyone would repeat the original leak.
-    // ========================================================
-
     await client.query(`
       ALTER TABLE entries
       ADD COLUMN IF NOT EXISTS
@@ -751,17 +626,6 @@ async function initializeDatabase() {
       idx_entries_user_id
       ON entries(user_id);
     `);
-
-    // ========================================================
-    // RATE SLOT ON ENTRIES
-    // ========================================================
-    //
-    // Records which dropdown slot (1st / 2nd / 3rd Rate) the
-    // entry was saved against. This is what the backfill in
-    // POST /api/rates matches on, fixing the bug where saving
-    // one slot's price used to overwrite entries saved under a
-    // different slot.
-    // ========================================================
 
     await client.query(`
       ALTER TABLE entries
@@ -845,7 +709,6 @@ function normalizeFlowerType(value) {
       .trim()
       .toLowerCase();
 
-  // MULLAI
   if (
     v === "mullai" ||
     v === "முல்லை" ||
@@ -854,7 +717,6 @@ function normalizeFlowerType(value) {
     return "Mullai";
   }
 
-  // ROYAL JASMINE / PICHI
   if (
     v === "royal jasmine" ||
     v === "royal-jasmine" ||
@@ -867,7 +729,6 @@ function normalizeFlowerType(value) {
     return "Royal Jasmine";
   }
 
-  // MALLI
   if (
     v === "malli" ||
     v === "மல்லி" ||
@@ -895,8 +756,6 @@ function formatDateOnly(value) {
   const str =
     String(value).trim();
 
-  // HTML date:
-  // YYYY-MM-DD
   const match =
     str.match(
       /^(\d{4}-\d{2}-\d{2})/
@@ -906,7 +765,6 @@ function formatDateOnly(value) {
     return match[1];
   }
 
-  // MM/DD/YYYY fallback
   const usMatch =
     str.match(
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
@@ -1007,13 +865,6 @@ function formatTimeOnly(value) {
 // ============================================================
 // RATE SLOT NORMALIZATION (1st / 2nd / 3rd Rate)
 // ============================================================
-//
-// Accepts a number (1, 2, 3), a numeric string ("1", "2", "3"),
-// or a label ("1st", "1st Rate", "2nd Rate", "3rd Rate", etc.)
-// and returns a clean integer 1-3, or null if it can't be
-// parsed / is out of range / was not supplied at all (rate_slot
-// is OPTIONAL on entry creation - see POST /api/entries).
-// ============================================================
 
 function normalizeRateSlot(value) {
   if (
@@ -1100,32 +951,6 @@ function createToken(user) {
 // ============================================================
 // AUTH MIDDLEWARE
 // ============================================================
-//
-// SECURITY FIX:
-//
-// This previously only verified the JWT's signature/expiry with
-// jwt.verify(). That proves the token was issued by this server
-// and hasn't expired, but it never checked whether the user id
-// encoded inside the token still exists in the `users` table.
-//
-// As a result, deleting a user's row from the database did NOT
-// revoke their existing session - any browser holding an old
-// token for that (now-deleted) id was still treated as
-// authenticated for up to 30 days (the token's expiry).
-//
-// This middleware now also looks the user id up in the database
-// on every request. If the id no longer exists, it returns 401,
-// exactly like an expired/invalid token. The frontend already
-// treats any 401 as "session expired" - it clears the saved
-// token and returns to the login screen (see handleAuthFailure()
-// / restoreSavedSession() in index.html) - so no frontend changes
-// are required for this fix to take effect.
-//
-// The env-based admin fallback (id: 0, created in POST /api/login
-// when no matching row exists in `users`) is intentionally exempt
-// from this database check, since that account has no row in
-// `users` by design.
-// ============================================================
 
 async function authMiddleware(
   req,
@@ -1158,8 +983,6 @@ async function authMiddleware(
         JWT_SECRET
       );
 
-    // Skip the DB check only for the env admin fallback account,
-    // which has no row in `users` by design.
     if (decoded.id !== 0) {
       const result =
         await pool.query(
@@ -1393,20 +1216,6 @@ app.post(
 // ============================================================
 // RESET PASSWORD
 // ============================================================
-//
-// SECURITY FIX:
-//
-// This route previously reset a user's password from just their
-// username, with no proof that the caller actually owned the
-// account. Anyone who knew (or guessed) a valid username could
-// take over that account.
-//
-// It now requires the account's CURRENT password and verifies it
-// with bcrypt before allowing the change. A wrong username and a
-// wrong current password both return the same generic 401 message
-// so the endpoint cannot be used to discover which usernames exist.
-//
-// ============================================================
 
 app.post(
   "/api/reset-password",
@@ -1567,15 +1376,6 @@ app.post(
 app.post(
   "/api/login",
   async (req, res) => {
-    // ==========================================================
-    // TIMING INSTRUMENTATION (TEMPORARY - REMOVE ONCE DIAGNOSED)
-    // ==========================================================
-    //
-    // Logs how long each step of login takes so Render's logs
-    // show exactly where the delay is, instead of guessing.
-    // Look for a line starting with "[LOGIN TIMING]" in Render
-    // right after a slow sign-in.
-    // ==========================================================
     const loginStart = Date.now();
     let tDbDone = null;
     let tBcryptDone = null;
@@ -1631,10 +1431,6 @@ app.post(
       let user =
         result.rows[0];
 
-      // ======================================================
-      // ENV ADMIN FALLBACK
-      // ======================================================
-
       if (!user) {
         const envUsername =
           String(
@@ -1682,6 +1478,14 @@ app.post(
           success: false,
           message:
             "Invalid username or password.",
+        });
+      }
+
+      if (!user.password_hash) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "This account uses Google Sign-In. Please continue with Google instead.",
         });
       }
 
@@ -1743,14 +1547,265 @@ app.post(
 );
 
 // ============================================================
-// LOGOUT
+// GOOGLE SIGN-IN  (Option B: approved Gmail accounts only)
 // ============================================================
 //
-// JWTs are stateless, so there is no server-side session to
-// destroy - the frontend already clears its own saved token on
-// sign-out (see clearSession() in index.html). This route exists
-// only so that call doesn't hit a 404; it just confirms the
-// logout to keep the server logs clean.
+// Flow:
+//   1. Frontend: user clicks "Continue with Google", picks an
+//      account, and Google's script hands back a signed ID token
+//      (a "credential" JWT) - the frontend never sees a password.
+//   2. Frontend POSTs { credential } to this endpoint.
+//   3. This server verifies the token DIRECTLY WITH GOOGLE using
+//      google-auth-library, checking the signature, expiry, and
+//      that the token was issued for OUR GOOGLE_CLIENT_ID. This
+//      step is what makes the flow trustworthy - we never trust
+//      an email the browser merely claims, only what Google's own
+//      verification returns.
+//   4. The verified email is checked against ALLOWED_GOOGLE_EMAILS
+//      (from .env). Not on the list -> 403, no account created.
+//   5. On the list -> find-or-create the user row, then issue our
+//      own JWT exactly like /api/login does, so the rest of the
+//      app (authMiddleware, /api/me, etc.) doesn't need to know or
+//      care that this login came from Google.
+// ============================================================
+
+app.post(
+  "/api/auth/google",
+  async (req, res) => {
+    try {
+      if (!googleClient) {
+        console.error(
+          "GOOGLE_CLIENT_ID is not configured in .env"
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Google Sign-In is not configured on this server.",
+        });
+      }
+
+      const credential =
+        String(
+          req.body.credential ||
+          req.body.idToken ||
+          req.body.id_token ||
+          req.body.token ||
+          ""
+        ).trim();
+
+      if (!credential) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Google credential is required.",
+        });
+      }
+
+      let payload;
+
+      try {
+        const ticket =
+          await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: GOOGLE_CLIENT_ID,
+          });
+
+        payload = ticket.getPayload();
+      } catch (verifyError) {
+        console.error(
+          "Google token verification failed:",
+          verifyError.message
+        );
+
+        return res.status(401).json({
+          success: false,
+          message:
+            "Could not verify Google sign-in. Please try again.",
+        });
+      }
+
+      if (!payload || !payload.email) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Could not verify Google sign-in. Please try again.",
+        });
+      }
+
+      if (!payload.email_verified) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Your Google email is not verified.",
+        });
+      }
+
+      const email =
+        String(payload.email)
+          .trim()
+          .toLowerCase();
+
+      const allowedEmails =
+        getAllowedGoogleEmails();
+
+      if (!allowedEmails.includes(email)) {
+        console.log(
+          `[GOOGLE LOGIN] denied - email not on approved list: ${email}`
+        );
+
+        return res.status(403).json({
+          success: false,
+          message:
+            "This Google account is not approved for access. Contact the administrator.",
+        });
+      }
+
+      const googleSub =
+        String(payload.sub);
+
+      const displayName =
+        payload.name ||
+        email.split("@")[0];
+
+      const picture =
+        payload.picture || null;
+
+      // Find an existing account either by its stored Google
+      // subject id (most reliable - stable even if email/name
+      // changes) or, failing that, by matching username=email
+      // (covers a user who first registered the classic way with
+      // their Gmail address as their username, then switches to
+      // "Continue with Google").
+      const existing =
+        await pool.query(
+          `
+          SELECT
+            id,
+            name,
+            username,
+            google_sub
+
+          FROM users
+
+          WHERE
+            google_sub = $1
+
+            OR
+            LOWER(username) = LOWER($2)
+
+          LIMIT 1
+          `,
+          [googleSub, email]
+        );
+
+      let user;
+
+      if (existing.rows.length > 0) {
+        const result =
+          await pool.query(
+            `
+            UPDATE users
+
+            SET
+              google_sub = $1,
+              google = TRUE,
+              picture = COALESCE($2, picture)
+
+            WHERE id = $3
+
+            RETURNING
+              id,
+              name,
+              username,
+              picture,
+              created_at
+            `,
+            [
+              googleSub,
+              picture,
+              existing.rows[0].id,
+            ]
+          );
+
+        user = result.rows[0];
+      } else {
+        const result =
+          await pool.query(
+            `
+            INSERT INTO users
+            (
+              name,
+              username,
+              password_hash,
+              picture,
+              google,
+              google_sub
+            )
+
+            VALUES
+            (
+              $1,
+              $2,
+              NULL,
+              $3,
+              TRUE,
+              $4
+            )
+
+            RETURNING
+              id,
+              name,
+              username,
+              picture,
+              created_at
+            `,
+            [
+              displayName,
+              email,
+              picture,
+              googleSub,
+            ]
+          );
+
+        user = result.rows[0];
+      }
+
+      await syncUsersJson();
+
+      const token =
+        createToken(user);
+
+      console.log(
+        `[GOOGLE LOGIN] success - email=${email}`
+      );
+
+      res.json({
+        success: true,
+        message:
+          "Login successful.",
+        token,
+        user,
+      });
+    } catch (error) {
+      console.error(
+        "Google login error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Google login failed.",
+        error:
+          error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// LOGOUT
 // ============================================================
 
 app.post(
@@ -1784,26 +1839,6 @@ app.get(
 // ============================================================
 // GET FLOWER RATES
 // ============================================================
-//
-// If date is provided (with or without "at"):
-//
-// Returns EVERY saved rate row for that date (all three slots),
-// optionally limited to rates at-or-before the given "at" time.
-//
-// This intentionally does NOT collapse to a single "latest" row
-// per flower, because the flower-ledger UI shows up to three
-// saved rate slots (1st / 2nd / 3rd) per flower per day and needs
-// all of them, not just the most recent one.
-//
-// Example:
-//
-// 1st Rate -> ₹80
-// 2nd Rate -> ₹100
-//
-// GET /api/rates?date=2026-08-25
-//   -> returns BOTH rows for that date.
-//
-// ============================================================
 
 app.get(
   "/api/rates",
@@ -1829,20 +1864,6 @@ app.get(
         formatDateOnly(
           req.query.to
         );
-
-      // ------------------------------------------------------
-      // EXACT DATE (optionally filtered by time-of-day)
-      // ------------------------------------------------------
-      //
-      // IMPORTANT: previously this branch used
-      // "SELECT DISTINCT ON (flower) ... ORDER BY flower, rate_time DESC"
-      // which collapsed the result to a single row per flower —
-      // only the latest rate at-or-before the requested time.
-      // That silently dropped the 1st/2nd/3rd rate slots the
-      // frontend rate cards rely on. Now every matching row is
-      // returned; the caller can pick "latest per flower" itself
-      // if that's ever what it needs.
-      // ------------------------------------------------------
 
       if (date) {
         const params = [
@@ -1899,10 +1920,6 @@ app.get(
             result.rows,
         });
       }
-
-      // ------------------------------------------------------
-      // DATE RANGE
-      // ------------------------------------------------------
 
       const params = [
         req.user.id,
@@ -1987,14 +2004,6 @@ app.get(
 
 // ============================================================
 // GET ONE FLOWER RATE
-// ============================================================
-//
-// This endpoint intentionally DOES still return only the single
-// latest rate at-or-before the given time for one named flower —
-// that is its documented purpose (e.g. "what rate applies right
-// now for Malli"), unlike the list endpoint above which now
-// returns every saved slot for a date.
-//
 // ============================================================
 
 app.get(
@@ -2115,12 +2124,6 @@ app.get(
 // ============================================================
 // SAVE FLOWER RATE
 // ============================================================
-//
-// Every rate is now saved against one of three fixed slots -
-// 1st Rate, 2nd Rate, 3rd Rate - for a given flower + date,
-// instead of a free-form clock time. rate_slot is required.
-//
-// ============================================================
 
 app.post(
   "/api/rates",
@@ -2166,9 +2169,6 @@ app.post(
           req.body.slot
         );
 
-      // rate_time is kept only as an informational timestamp
-      // (when this slot's price was saved) - it is no longer
-      // part of the matching logic.
       const rateTime =
         formatTimeOnly(
           req.body.rate_time ||
@@ -2300,38 +2300,6 @@ app.post(
           ]
         );
 
-      // ======================================================
-      // BACKFILL PENDING ENTRIES (SAME LOGIN ONLY)
-      // ======================================================
-      //
-      // WORKFLOW (rate_slot optional on entries, rates scoped
-      // per login):
-      //
-      // Entries can be added at any time WITHOUT picking a rate
-      // slot up front - rate_slot is left NULL on the entry.
-      // Whenever THIS account saves a rate for that flower +
-      // date, every still-pending slot-less entry belonging to
-      // THIS SAME account for that flower + date gets this
-      // price applied.
-      //
-      // If an entry DOES have a specific rate_slot recorded
-      // (either chosen at creation time or set explicitly via
-      // edit), it is only backfilled by a rate saved under that
-      // exact same slot - this preserves the original bug fix
-      // where saving the 1st Rate must not overwrite an entry
-      // that was tied to the 2nd or 3rd Rate.
-      //
-      // The "price IS NULL OR (price = 0 AND amount = 0)" guard
-      // means once a slot-less entry is backfilled by whichever
-      // rate is saved first for that date, later rate saves for
-      // other slots on the same date will not re-overwrite it.
-      //
-      // user_id = $5 is the critical scoping condition: rates
-      // are now per-account, so saving a rate NEVER touches
-      // another login's entries, even if they logged the same
-      // flower on the same date.
-      // ======================================================
-
       await pool.query(
         `
         UPDATE entries
@@ -2401,29 +2369,6 @@ app.post(
 // ============================================================
 // CREATE ENTRY
 // ============================================================
-//
-// WORKFLOW (rate_slot is OPTIONAL):
-//
-// The caller MAY pick a slot (rate_slot: 1, 2, or 3) up front,
-// or leave it unset to add the entry with no rate decided yet -
-// this supports "add entries for many days first, then fix the
-// price by date later".
-//
-// - rate_slot provided + a price already exists for that
-//   flower + date + slot -> entry is saved with that price
-//   immediately.
-// - rate_slot provided + no matching price yet -> entry is
-//   created as "Pending" (price/amount NULL) and gets
-//   backfilled only when THIS SAME account saves that exact
-//   slot's rate (see the UPDATE in POST /api/rates).
-// - rate_slot NOT provided -> entry is created as "Pending"
-//   with rate_slot left NULL, price/amount NULL. It gets
-//   backfilled by whichever rate (1st/2nd/3rd) THIS SAME
-//   account saves FIRST for that flower + date (POST /api/rates
-//   matches entries where rate_slot IS NULL OR rate_slot =
-//   <slot just saved>, AND user_id = the account saving it).
-//
-// ============================================================
 
 app.post(
   "/api/entries",
@@ -2446,9 +2391,6 @@ app.post(
           req.body.date
         );
 
-      // IMPORTANT:
-      // Frontend sends the time as req.body.time.
-      // Accept all supported time field names.
       const entryTime =
         formatTimeOnly(
           req.body.entry_time ||
@@ -2515,17 +2457,6 @@ app.post(
         });
       }
 
-      // ======================================================
-      // RATE SLOT (OPTIONAL)
-      // ======================================================
-      //
-      // The dropdown may offer "1st Rate", "2nd Rate", "3rd
-      // Rate" - or the caller can skip it entirely. If none is
-      // sent (or it doesn't parse to 1/2/3), normalizeRateSlot
-      // returns null and the entry is saved with rate_slot NULL,
-      // to be priced later.
-      // ======================================================
-
       const rateSlot =
         normalizeRateSlot(
           req.body.rate_slot ||
@@ -2536,11 +2467,6 @@ app.post(
       let price = null;
       let amount = null;
 
-      // Only attempt to match an existing price if a specific
-      // slot was chosen. A slot-less entry has nothing to match
-      // against yet and simply stays Pending until any rate is
-      // saved for this flower + date (see the backfill UPDATE
-      // in POST /api/rates above).
       if (rateSlot) {
         const rateResult =
           await pool.query(
@@ -2570,16 +2496,6 @@ app.post(
               rateSlot,
             ]
           );
-
-        // ====================================================
-        // NO MATCHING RATE YET -> CREATE AS "PENDING"
-        // ====================================================
-        //
-        // The entry is still created, with price/amount left
-        // NULL, and gets backfilled automatically once a
-        // matching rate is saved for this exact slot (see the
-        // UPDATE in POST /api/rates above).
-        // ====================================================
 
         if (
           rateResult.rows.length >
@@ -2745,8 +2661,6 @@ app.get(
       const paid =
         req.query.paid;
 
-      // SECURITY: every entries query is scoped to the logged-in
-      // account, so one login can never see another login's data.
       const params = [
         req.user.id,
       ];
@@ -2872,8 +2786,6 @@ app.get(
           req.query.to
         );
 
-      // SECURITY: summary totals are scoped to the logged-in
-      // account, so one login never sees another login's totals.
       const params = [
         req.user.id,
       ];
@@ -3138,24 +3050,6 @@ app.get(
 // ============================================================
 // EDIT ENTRY
 // ============================================================
-//
-// IMPORTANT:
-//
-// This edits the EXISTING ledger entry.
-//
-// It does NOT require you to create another flower rate.
-//
-// You can change:
-//
-// Supplier
-// Date
-// Time
-// Flower
-// KG
-// Price
-// Rate slot (1st / 2nd / 3rd Rate)
-//
-// ============================================================
 
 app.put(
   "/api/entries/:id",
@@ -3191,9 +3085,6 @@ app.put(
           req.body.date
         );
 
-      // IMPORTANT:
-      // Frontend sends the time as req.body.time.
-      // Accept all supported time field names.
       const entryTime =
         formatTimeOnly(
           req.body.entry_time ||
@@ -3224,22 +3115,12 @@ app.put(
             ).trim()
           : "";
 
-      // Rate slot can also be changed on edit. If not supplied,
-      // keep whatever the entry already has.
       const rateSlot =
         normalizeRateSlot(
           req.body.rate_slot ||
           req.body.rateSlot ||
           req.body.slot
         );
-
-      // ------------------------------------------------------
-      // IMPORTANT:
-      // Editing an existing ledger entry allows direct
-      // price modification.
-      //
-      // We do NOT force another flower-rate lookup here.
-      // ------------------------------------------------------
 
       const price =
         Number(
@@ -3396,10 +3277,6 @@ app.put(
           ]
         );
 
-      // SECURITY: a 0-row result here means either the entry
-      // doesn't exist, OR it belongs to a different login - both
-      // cases return the same generic "not found" so one account
-      // can't probe for another account's entry IDs.
       if (
         result.rows.length ===
         0
@@ -3475,8 +3352,6 @@ app.delete(
           [id, req.user.id]
         );
 
-      // SECURITY: same generic "not found" whether the entry
-      // never existed or belongs to a different login.
       if (
         result.rows.length ===
         0
@@ -3619,7 +3494,6 @@ async function startServer() {
 
     await syncAllJsonFiles();
 
-    // Sync JSON mirror every minute.
     setInterval(
       syncAllJsonFiles,
       60 * 1000
@@ -3680,6 +3554,11 @@ async function startServer() {
 
         console.log(
           "Logout endpoint: ENABLED"
+        );
+
+        console.log(
+          "Google Sign-In (approved emails only): " +
+            (googleClient ? "ENABLED" : "disabled (set GOOGLE_CLIENT_ID in .env)")
         );
 
         console.log(

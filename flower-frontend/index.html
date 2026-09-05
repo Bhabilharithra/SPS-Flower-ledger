@@ -4439,6 +4439,7 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 .multi-rate-card .rate-card-save{width:100%;margin-top:12px;}
 </style>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div id="toastHolder"></div>
@@ -4471,6 +4472,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       </div>
 
       <div class="lc-error" id="lcError"></div>
+
+      <!-- GOOGLE SIGN-IN -->
+      <div id="googleSignInWrap" style="display:flex;justify-content:center;margin:18px 0 16px;"></div>
 
       <div class="divider"><span>or continue with account</span></div>
 
@@ -5164,6 +5168,88 @@ document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
 document.getElementById('inpPassword').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
 
 // Show / hide password
+// ============================================================
+// GOOGLE SIGN-IN
+// ============================================================
+const GOOGLE_CLIENT_ID = "60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
+
+function initGoogleSignIn(){
+  const wrap = document.getElementById('googleSignInWrap');
+  if(!wrap || !window.google?.accounts?.id) return;
+
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true
+  });
+
+  google.accounts.id.renderButton(wrap, {
+    type: 'standard',
+    theme: 'outline',
+    size: 'large',
+    text: 'continue_with',
+    shape: 'rectangular',
+    logo_alignment: 'left',
+    width: Math.min(360, Math.max(250, wrap.clientWidth || 320))
+  });
+}
+
+async function handleGoogleCredential(response){
+  hideLoginError();
+  if(!response?.credential){
+    showLoginError('Google Sign-In did not return a credential. Please try again.');
+    return;
+  }
+
+  const wrap = document.getElementById('googleSignInWrap');
+  if(wrap) wrap.style.pointerEvents = 'none';
+
+  try{
+    const res = await fetch(API_BASE + '/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+      cache: 'no-store'
+    });
+
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      showLoginError(data.message || data.error || 'Google Sign-In failed.');
+      return;
+    }
+
+    if(!data.token){
+      showLoginError('Google Sign-In failed: no login token was returned.');
+      return;
+    }
+
+    authToken = data.token;
+    persistSession(authToken, data.user, true);
+    showApp(data.user);
+  }catch(error){
+    console.error('Google Sign-In error:', error);
+    showLoginError('Could not complete Google Sign-In. Please try again.');
+  }finally{
+    if(wrap && document.getElementById('loginScreen')?.style.display !== 'none'){
+      wrap.style.pointerEvents = '';
+    }
+  }
+}
+
+window.addEventListener('load', ()=>{
+  let attempts = 0;
+  const timer = setInterval(()=>{
+    if(window.google?.accounts?.id){
+      clearInterval(timer);
+      initGoogleSignIn();
+    }else if(++attempts >= 50){
+      clearInterval(timer);
+      console.warn('Google Identity Services failed to load.');
+    }
+  }, 100);
+});
+
 document.getElementById('btnTogglePassword').addEventListener('click', ()=>{
   const input = document.getElementById('inpPassword');
   const button = document.getElementById('btnTogglePassword');
