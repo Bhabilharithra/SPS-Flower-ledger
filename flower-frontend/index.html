@@ -5011,34 +5011,68 @@ document.getElementById("btnResetPassword").addEventListener("click", async ()=>
     return;
   }
 
+  // Open the OTP panel immediately. The server/Brevo request can take time,
+  // but the user should never have to wait on the reset form for the panel.
   btn.disabled = true;
   btn.textContent = "Sending OTP…";
+  pendingResetId = null;
+  pendingResetIdentifier = identifier;
+  pendingResetPassword = password;
+
+  const otpModal = document.getElementById("otpModal");
+  const otpInput = document.getElementById("signupOtp");
+  const otpMessage = document.getElementById("otpMessage");
+  const verifyBtn = document.getElementById("btnVerifyOtp");
+  const otpDescription = document.getElementById("otpDescription");
+
+  if(otpModal && otpInput && otpMessage && verifyBtn){
+    otpDescription.textContent = `Sending a 6-digit password reset code to ${identifier}. Please wait…`;
+    otpInput.value = "";
+    otpInput.disabled = true;
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Verify OTP";
+    otpMessage.textContent = "Sending OTP…";
+    otpModal.classList.add("show");
+    otpModal.setAttribute("aria-hidden", "false");
+  }
 
   try{
     const res = await fetch(API_BASE + "/api/reset-password/request-otp", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ identifier })
+      headers: {"Content-Type":"application/json", "Accept":"application/json"},
+      body: JSON.stringify({ identifier }),
+      cache: "no-store"
     });
     const data = await res.json().catch(()=>({}));
 
     if(!res.ok){
+      closeOtpModal();
+      openResetPassword();
       message.textContent = data.message || data.error || "Could not send reset OTP.";
       return;
     }
 
-    pendingResetId = data.pendingId || data.resetId || "";
+    // Accept the common backend key variants defensively.
+    pendingResetId = data.pendingId || data.resetId || data.pending_id || data.id || "";
     pendingResetIdentifier = identifier;
     pendingResetPassword = password;
 
     if(!pendingResetId){
+      closeOtpModal();
+      openResetPassword();
       message.textContent = "Server did not return a reset verification ID.";
       return;
     }
 
-    closeResetPassword();
-    openOtpForReset(data.email || identifier);
+    // Keep the already-open OTP panel and simply switch it to ready state.
+    otpDescription.textContent = `Enter the 6-digit verification code sent to ${data.email || identifier}.`;
+    otpMessage.textContent = "OTP sent successfully. Check your email.";
+    otpInput.disabled = false;
+    verifyBtn.disabled = false;
+    setTimeout(()=>otpInput.focus(), 50);
   }catch(e){
+    closeOtpModal();
+    openResetPassword();
     message.textContent = "Could not reach the server. Is it running?";
   }finally{
     btn.disabled = false;
