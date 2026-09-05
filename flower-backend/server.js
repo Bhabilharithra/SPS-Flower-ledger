@@ -38,10 +38,9 @@ const JWT_SECRET =
 // verifies it was issued for THIS client id, so a token minted
 // for some other app/site can't be replayed here).
 //
-// ALLOWED_GOOGLE_EMAILS is a comma-separated allowlist of Gmail
-// addresses permitted to sign in via Google ("Option B"). Anyone
-// whose verified Google email is not in this list gets a 403,
-// even though their Google identity itself checked out fine.
+// There is no email allowlist - any Google account with a
+// verified email can sign in, and gets an account auto-created
+// on first login. See the comment on POST /api/auth/google below.
 // ============================================================
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -49,13 +48,6 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = GOOGLE_CLIENT_ID
   ? new OAuth2Client(GOOGLE_CLIENT_ID)
   : null;
-
-function getAllowedGoogleEmails() {
-  return String(process.env.ALLOWED_GOOGLE_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 // ============================================================
 // MIDDLEWARE
@@ -1547,7 +1539,7 @@ app.post(
 );
 
 // ============================================================
-// GOOGLE SIGN-IN  (Option B: approved Gmail accounts only)
+// GOOGLE SIGN-IN  (open - any verified Google account is allowed)
 // ============================================================
 //
 // Flow:
@@ -1561,12 +1553,16 @@ app.post(
 //      step is what makes the flow trustworthy - we never trust
 //      an email the browser merely claims, only what Google's own
 //      verification returns.
-//   4. The verified email is checked against ALLOWED_GOOGLE_EMAILS
-//      (from .env). Not on the list -> 403, no account created.
-//   5. On the list -> find-or-create the user row, then issue our
-//      own JWT exactly like /api/login does, so the rest of the
-//      app (authMiddleware, /api/me, etc.) doesn't need to know or
-//      care that this login came from Google.
+//   4. NOTE: there is intentionally no allowlist check anymore.
+//      Any Google account with a verified email is accepted, and
+//      a new account is auto-created here on first sign-in for
+//      that email/Google id. Access to this app is therefore only
+//      as private as the URL - anyone who reaches the login page
+//      and has any Google account can get in.
+//   5. find-or-create the user row, then issue our own JWT exactly
+//      like /api/login does, so the rest of the app (authMiddleware,
+//      /api/me, etc.) doesn't need to know or care that this login
+//      came from Google.
 // ============================================================
 
 app.post(
@@ -1645,21 +1641,6 @@ app.post(
         String(payload.email)
           .trim()
           .toLowerCase();
-
-      const allowedEmails =
-        getAllowedGoogleEmails();
-
-      if (!allowedEmails.includes(email)) {
-        console.log(
-          `[GOOGLE LOGIN] denied - email not on approved list: ${email}`
-        );
-
-        return res.status(403).json({
-          success: false,
-          message:
-            "This Google account is not approved for access. Contact the administrator.",
-        });
-      }
 
       const googleSub =
         String(payload.sub);
@@ -3557,7 +3538,7 @@ async function startServer() {
         );
 
         console.log(
-          "Google Sign-In (approved emails only): " +
+          "Google Sign-In (any Google account): " +
             (googleClient ? "ENABLED" : "disabled (set GOOGLE_CLIENT_ID in .env)")
         );
 
