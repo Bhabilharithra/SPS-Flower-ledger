@@ -3297,7 +3297,7 @@ body{
   min-height:46px !important;
 }
 
-/* PRICE / KG */
+/* PRICE / unit */
 #entryPanel .field:has(#inpPrice){
   width:150px !important;
   min-width:150px !important;
@@ -4439,7 +4439,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 .multi-rate-card .rate-card-save{width:100%;margin-top:12px;}
 </style>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+.google-signin-btn{width:100%;margin-top:10px;padding:12px;border:1px solid var(--rule-strong);border-radius:var(--r);background:#fff;color:var(--ink);font:600 14px inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}.google-signin-btn:hover{background:var(--paper-deep)}.google-g{font:bold 20px Arial;color:#4285F4}.account-message{min-height:18px;margin-top:10px;color:var(--kumkum);font-size:13px}
+</style>
 </head>
 <body>
 <div id="toastHolder"></div>
@@ -4447,9 +4449,78 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 <!-- ============================================================
      LOGIN SCREEN
 ============================================================ -->
-<div id="loginScreen"><section class="login-brand"><div class="login-brand-copy"><div class="login-flower-mark" aria-hidden="true"><span>🌼</span><span>🌸</span><span>🌺</span></div><div class="brand-kicker">மலர் கணக்கு • FLOWER LEDGER</div><h1 class="headline">S.P.S. மலரகம்<br><em>மலர் கணக்கு</em></h1><p class="sub">மலர் வரவு, விற்பனை மற்றும் supplier கணக்குகளை எளிதாக நிர்வகிக்க.</p><div class="foot-note"><span class="dot"></span> S.P.சிங்கராஜா · செல்: 8870880301</div></div></section><section class="login-panel"><div class="login-card"><div class="login-welcome"><div class="login-icon">🌸</div><div><div class="login-eyebrow">WELCOME BACK</div><h2 class="lc-title">Sign in to the ledger</h2><p class="lc-sub">Open today's flower accounts.</p></div></div><div class="lc-error" id="lcError"></div><div class="google-wrap"><div id="gBtnSlot"></div></div><div class="divider"><span>or sign in with password</span></div><div class="lc-field"><label for="inpUsername">Email or Username</label><div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter email or username" autocomplete="username"></div></div><div class="lc-field"><label for="inpPassword">Password</label><div class="input-wrap password-wrap"><span>🔒</span><input type="password" id="inpPassword" placeholder="Enter password" autocomplete="current-password"><button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password">👁</button></div></div><div class="lc-row-between"><label class="remember-me"><input type="checkbox" id="chkRemember" checked> <span>Keep me signed in</span></label><button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button></div><button class="btn-signin" id="btnUnlock"><span>Sign in</span><span>→</span></button><button type="button" class="create-account-link" id="btnShowCreateAccount">Create account</button><div class="login-footer"><span>🌼</span> S.P.S. மலரகம் · ஆவரைகுளம்</div></div></section></div>
-<!-- CREATE ACCOUNT MODAL --><div class="account-modal" id="accountModal" aria-hidden="true"><div class="account-card" role="dialog" aria-modal="true"><h3>Create an account</h3><p>Enter your details. We will send a verification OTP to your email before creating the account.</p><div class="account-field"><label>Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun" autocomplete="name"></div><div class="account-field"><label>Gmail / Email</label><input id="newAccountEmail" type="email" placeholder="you@gmail.com" autocomplete="email"></div><div class="account-field"><label>Username</label><input id="newAccountUsername" type="text" placeholder="Choose a unique username" autocomplete="username"></div><div class="account-field"><label>Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword">👁</button></div></div><div class="account-field"><label>Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm">👁</button></div></div><div class="account-message" id="accountMessage"></div><div class="account-actions"><button type="button" class="account-cancel" id="btnCancelCreateAccount">Cancel</button><button type="button" class="account-submit" id="btnCreateAccount">Create account</button></div></div></div>
-<!-- OTP VERIFICATION MODAL --><div class="account-modal" id="otpModal" aria-hidden="true"><div class="account-card" role="dialog" aria-modal="true"><h3>Verify your email</h3><p id="otpDescription">Enter the 6-digit verification code sent to your email.</p><div class="account-field"><label>Verification code</label><input id="signupOtp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit OTP" autocomplete="one-time-code"></div><div class="account-message" id="otpMessage"></div><div class="account-actions"><button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button><button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button></div></div></div>
+<div id="loginScreen">
+  <section class="login-brand">
+<div class="login-brand-copy">
+      <div class="login-flower-mark" aria-hidden="true">
+        <span>🌼</span><span>🌸</span><span>🌺</span>
+      </div>
+      <div class="brand-kicker">மலர் கணக்கு • FLOWER LEDGER</div>
+      <h1 class="headline">S.P.S. மலரகம்<br><em>மலர் கணக்கு</em></h1>
+      <p class="sub">மலர் வரவு, விற்பனை மற்றும் supplier கணக்குகளை எளிதாக நிர்வகிக்க.</p>
+      <div class="foot-note"><span class="dot"></span> S.P.சிங்கராஜா · செல்: 8870880301</div>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <div class="login-welcome">
+        <div class="login-icon">🌸</div>
+        <div>
+          <div class="login-eyebrow">WELCOME BACK</div>
+          <h2 class="lc-title">Sign in to the ledger</h2>
+          <p class="lc-sub">Open today's flower accounts.</p>
+        </div>
+      </div>
+
+      <div class="lc-error" id="lcError"></div>
+
+      <div class="divider"><span>or continue with account</span></div>
+
+      <div class="lc-field">
+        <label for="inpUsername">Username</label>
+        <div class="input-wrap"><span>👤</span><input type="text" id="inpUsername" placeholder="Enter username" autocomplete="username"></div>
+      </div>
+
+      <div class="lc-field">
+        <label for="inpPassword">Password</label>
+        <div class="input-wrap password-wrap">
+          <span>🔒</span>
+          <input type="password" id="inpPassword" placeholder="Enter password" autocomplete="current-password">
+          <button type="button" class="password-toggle" id="btnTogglePassword" aria-label="Show password">👁</button>
+        </div>
+      </div>
+
+      <div class="lc-row-between">
+        <label class="remember-me"><input type="checkbox" id="chkRemember" checked> <span>Keep me signed in</span></label>
+        <button type="button" class="lc-forgot" id="btnShowResetPassword">Forgot password?</button>
+      </div>
+
+      <button class="btn-signin" id="btnUnlock"><span>Sign in</span><span>→</span></button>
+      <button type="button" class="google-signin-btn" id="btnGoogleSignIn" aria-label="Sign in with Google"><span class="google-g">G</span><span>Continue with Google</span></button>
+      <button type="button" class="create-account-link" id="btnShowCreateAccount">Create account</button>
+
+      <div class="login-footer">
+        <span>🌼</span> S.P.S. மலரகம் · ஆவரைகுளம்
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CREATE ACCOUNT MODAL -->
+<div class="account-modal" id="accountModal" aria-hidden="true">
+  <div class="account-card" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+    <h3 id="accountTitle">Create an account</h3>
+    <p>Create a separate login for a staff/admin user. The main shop admin username remains protected by the server .env settings.</p>
+    <div class="account-field"><label for="newAccountName">Name</label><input id="newAccountName" type="text" placeholder="e.g. Arun"></div>
+    <div class="account-field"><label for="newAccountEmail">Gmail</label><input id="newAccountEmail" type="email" placeholder="name@gmail.com" autocomplete="email"></div>
+    <div class="account-field"><label for="newAccountUsername">Username</label><input id="newAccountUsername" type="text" placeholder="e.g. arun"></div>
+    <div class="account-field"><label for="newAccountPassword">Password</label><div class="password-view-wrap"><input id="newAccountPassword" type="password" placeholder="At least 6 characters"><button type="button" class="password-view-btn" data-toggle-password="newAccountPassword" aria-label="Show password">👁</button></div></div>
+    <div class="account-field"><label for="newAccountConfirm">Confirm password</label><div class="password-view-wrap"><input id="newAccountConfirm" type="password" placeholder="Enter password again"><button type="button" class="password-view-btn" data-toggle-password="newAccountConfirm" aria-label="Show password">👁</button></div></div>
+    <div class="account-message" id="accountMessage"></div>
+    <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelCreateAccount">Cancel</button><button type="button" class="account-submit" id="btnCreateAccount">Create account</button></div>
+  </div>
+</div>
 
 <!-- ENTRY EDIT MODAL -->
 <div class="entry-edit-modal" id="entryEditModal" aria-hidden="true">
@@ -4462,8 +4533,8 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
       <div class="field"><label for="editEntryName">Supplier name</label><input id="editEntryName" type="text"></div>
       <div class="field"><label for="editEntryDate">Date</label><input id="editEntryDate" type="date"></div>
       <div class="field"><label for="editEntryFlower">Flower</label><select id="editEntryFlower"><option value="முல்லை">முல்லை (Mullai)</option><option value="பிச்சி">பிச்சி (Royal Jasmine)</option><option value="மல்லி">மல்லி (Malli)</option></select></div>
-      <div class="field"><label for="editEntryQty">Quantity (kg)</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
-      <div class="field"><label for="editEntryPrice">Price / kg</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
+      <div class="field"><label for="editEntryQty">Quantity</label><input id="editEntryQty" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label for="editEntryPrice">Price</label><input id="editEntryPrice" type="number" min="0" step="0.01"></div>
     </div>
     <div class="entry-edit-actions"><button type="button" class="btn btn-ghost" id="btnCancelEntryEdit">Cancel</button><button type="button" class="btn btn-primary" id="btnSaveEntryEdit">Save changes</button></div>
   </div>
@@ -4473,12 +4544,24 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
 <div class="account-modal" id="resetPasswordModal" aria-hidden="true">
   <div class="account-card" role="dialog" aria-modal="true" aria-labelledby="resetPasswordTitle">
     <h3 id="resetPasswordTitle">Reset password</h3>
-    <p>Enter your email or username and choose a new password. We will send an OTP to your registered email.</p>
-    <div class="account-field"><label for="resetIdentifier">Email or Username</label><input id="resetIdentifier" type="text" placeholder="Enter email or username" autocomplete="username"></div>
-    <div class="account-field"><label for="resetNewPassword">New password</label><div class="password-view-wrap"><input id="resetNewPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetNewPassword" aria-label="Show password">👁</button></div></div>
-    <div class="account-field"><label for="resetConfirmPassword">Confirm new password</label><div class="password-view-wrap"><input id="resetConfirmPassword" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetConfirmPassword" aria-label="Show password">👁</button></div></div>
+    <p id="resetPasswordHelp">Enter your Gmail to receive a verification OTP.</p>
+    <div class="account-field"><label for="resetEmail">Gmail</label><input id="resetEmail" type="email" placeholder="name@gmail.com" autocomplete="email"></div>
+    <div class="account-field reset-otp-step" id="resetOtpStep" style="display:none"><label for="resetOtp">OTP</label><input id="resetOtp" inputmode="numeric" maxlength="6" placeholder="Enter OTP"></div>
+    <div class="account-field reset-password-step" id="resetPasswordStep" style="display:none"><label for="resetNewPassword">New password</label><div class="password-view-wrap"><input id="resetNewPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetNewPassword">👁</button></div></div>
+    <div class="account-field reset-password-step" id="resetConfirmStep" style="display:none"><label for="resetConfirmPassword">Confirm new password</label><div class="password-view-wrap"><input id="resetConfirmPassword" type="password" placeholder="Enter password again" autocomplete="new-password"><button type="button" class="password-view-btn" data-toggle-password="resetConfirmPassword">👁</button></div></div>
     <div class="account-message" id="resetPasswordMessage"></div>
     <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelResetPassword">Cancel</button><button type="button" class="account-submit" id="btnResetPassword">Send OTP</button></div>
+  </div>
+</div>
+
+<!-- OTP VERIFICATION MODAL -->
+<div class="account-modal" id="otpModal" aria-hidden="true">
+  <div class="account-card" role="dialog" aria-modal="true" aria-labelledby="otpTitle">
+    <h3 id="otpTitle">Verify OTP</h3>
+    <p id="otpHelp">Enter the OTP sent to your Gmail.</p>
+    <div class="account-field"><label for="otpCode">OTP</label><input id="otpCode" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit OTP" autocomplete="one-time-code"></div>
+    <div class="account-message" id="otpMessage"></div>
+    <div class="account-actions"><button type="button" class="account-cancel" id="btnCancelOtp">Cancel</button><button type="button" class="account-submit" id="btnVerifyOtp">Verify OTP</button></div>
   </div>
 </div>
 
@@ -4583,9 +4666,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Mullai</label>
             <div class="rate-flower-name">முல்லை</div>
             <div class="rate-current-inline" id="currentRateMullai"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMullai3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMullai"></div>
             <button type="button" class="rate-card-save" data-flower="முல்லை" data-date="rateDateMullai" data-prices="rateMullai1,rateMullai2,rateMullai3">Save Mullai rates</button>
             <div class="rate-card-status" id="rateStatusMullai">Not saved</div>
@@ -4595,9 +4678,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Royal Jasmine</label>
             <div class="rate-flower-name">பிச்சி</div>
             <div class="rate-current-inline" id="currentRatePichi"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="ratePichi3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDatePichi"></div>
             <button type="button" class="rate-card-save" data-flower="பிச்சி" data-date="rateDatePichi" data-prices="ratePichi1,ratePichi2,ratePichi3">Save Royal Jasmine rates</button>
             <div class="rate-card-status" id="rateStatusPichi">Not saved</div>
@@ -4607,9 +4690,9 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
             <label>Malli</label>
             <div class="rate-flower-name">மல்லி</div>
             <div class="rate-current-inline" id="currentRateMalli"><span class="rate-current-label">Latest saved rate</span><strong>—</strong></div>
-            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price / kg"></div></div>
-            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price / kg"></div></div>
+            <div class="multi-rate-input"><span>1st time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli1" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>2nd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli2" min="0" step="0.01" placeholder="Price"></div></div>
+            <div class="multi-rate-input"><span>3rd time</span><div class="rate-input-row"><span>₹</span><input type="number" id="rateMalli3" min="0" step="0.01" placeholder="Price"></div></div>
             <div class="rate-date-row"><span>Rate date</span><input type="date" id="rateDateMalli"></div>
             <button type="button" class="rate-card-save" data-flower="மல்லி" data-date="rateDateMalli" data-prices="rateMalli1,rateMalli2,rateMalli3">Save Malli rates</button>
             <div class="rate-card-status" id="rateStatusMalli">Not saved</div>
@@ -4658,12 +4741,12 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
           </div>
 
           <div class="field">
-            <label for="inpQty">Quantity (kg)</label>
-            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter kg" autocomplete="off">
+            <label for="inpQty">Quantity</label>
+            <input type="number" id="inpQty" min="0.01" step="0.01" placeholder="Enter quantity" autocomplete="off">
           </div>
 
           <div class="field">
-            <label for="inpPrice">Price / kg</label>
+            <label for="inpPrice">Price</label>
             <input type="number" id="inpPrice" min="0" step="0.01" placeholder="₹" readonly>
             <div class="price-note" id="priceNote">Select a flower to use its saved rate.</div>
           </div>
@@ -4698,7 +4781,6 @@ body:not(#loginScreen) #appWrap .topbar .user-menu{
         <div class="person-summary" id="personSummary">
           <div class="grid4">
             <div class="item"><div class="label">Total visits</div><div class="value" id="psVisits">0</div></div>
-            <div class="item"><div class="label">Total quantity</div><div class="value" id="psQty">0</div></div>
             <div class="item"><div class="label">Total billed</div><div class="value" id="psAmount">₹0</div></div>
             <div class="item"><div class="label">Last visit</div><div class="value" id="psLast">-</div></div>
           </div>
@@ -4745,23 +4827,15 @@ const API_BASE = window.FLOWER_API_BASE ||
 // Read the saved session safely. A corrupt/old browser value must never
 // prevent the login page from loading.
 function readStoredSession(){
-  const sessionToken = sessionStorage.getItem("poo_kanakku_token");
-  const localToken = localStorage.getItem("poo_kanakku_token");
-
-  // Prefer the session token, otherwise use the remembered local token.
-  const token = sessionToken || localToken || null;
-  const userRaw = sessionToken
-    ? sessionStorage.getItem("poo_kanakku_user")
-    : localStorage.getItem("poo_kanakku_user");
-
-  let user = null;
-  try{
-    user = userRaw ? JSON.parse(userRaw) : null;
-  }catch(e){
-    user = null;
-  }
-
-  return { token, user };
+  // SECURITY / MULTI-SHOP MODE:
+  // Never restore a previous browser session automatically.
+  // Every fresh page load must start on the login screen.
+  // Remove any token left behind by older versions.
+  sessionStorage.removeItem("poo_kanakku_token");
+  sessionStorage.removeItem("poo_kanakku_user");
+  localStorage.removeItem("poo_kanakku_token");
+  localStorage.removeItem("poo_kanakku_user");
+  return { token: null, user: null };
 }
 
 const storedSession = readStoredSession();
@@ -4820,16 +4894,15 @@ function authHeaders(){
 }
 
 function persistSession(token, user, remember){
-  // Always remove both copies first so an old session token cannot win over
-  // the newly saved token on the next page load.
+  // Multi-user / multi-shop mode:
+  // Keep authentication only in JavaScript memory for this open page.
+  // Refreshing or reopening the site always requires a new login.
   sessionStorage.removeItem("poo_kanakku_token");
   sessionStorage.removeItem("poo_kanakku_user");
   localStorage.removeItem("poo_kanakku_token");
   localStorage.removeItem("poo_kanakku_user");
-
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem("poo_kanakku_token", token);
-  store.setItem("poo_kanakku_user", JSON.stringify(user));
+  authToken = token;
+  currentUser = user;
 }
 
 function clearSession(){
@@ -4904,235 +4977,59 @@ function hideLoginError(){
   document.getElementById("lcError").classList.remove("show");
 }
 
-// ---- Reset password ----
+// ---- OTP AUTHENTICATION ----
+let pendingRegistrationId = null;
+let pendingResetId = null;
+let resetOtpVerified = false;
+
+function setModal(id, show){ const m=document.getElementById(id); if(!m)return; m.classList.toggle('show',show); m.setAttribute('aria-hidden',show?'false':'true'); }
+function openCreateAccount(){ setModal('accountModal',true); document.getElementById('accountMessage').textContent=''; setTimeout(()=>document.getElementById('newAccountName').focus(),50); }
+function closeCreateAccount(){ setModal('accountModal',false); }
 function openResetPassword(){
-  const modal = document.getElementById("resetPasswordModal");
-  if(!modal) return;
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden", "false");
-  const message = document.getElementById("resetPasswordMessage");
-  if(message) message.textContent = "";
-  const loginUsername = document.getElementById("inpUsername").value.trim();
-  const resetIdentifier = document.getElementById("resetIdentifier");
-  if(resetIdentifier){
-    resetIdentifier.value = loginUsername;
-    setTimeout(()=>resetIdentifier.focus(), 50);
-  }
+  pendingResetId=null; resetOtpVerified=false; setModal('resetPasswordModal',true);
+  ['resetOtpStep','resetPasswordStep','resetConfirmStep'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('resetPasswordHelp').textContent='Enter your Gmail to receive a verification OTP.';
+  document.getElementById('btnResetPassword').textContent='Send OTP'; document.getElementById('resetPasswordMessage').textContent='';
+  document.getElementById('resetEmail').value='';
 }
-function closeResetPassword(){
-  const modal = document.getElementById("resetPasswordModal");
-  if(!modal) return;
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden", "true");
-}
+function closeResetPassword(){ setModal('resetPasswordModal',false); }
+function openOtpModal(){ setModal('otpModal',true); document.getElementById('otpMessage').textContent=''; document.getElementById('otpCode').value=''; setTimeout(()=>document.getElementById('otpCode').focus(),50); }
+function closeOtpModal(){ setModal('otpModal',false); pendingRegistrationId=null; }
 
-// ---- Create account ----
-function openCreateAccount(){
-  const modal = document.getElementById("accountModal");
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden", "false");
-  document.getElementById("accountMessage").textContent = "";
-  setTimeout(()=>document.getElementById("newAccountName").focus(), 50);
-}
-function closeCreateAccount(){
-  const modal = document.getElementById("accountModal");
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden", "true");
-}
+const createAccountLink=document.getElementById('btnShowCreateAccount');
+const cancelCreateAccount=document.getElementById('btnCancelCreateAccount');
+createAccountLink?.addEventListener('click',openCreateAccount); cancelCreateAccount?.addEventListener('click',closeCreateAccount);
+document.getElementById('accountModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeCreateAccount();});
+document.getElementById('btnShowResetPassword')?.addEventListener('click',openResetPassword);
+document.getElementById('btnCancelResetPassword')?.addEventListener('click',closeResetPassword);
+document.getElementById('resetPasswordModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeResetPassword();});
+document.getElementById('btnCancelOtp')?.addEventListener('click',closeOtpModal);
+document.getElementById('otpModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeOtpModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCreateAccount();closeResetPassword();closeOtpModal();}});
 
-
-// Create-account controls are registered defensively so the modal works even
-// when the page is opened from Live Server or another frontend host.
-const createAccountLink = document.getElementById("btnShowCreateAccount");
-const cancelCreateAccount = document.getElementById("btnCancelCreateAccount");
-const accountModal = document.getElementById("accountModal");
-
-if(createAccountLink){
-  createAccountLink.addEventListener("click", (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    openCreateAccount();
-  });
-}
-if(cancelCreateAccount){
-  cancelCreateAccount.addEventListener("click", (e)=>{
-    e.preventDefault();
-    closeCreateAccount();
-  });
-}
-if(accountModal){
-  accountModal.addEventListener("click", (e)=>{
-    if(e.target === accountModal) closeCreateAccount();
-  });
-}
-document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape"){ closeCreateAccount(); closeResetPassword(); closeOtpModal(); }
-});
-const resetPasswordLink = document.getElementById("btnShowResetPassword");
-const cancelResetPassword = document.getElementById("btnCancelResetPassword");
-const resetPasswordModal = document.getElementById("resetPasswordModal");
-
-if(resetPasswordLink){
-  resetPasswordLink.addEventListener("click", (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    openResetPassword();
-  });
-}
-if(cancelResetPassword){
-  cancelResetPassword.addEventListener("click", (e)=>{
-    e.preventDefault();
-    closeResetPassword();
-  });
-}
-if(resetPasswordModal){
-  resetPasswordModal.addEventListener("click", (e)=>{
-    if(e.target === resetPasswordModal) closeResetPassword();
-  });
-}
-
-document.getElementById("btnResetPassword").addEventListener("click", async ()=>{
-  const message = document.getElementById("resetPasswordMessage");
-  const identifier = document.getElementById("resetIdentifier").value.trim();
-  const password = document.getElementById("resetNewPassword").value;
-  const confirm = document.getElementById("resetConfirmPassword").value;
-  const btn = document.getElementById("btnResetPassword");
-  message.textContent = "";
-
-  if(!identifier){
-    message.textContent = "Enter your email or username.";
-    return;
-  }
-  if(password.length < 6){
-    message.textContent = "New password must contain at least 6 characters.";
-    return;
-  }
-  if(password !== confirm){
-    message.textContent = "Passwords do not match.";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Sending OTP…";
-
-  try{
-    const res = await fetch(API_BASE + "/api/reset-password/request-otp", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ identifier })
-    });
-    const data = await res.json().catch(()=>({}));
-
-    if(!res.ok){
-      message.textContent = data.message || data.error || "Could not send reset OTP.";
-      return;
-    }
-
-    pendingResetId = data.pendingId || data.resetId || "";
-    pendingResetIdentifier = identifier;
-    pendingResetPassword = password;
-
-    if(!pendingResetId){
-      message.textContent = "Server did not return a reset verification ID.";
-      return;
-    }
-
-    closeResetPassword();
-    openOtpForReset(data.email || identifier);
-  }catch(e){
-    message.textContent = "Could not reach the server. Is it running?";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Send OTP";
-  }
+document.getElementById('btnCreateAccount').addEventListener('click',async()=>{
+ const msg=document.getElementById('accountMessage'), name=document.getElementById('newAccountName').value.trim(), email=document.getElementById('newAccountEmail').value.trim(), username=document.getElementById('newAccountUsername').value.trim(), password=document.getElementById('newAccountPassword').value, confirm=document.getElementById('newAccountConfirm').value, btn=document.getElementById('btnCreateAccount');
+ msg.textContent=''; if(!name||!email||!username||!password){msg.textContent='Name, Gmail, username and password are required.';return;} if(!/^\S+@gmail\.com$/i.test(email)){msg.textContent='Enter a valid Gmail address.';return;} if(password.length<6){msg.textContent='Password must contain at least 6 characters.';return;} if(password!==confirm){msg.textContent='Passwords do not match.';return;}
+ btn.disabled=true;btn.textContent='Generating OTP…';
+ try{const res=await fetch(API_BASE+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,username,password}),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok){msg.textContent=data.error||data.message||'Could not generate OTP.';return;} pendingRegistrationId=data.pendingId||data.registrationId||data.id||email; closeCreateAccount(); document.getElementById('otpHelp').textContent='OTP sent to '+email+'. Enter it to activate your account.'; openOtpModal();}
+ catch(e){msg.textContent='Could not reach the server.';} finally{btn.disabled=false;btn.textContent='Create account';}
 });
 
-let pendingSignupId = null;
-let pendingSignupEmail = "";
-document.getElementById("btnCreateAccount").addEventListener("click", async ()=>{
- const message=document.getElementById("accountMessage"), name=document.getElementById("newAccountName").value.trim(), email=document.getElementById("newAccountEmail").value.trim().toLowerCase(), username=document.getElementById("newAccountUsername").value.trim(), password=document.getElementById("newAccountPassword").value, confirm=document.getElementById("newAccountConfirm").value, btn=document.getElementById("btnCreateAccount");
- message.textContent=""; if(!name||!email||!username||!password){message.textContent="Name, email, username and password are required.";return;} if(!/^\S+@\S+\.\S+$/.test(email)){message.textContent="Enter a valid email address.";return;} if(password.length<6){message.textContent="Password must contain at least 6 characters.";return;} if(password!==confirm){message.textContent="Passwords do not match.";return;}
- btn.disabled=true;btn.textContent="Sending OTP…";
- try{const res=await fetch(API_BASE+"/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,username,password})});const data=await res.json().catch(()=>({}));if(!res.ok){message.textContent=data.message||data.error||"Could not start account creation.";return;}pendingSignupId=data.pendingId;pendingSignupEmail=email;closeCreateAccount();document.getElementById("otpDescription").textContent=`Enter the 6-digit verification code sent to ${email}.`;document.getElementById("otpMessage").textContent="";document.getElementById("signupOtp").value="";const m=document.getElementById("otpModal");m.classList.add("show");m.setAttribute("aria-hidden","false");setTimeout(()=>document.getElementById("signupOtp").focus(),50);}catch(e){message.textContent="Could not reach the server. Is it running?";}finally{btn.disabled=false;btn.textContent="Create account";}
+document.getElementById('btnVerifyOtp').addEventListener('click',async()=>{
+ const code=document.getElementById('otpCode').value.trim(),msg=document.getElementById('otpMessage'),btn=document.getElementById('btnVerifyOtp');msg.textContent='';if(!pendingRegistrationId||!code){msg.textContent='Enter the OTP.';return;}btn.disabled=true;btn.textContent='Verifying…';
+ try{const res=await fetch(API_BASE+'/api/register/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pendingId:pendingRegistrationId,otp:code}),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok){msg.textContent=data.error||data.message||'OTP verification failed.';return;}closeOtpModal();document.getElementById('inpUsername').value=data.user?.username||'';document.getElementById('inpPassword').value='';showLoginError('OTP verified successfully. Your account is activated. Please sign in.');}
+ catch(e){msg.textContent='Could not reach the server.';}finally{btn.disabled=false;btn.textContent='Verify OTP';}
 });
-function closeOtpModal(){const m=document.getElementById("otpModal");m.classList.remove("show");m.setAttribute("aria-hidden","true");}
-document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);document.getElementById("otpModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeOtpModal();});
-document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
-  const message=document.getElementById("otpMessage");
-  const otp=document.getElementById("signupOtp").value.replace(/\D/g,"").trim();
-  const btn=document.getElementById("btnVerifyOtp");
-  message.textContent="";
 
-  if(!/^\d{6}$/.test(otp)){
-    message.textContent="Enter the 6-digit OTP.";
-    return;
-  }
-
-  btn.disabled=true;
-  btn.textContent="Verifying…";
-
-  try{
-    if(pendingResetId){
-      const res=await fetch(API_BASE+"/api/reset-password/verify-otp",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          pendingId:pendingResetId,
-          otp,
-          newPassword:pendingResetPassword
-        })
-      });
-      const data=await res.json().catch(()=>({}));
-
-      if(!res.ok){
-        message.textContent=data.message||data.error||"OTP verification failed.";
-        return;
-      }
-
-      const loginIdentifier=data.user?.email||pendingResetIdentifier;
-      pendingResetId=null;
-      pendingResetIdentifier="";
-      pendingResetPassword="";
-      closeOtpModal();
-
-      document.getElementById("inpUsername").value=loginIdentifier;
-      document.getElementById("inpPassword").value="";
-      showLoginError("Password reset successfully. Sign in with your new password.");
-      document.getElementById("inpPassword").focus();
-      return;
-    }
-
-    if(!pendingSignupId){
-      message.textContent="Please start account creation again.";
-      return;
-    }
-
-    const res=await fetch(API_BASE+"/api/register/verify-otp",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({pendingId:pendingSignupId,otp})
-    });
-    const data=await res.json().catch(()=>({}));
-
-    if(!res.ok){
-      message.textContent=data.message||data.error||"OTP verification failed.";
-      return;
-    }
-
-    closeOtpModal();
-    pendingSignupId=null;
-    document.getElementById("inpUsername").value=data.user?.email||pendingSignupEmail;
-    document.getElementById("inpPassword").value="";
-    showLoginError("Account created successfully. You can now sign in.");
-  }catch(e){
-    message.textContent="Could not reach the server. Is it running?";
-  }finally{
-    btn.disabled=false;
-    btn.textContent="Verify OTP";
-  }
+document.getElementById('btnResetPassword').addEventListener('click',async()=>{
+ const msg=document.getElementById('resetPasswordMessage'),btn=document.getElementById('btnResetPassword'),email=document.getElementById('resetEmail').value.trim();msg.textContent='';
+ if(!pendingResetId){if(!/^\S+@gmail\.com$/i.test(email)){msg.textContent='Enter a valid Gmail address.';return;}btn.disabled=true;btn.textContent='Sending…';try{const r=await fetch(API_BASE+'/api/reset-password/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const d=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=d.error||d.message||'Could not send OTP.';return;}pendingResetId=d.pendingId||d.resetId||email;document.getElementById('resetOtpStep').style.display='block';document.getElementById('resetPasswordHelp').textContent='OTP sent. Enter it to continue.';btn.textContent='Verify OTP';}catch(e){msg.textContent='Could not reach the server.';}finally{btn.disabled=false;}return;}
+ if(!resetOtpVerified){const otp=document.getElementById('resetOtp').value.trim();if(!otp){msg.textContent='Enter the OTP.';return;}btn.disabled=true;btn.textContent='Verifying…';try{const r=await fetch(API_BASE+'/api/reset-password/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pendingId:pendingResetId,otp})});const d=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=d.error||d.message||'OTP verification failed.';return;}resetOtpVerified=true;document.getElementById('resetPasswordStep').style.display='block';document.getElementById('resetConfirmStep').style.display='block';btn.textContent='Reset password';document.getElementById('resetPasswordHelp').textContent='OTP verified. Choose your new password.';}catch(e){msg.textContent='Could not reach the server.';}finally{btn.disabled=false;}return;}
+ const password=document.getElementById('resetNewPassword').value,confirm=document.getElementById('resetConfirmPassword').value;if(password.length<6){msg.textContent='Password must contain at least 6 characters.';return;}if(password!==confirm){msg.textContent='Passwords do not match.';return;}btn.disabled=true;btn.textContent='Resetting…';try{const r=await fetch(API_BASE+'/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pendingId:pendingResetId,newPassword:password})});const d=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=d.error||d.message||'Could not reset password.';return;}closeResetPassword();showLoginError('Password reset successfully. Please sign in with your new password.');}catch(e){msg.textContent='Could not reach the server.';}finally{btn.disabled=false;btn.textContent='Reset password';}
 });
-document.getElementById("signupOtp").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("btnVerifyOtp").click();});
 
+// Google sign-in. Backend should redirect to Google OAuth and return here with token/user or handle callback itself.
+document.getElementById('btnGoogleSignIn')?.addEventListener('click',()=>{window.location.href=API_BASE+'/api/auth/google';});
 // Password view buttons for account and reset-password forms.
 document.querySelectorAll("[data-toggle-password]").forEach(button=>{
   button.addEventListener("click", ()=>{
@@ -5149,7 +5046,7 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
 });
 
 // Press Enter inside reset-password fields to submit the reset form.
-["resetIdentifier","resetNewPassword","resetConfirmPassword"].forEach(id=>{
+["resetEmail","resetOtp","resetNewPassword","resetConfirmPassword"].forEach(id=>{
   const el = document.getElementById(id);
   if(el){
     el.addEventListener("keydown", (e)=>{
@@ -5157,36 +5054,6 @@ document.querySelectorAll("[data-toggle-password]").forEach(button=>{
     });
   }
 });
-
-// ---- Google Sign-In ----
-const GOOGLE_CLIENT_ID="60780004506-ehm9lqugiigbo8e0s7fqeafcj32ae3ai.apps.googleusercontent.com";
-function handleGoogleCredential(response){if(!response?.credential){showLoginError("Google Sign-In did not return a credential.");return;}(async()=>{hideLoginError();try{const res=await fetch(API_BASE+"/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:response.credential})});const data=await res.json().catch(()=>({}));if(!res.ok){showLoginError(data.message||data.error||"Google Sign-In failed.");return;}if(data.token&&data.user){authToken=data.token;persistSession(authToken,data.user,document.getElementById("chkRemember").checked);showApp(data.user);return;}showLoginError(data.message||"Google Sign-In requires additional setup on the server.");}catch(e){showLoginError("Could not reach the server. Is it running?");}})();}
-function showGoogleFallback(){
-  const slot=document.getElementById("gBtnSlot");
-  if(!slot || slot.dataset.ready==="true") return;
-  slot.innerHTML=`<button type="button" class="g-fallback-btn" id="btnGoogleFallback" aria-label="Sign in with Google"><span style="font-size:22px;font-weight:800;color:#4285F4">G</span><span>Sign in with Google</span></button>`;
-  const btn=document.getElementById("btnGoogleFallback");
-  if(btn) btn.addEventListener("click",()=>{
-    if(window.google&&google.accounts&&google.accounts.id){ google.accounts.id.prompt(); }
-    else { showLoginError("Google Sign-In is still loading. Please try again in a moment."); }
-  });
-}
-function initGoogleSignIn(){
-  const slot=document.getElementById("gBtnSlot");
-  if(!(window.google&&google.accounts&&google.accounts.id)){
-    showGoogleFallback(); setTimeout(initGoogleSignIn,500); return;
-  }
-  try{
-    google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
-    if(slot){
-      slot.innerHTML=""; slot.dataset.ready="true";
-      const width=Math.min(Math.max(slot.offsetWidth||360,280),400);
-      google.accounts.id.renderButton(slot,{theme:"outline",size:"large",text:"signin_with",shape:"rectangular",width});
-    }
-  }catch(e){ showGoogleFallback(); }
-}
-window.addEventListener("DOMContentLoaded",showGoogleFallback);
-window.addEventListener("load",initGoogleSignIn);
 
 // ---- Username / password login ----
 document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
@@ -5209,20 +5076,46 @@ async function tryUnlock(){
   const username = document.getElementById('inpUsername').value.trim();
   const password = document.getElementById('inpPassword').value;
   const remember = document.getElementById('chkRemember').checked;
-  if(!username || !password){ showLoginError("Enter your email or username and password."); return; }
+  const loginButton = document.getElementById('btnUnlock');
+  if(!username || !password){ showLoginError("Enter both a username and password."); return; }
+
+  if(loginButton?.disabled) return;
+  const originalButtonText = loginButton ? loginButton.innerHTML : '';
+  if(loginButton){
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
+    loginButton.style.opacity = '0.8';
+    loginButton.style.cursor = 'wait';
+  }
+
   try{
     const res = await fetch(API_BASE + "/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
+      cache: "no-store"
     });
     const data = await res.json().catch(()=>({}));
-    if(!res.ok){ showLoginError(data.message || data.error || "Wrong email/username or password."); return; }
+    if(!res.ok){
+      showLoginError(data.error || "Wrong username or password.");
+      return;
+    }
+
     authToken = data.token;
     persistSession(authToken, data.user, remember);
+
+    // Show the app immediately after authentication. Data and rates continue
+    // loading in the background instead of delaying the screen transition.
     showApp(data.user);
   }catch(e){
     showLoginError("Could not reach the server. Is it running?");
+  }finally{
+    if(loginButton && document.getElementById('loginScreen').style.display !== 'none'){
+      loginButton.disabled = false;
+      loginButton.innerHTML = originalButtonText;
+      loginButton.style.opacity = '';
+      loginButton.style.cursor = '';
+    }
   }
 }
 
@@ -5483,10 +5376,10 @@ function normalizeFlowerName(value){
 function normalizeEntry(e){
   e = e || {};
   const qty = Number(e.qty) || 0;
-  const price = Number(e.price) || 0;
-  const amount = e.amount !== undefined && e.amount !== null
-    ? (Number(e.amount) || 0)
-    : qty * price;
+  const hasPrice = e.price !== undefined && e.price !== null && e.price !== '';
+  const price = hasPrice ? Number(e.price) : null;
+  const hasAmount = e.amount !== undefined && e.amount !== null && e.amount !== '';
+  const amount = hasAmount ? Number(e.amount) : (hasPrice ? qty * price : null);
 
   // entry_date can come back as a full ISO timestamp (e.g. 2026-08-24T00:00:00.000Z).
   // Always reduce it to a plain YYYY-MM-DD string so fmtDate() works correctly.
@@ -5501,9 +5394,10 @@ function normalizeEntry(e){
     time: e.time || e.entry_time || "",
     flower: normalizeFlowerName(e.flower || ""),
     qty,
-    unit: e.unit || "kg",
+    unit: e.unit || "",
     price,
     amount,
+    rate_slot: e.rate_slot || e.rateSlot || null,
     paid: e.paid === true,
     paidDate: e.paidDate || e.paid_date || null
   };
@@ -5820,6 +5714,7 @@ function ratesResponseToOptions(payload){
 
     grouped[flower].push({
       id: String(item.id ?? `${flower}-${date}-${time}-${price}`),
+      slot: String(item.rate_slot ?? item.rateSlot ?? item.slot ?? ''),
       price: Number(price),
       date,
       time,
@@ -5828,12 +5723,12 @@ function ratesResponseToOptions(payload){
   });
 
   Object.keys(grouped).forEach(flower=>{
-    grouped[flower].sort((a,b)=>{
-      const ta = String(a.time || '00:00:00');
-      const tb = String(b.time || '00:00:00');
-      if(ta !== tb) return ta.localeCompare(tb);
-      return String(a.id).localeCompare(String(b.id));
+    grouped[flower].forEach((rate, index)=>{
+      const match = String(rate.slot || '').match(/([123])/);
+      rate.slotIndex = match ? Number(match[1]) : (index + 1);
+      rate.slotLabel = `${rate.slotIndex}${rate.slotIndex===1?'st':rate.slotIndex===2?'nd':'rd'} Rate`;
     });
+    grouped[flower].sort((a,b)=> a.slotIndex - b.slotIndex || String(a.time || '').localeCompare(String(b.time || '')));
   });
 
   return grouped;
@@ -5859,47 +5754,39 @@ function populateRateDropdown(keepValue = true){
   if(!ALLOWED_FLOWERS.includes(flower)){
     select.disabled = true;
     select.innerHTML = '<option value="">Select flower first</option>';
-    if(note) note.textContent = 'Choose the saved rate/time for this entry.';
+    if(note) note.textContent = 'Choose 1st Rate, 2nd Rate, or 3rd Rate for this entry.';
     return;
   }
 
-  // IMPORTANT: keep ALL saved rates for this flower/date.
-  // Do not collapse 1st, 2nd and 3rd rates into only one "latest" rate.
-  const rawOptions = flowerRateOptions[flower] || [];
-  const seen = new Set();
-  const options = rawOptions.filter(rate=>{
-    const key = String(rate.id ?? `${rate.date}-${rate.time}-${rate.price}`);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  // IMPORTANT: the three slots must ALWAYS be available.
+  // A slot without a saved price is shown as Pending, but the user can still
+  // create the entry. The backend will update pending entries automatically
+  // when a price is saved later for the same flower/date/slot.
+  const saved = flowerRateOptions[flower] || [];
+  const bySlot = {};
+  saved.forEach((rate, index)=>{
+    const slotIndex = Number(rate.slotIndex || index + 1);
+    if(slotIndex >= 1 && slotIndex <= 3) bySlot[slotIndex] = rate;
   });
 
-  if(!options.length){
-    select.disabled = true;
-    select.innerHTML = '<option value="">No saved rate for this date</option>';
-    if(note) note.textContent = 'No saved rate exists for this flower on the selected date.';
-    return;
-  }
-
   select.disabled = false;
-  // Always start with the placeholder. Never keep a previous rate from another
-  // flower/date and never auto-select the 3rd/latest option.
-  select.innerHTML = '<option value="" selected>Select rate / time</option>';
+  select.innerHTML = '<option value="" selected>Select Rate / Time</option>';
 
-  options.forEach((rate,index)=>{
+  [1,2,3].forEach(slotIndex=>{
+    const rate = bySlot[slotIndex] || null;
+    const label = `${ordinal(slotIndex)} Rate`;
     const opt = document.createElement('option');
-    opt.value = String(rate.id);
-    opt.textContent =
-      `${ordinal(index + 1)} time — ${fmtMoney(rate.price)} / kg` +
-      `${rate.time ? ` (${rateTimeLabel(rate.time)})` : ''}`;
-    opt.dataset.price = String(rate.price);
-    opt.dataset.time = rate.time || '';
-    opt.dataset.date = rate.date || '';
+    opt.value = String(slotIndex);
+    opt.dataset.slot = label;
+    opt.dataset.price = rate && rate.price !== '' && rate.price != null ? String(rate.price) : '';
+    opt.dataset.time = rate?.time || '';
+    opt.dataset.date = rate?.date || document.getElementById('inpDate').value || todayStr();
+    opt.textContent = rate
+      ? `${label} — ${fmtMoney(rate.price)}`
+      : `${label} — Pending`;
     select.appendChild(opt);
   });
 
-  // Keep a value only when this exact flower/date dropdown still contains it.
-  // On a flower/date refresh, populateRateDropdown(false) forces the placeholder.
   if(keepValue && previous && [...select.options].some(o=>o.value===previous)){
     select.value = previous;
   }else{
@@ -5908,95 +5795,89 @@ function populateRateDropdown(keepValue = true){
   }
 
   if(note){
-    note.textContent =
-      `${options.length} saved rate${options.length===1?'':'s'} available for ` +
-      `${fmtDate(document.getElementById('inpDate').value || todayStr())}.`;
+    note.textContent = 'Select the rate slot now. Unsaved slots show Pending and can still be used for a new entry.';
   }
 }
-
 
 function getSelectedRateOption(){
   const flower = getFlowerValue();
   const select = document.getElementById('inpRateSelect');
   if(!ALLOWED_FLOWERS.includes(flower) || !select || !select.value) return null;
-  return (flowerRateOptions[flower] || []).find(r=>String(r.id)===String(select.value)) || null;
+
+  const slotIndex = Number(select.value);
+  if(![1,2,3].includes(slotIndex)) return null;
+
+  const saved = (flowerRateOptions[flower] || []).find(r => Number(r.slotIndex) === slotIndex) || null;
+
+  return {
+    slotIndex,
+    slotLabel: `${ordinal(slotIndex)} Rate`,
+    rate_slot: `${ordinal(slotIndex)} Rate`,
+    price: saved?.price ?? null,
+    time: saved?.time || '',
+    date: saved?.date || document.getElementById('inpDate').value || todayStr(),
+    pending: !saved
+  };
 }
 
-async function loadFlowerRates(dateOverride = null){
-  try{
-    const selectedDate =
-      dateOverride ||
-      document.getElementById('inpDate')?.value ||
-      todayStr();
+let __entryRateLoadVersion = 0;
+let __cardRateLoadVersion = 0;
 
-    // Clear immediately so rates from another date are never shown.
+async function loadFlowerRates(dateOverride = null){
+  const requestVersion = ++__entryRateLoadVersion;
+  const selectedDate =
+    dateOverride ||
+    document.getElementById('inpDate')?.value ||
+    todayStr();
+
+  try{
+    // Clear immediately so another date can never remain visible.
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
-    const rateSelect = document.getElementById('inpRateSelect');
-    if(rateSelect){
-      rateSelect.disabled = true;
-      rateSelect.innerHTML = '<option value="">No saved rate for this date</option>';
-      rateSelect.value = '';
-    }
     populateRateDropdown(false);
     applyFlowerRate();
 
-    /*
-      IMPORTANT FIX:
-      Load ALL rates from the server and filter the selected date in the
-      browser. This guarantees that all 1st / 2nd / 3rd saved rates are
-      available even if the backend does not support a specific date query.
-    */
-    const res = await fetch(
-      API_BASE + '/api/rates',
-      {
-        headers: authHeaders(),
-        cache: 'no-store'
-      }
-    );
+    const res = await fetch(API_BASE + '/api/rates', {
+      headers: authHeaders(),
+      cache: 'no-store'
+    });
+
+    if(requestVersion !== __entryRateLoadVersion) return;
 
     if(res.status === 401){
       handleAuthFailure();
       return;
     }
-
-    if(!res.ok){
-      throw new Error('Could not load flower rates');
-    }
+    if(!res.ok) throw new Error('Could not load flower rates');
 
     const allPayload = await res.json();
+    if(requestVersion !== __entryRateLoadVersion) return;
 
-    const selectedDateRates = getRatesArray(allPayload).filter(item=>{
-      const itemDate = String(
-        item?.rate_date ?? item?.date ?? ''
-      ).slice(0,10);
+    // Use ONLY the currently requested date.
+    const selectedDateRates = getRatesArray(allPayload).filter(item =>
+      String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
+    );
 
-      return itemDate === selectedDate;
-    });
+    // Ignore stale responses if the user changed the date while loading.
+    const currentDate =
+      document.getElementById('inpDate')?.value || todayStr();
+    if(requestVersion !== __entryRateLoadVersion || currentDate !== selectedDate) return;
 
-    // Keep every saved rate for the selected date and group them by flower.
     flowerRateOptions = ratesResponseToOptions(selectedDateRates);
-
-    // The latest saved rate remains the default price.
     flowerRates = ratesResponseToMap(selectedDateRates);
 
+    // Always stay on the placeholder after flower/date loading.
     populateRateDropdown(false);
     applyFlowerRate();
 
   }catch(error){
+    if(requestVersion !== __entryRateLoadVersion) return;
     console.error('Load entry flower rates error:', error);
-
     flowerRates = normalizeFlowerRates(null);
     flowerRateOptions = { 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] };
-
     populateRateDropdown(false);
     applyFlowerRate();
-
-    showToast(
-      'Rate loading failed',
-      'Could not load the flower rates from the server.',
-      'error'
-    );
+    showToast('Rate loading failed', 'Could not load the flower rates from the server.', 'error');
   }
 }
 
@@ -6010,63 +5891,60 @@ async function loadFlowerRates(dateOverride = null){
   exists for that day, the card becomes blank.
 */
 async function loadRateCards(rateDate = null){
-  // CURRENT RATE and editable inputs must always follow the selected rate date.
-  // When the date changes, rates from the previous date are cleared.
+  const requestVersion = ++__cardRateLoadVersion;
   const selectedDate =
     rateDate ||
     document.getElementById('rateDateMullai')?.value ||
     todayStr();
 
+  // Clear immediately before the request starts.
+  displayFlowerRates = normalizeFlowerRates(null);
+  lastRatePayload = [];
+  fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
+  renderFlowerRates();
+
   try{
-    displayFlowerRates = normalizeFlowerRates(null);
+    const res = await fetch(API_BASE + '/api/rates', {
+      headers: authHeaders(),
+      cache: 'no-store'
+    });
 
-    // Load all saved rates from the server, then filter them to the selected date.
-    const res = await fetch(
-      API_BASE + '/api/rates',
-      {
-        headers: authHeaders(),
-        cache:'no-store'
-      }
-    );
+    if(requestVersion !== __cardRateLoadVersion) return;
 
-    if(res.status===401){
+    if(res.status === 401){
       handleAuthFailure();
       return;
     }
-
-    if(!res.ok){
-      throw new Error('Could not load saved rates');
-    }
+    if(!res.ok) throw new Error('Could not load saved rates');
 
     const ratePayload = await res.json();
+    if(requestVersion !== __cardRateLoadVersion) return;
 
-    // Use ONLY the selected card date everywhere in the cards. When the date
-    // changes, old prices from another day must never remain visible.
     const selectedDateRates = getRatesArray(ratePayload).filter(item =>
       String(item?.rate_date ?? item?.date ?? '').slice(0,10) === selectedDate
     );
+
+    // Ignore a response for an old date.
+    const currentDate =
+      document.getElementById('rateDateMullai')?.value || todayStr();
+    if(requestVersion !== __cardRateLoadVersion || currentDate !== selectedDate) return;
+
     lastRatePayload = selectedDateRates;
     displayFlowerRates = ratesResponseToMap(selectedDateRates);
-
-    // Only put rates from the currently selected date into the editable
-    // 1st time / 2nd time / 3rd time input boxes.
-    const selectedDateOptions = ratesResponseToOptions(selectedDateRates);
-    fillMultiRateInputs(selectedDateOptions);
-
+    fillMultiRateInputs(ratesResponseToOptions(selectedDateRates));
     renderFlowerRates();
 
   }catch(error){
-    console.error('Load rate cards error:',error);
+    if(requestVersion !== __cardRateLoadVersion) return;
+    console.error('Load rate cards error:', error);
     displayFlowerRates = normalizeFlowerRates(null);
+    lastRatePayload = [];
+    fillMultiRateInputs({ 'முல்லை': [], 'பிச்சி': [], 'மல்லி': [] });
     renderFlowerRates();
-
-    showToast(
-      'Rates not loaded',
-      'Could not load the saved flower rates from the server.',
-      'error'
-    );
+    showToast('Rates not loaded', 'Could not load the saved flower rates from the server.', 'error');
   }
 }
+
 function fillMultiRateInputs(optionsByFlower){
   const config=[
     ['முல்லை',['rateMullai1','rateMullai2','rateMullai3']],
@@ -6074,17 +5952,25 @@ function fillMultiRateInputs(optionsByFlower){
     ['மல்லி',['rateMalli1','rateMalli2','rateMalli3']]
   ];
   const selectedDate = selectedRateCardDate();
+
   config.forEach(([flower,ids])=>{
-    const rates=(optionsByFlower[flower] || []).slice(-3);
+    const bySlot = [null, null, null];
+    (optionsByFlower[flower] || []).forEach((rate, index)=>{
+      const slot = Number(rate.slotIndex || index + 1);
+      if(slot >= 1 && slot <= 3) bySlot[slot - 1] = rate;
+    });
+
     const cacheKey=`${flower}|${selectedDate}`;
-    window.__rateSlotCache[cacheKey]=rates.map(rate=>({
+    window.__rateSlotCache[cacheKey]=bySlot.map((rate,index)=> rate ? ({
       id: rate.id ?? '',
       price:Number(rate.price),
-      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8)
-    }));
+      time:String(rate.time || rate.rate_time || rate.rateTime || '').slice(0,8),
+      slotIndex:index + 1
+    }) : null);
+
     ids.forEach((id,index)=>{
       const input=document.getElementById(id);
-      if(input) input.value = rates[index]?.price ?? '';
+      if(input) input.value = bySlot[index]?.price ?? '';
     });
   });
 }
@@ -6109,10 +5995,10 @@ function renderFlowerRates(){
     if(st){
       if(data.price !== '' && data.price != null){
         st.textContent =
-          `Saved ₹${Number(data.price).toLocaleString('en-IN')} / kg` +
+          `Saved ₹${Number(data.price).toLocaleString('en-IN')}` +
           ` • ${data.date || selectedRateCardDate()}`;
       }else{
-        st.textContent = 'Not saved for this date';
+        st.textContent = '';
       }
     }
   });
@@ -6164,7 +6050,8 @@ function renderInlineCurrentRates(rates){
     const time=String(raw.rate_time ?? raw.rateTime ?? raw.time ?? '').slice(0,8);
     if(price === '' || price == null || !date) return;
     grouped[flower].push({
-      id:String(raw.id ?? ''), price:Number(price), date, time,
+      id:String(raw.id ?? ''), slot:String(raw.rate_slot ?? raw.rateSlot ?? raw.slot ?? ''),
+      price:Number(price), date, time,
       updated_at:raw.updated_at ?? raw.created_at ?? ''
     });
   });
@@ -6213,10 +6100,12 @@ function renderInlineCurrentRates(rates){
       row.className='current-rate-row';
       const slot=document.createElement('span');
       slot.className='current-rate-slot';
-      slot.textContent=`${ordinal(index+1)} rate`;
+      const slotMatch=String(rate.slot || '').match(/([123])/);
+      const slotIndex=slotMatch ? Number(slotMatch[1]) : index+1;
+      slot.textContent=`${ordinal(slotIndex)} rate`;
       const value=document.createElement('span');
       value.className='current-rate-value';
-      value.textContent=`${fmtMoney(rate.price)} / kg`;
+      value.textContent=`${fmtMoney(rate.price)}`;
       row.append(slot,value);
       list.appendChild(row);
     });
@@ -6301,6 +6190,9 @@ async function saveFlowerRates(flower, priceIds, dateId, button){
           date,
           rate_date:date,
           rateDate:date,
+          rate_slot:`${ordinal(item.slot + 1)} Rate`,
+          rateSlot:`${ordinal(item.slot + 1)} Rate`,
+          slot:`${ordinal(item.slot + 1)} Rate`,
           rate_time:item.rateTime,
           rateTime:item.rateTime
         })
@@ -6377,25 +6269,26 @@ function applyFlowerRate(){
   const selectedRate = getSelectedRateOption();
 
   if(ALLOWED_FLOWERS.includes(flower)){
-    // IMPORTANT: never fall back to a previous/last rate. The entry price must
-    // come only from the rate explicitly selected for the current entry date.
-    const data = selectedRate || null;
-    const rate = data ? data.price : '';
-
-    priceInput.value = rate === '' || rate == null ? '' : rate;
     priceInput.readOnly = true;
     priceInput.classList.add('price-managed');
-    priceInput.placeholder = '₹';
 
     if(!selectedRate){
-      note.textContent = `⚠️ Select a saved ${flower} rate/time for ${fmtDate(selectedDate)} before adding this entry.`;
+      priceInput.value = '';
+      priceInput.placeholder = 'Pending';
+      note.textContent = `Select 1st Rate, 2nd Rate, or 3rd Rate for ${fmtDate(selectedDate)}.`;
+    }else if(selectedRate.pending || selectedRate.price === '' || selectedRate.price == null){
+      priceInput.value = '';
+      priceInput.placeholder = 'Pending';
+      note.textContent = `${selectedRate.slotLabel} is pending. You can still add this entry now; its price and amount will update automatically when you save that rate later.`;
     }else{
-      note.textContent = `Selected ${rateTimeLabel(selectedRate.time) || 'rate'}: ${fmtMoney(rate)} / kg`;
+      priceInput.value = selectedRate.price;
+      priceInput.placeholder = '₹';
+      note.textContent = `${selectedRate.slotLabel} selected: ${fmtMoney(selectedRate.price)}.`;
     }
   }else if(document.getElementById('inpFlowerSelect').value === '__other__'){
     priceInput.readOnly = false;
     priceInput.classList.remove('price-managed');
-    priceInput.placeholder = 'Enter price / kg';
+    priceInput.placeholder = 'Enter price';
     note.textContent = '';
   }else{
     priceInput.value = '';
@@ -6480,29 +6373,38 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   const name = document.getElementById('inpName').value.trim();
   const date = document.getElementById('inpDate').value;
   const selectedRate = getSelectedRateOption();
-  // For flowers with saved rate times, send the selected rate time so the
-  // existing backend validates against exactly the rate chosen in the dropdown.
-  const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
   const flower = getFlowerValue();
   const qty = parseFloat(document.getElementById('inpQty').value);
-  const unit = 'kg';
-  const price = parseFloat(document.getElementById('inpPrice').value);
+  const unit = '';
+  const manualPrice = parseFloat(document.getElementById('inpPrice').value);
 
   const missing = [];
   if(!name) missing.push("Supplier name");
   if(!date) missing.push("Date");
   if(!flower) missing.push(document.getElementById('inpFlowerSelect').value === '__other__' ? "Other flower name" : "Flower type");
   if(isNaN(qty) || qty <= 0) missing.push("Quantity");
-  if(isNaN(price) || price < 0) missing.push(ALLOWED_FLOWERS.includes(flower) ? "Flower rate (set it above)" : "Price per kg");
+
+  if(ALLOWED_FLOWERS.includes(flower) && !selectedRate){
+    missing.push("Rate / Time (1st Rate, 2nd Rate, or 3rd Rate)");
+  }
+
+  if(!ALLOWED_FLOWERS.includes(flower) && (isNaN(manualPrice) || manualPrice < 0)){
+    missing.push("Price");
+  }
 
   if(missing.length > 0){
-    if(ALLOWED_FLOWERS.includes(flower) && (isNaN(price) || price < 0)){
-      showToast("Flower rate missing", `Please enter the ${flower} rate for ${fmtDate(date)} before adding this entry.`, "error");
-    }else{
-      showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
-    }
+    showToast("Some details are missing", "Please fill: " + missing.join(", "), "error");
     return;
   }
+
+  const isPending = ALLOWED_FLOWERS.includes(flower) &&
+    (selectedRate.pending || selectedRate.price === '' || selectedRate.price == null);
+
+  const price = isPending ? null :
+    (ALLOWED_FLOWERS.includes(flower) ? Number(selectedRate.price) : manualPrice);
+
+  const amount = isPending ? null : qty * price;
+  const time = (selectedRate?.time || currentTimeStr()).slice(0,5);
 
   if(editingId){
     const idBeingEdited = editingId;
@@ -6511,6 +6413,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       showToast("Edit failed", "The original entry could not be found. Please reload the page and try again.", "error");
       return;
     }
+
     const updated = {
       ...existing,
       id: idBeingEdited,
@@ -6521,31 +6424,43 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
       qty,
       unit,
       price,
-      amount: qty * price,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      amount,
+      rate_slot: selectedRate?.rate_slot || existing.rate_slot || null,
+      rateSlot: selectedRate?.rate_slot || existing.rate_slot || null,
+      rate_time: selectedRate?.time || existing.rate_time || undefined
     };
+
     const saved = await dbAddOrUpdate(updated, idBeingEdited);
     if(!saved) return;
-    showToast("Entry updated", `${name}'s entry on ${fmtDate(date)} was updated.`, "success");
+    showToast("Entry updated", isPending ? `${name}'s entry is pending the selected rate.` : `${name}'s entry was updated.`, "success");
     cancelEdit();
   } else {
     const entry = {
       id: uid(),
       name,
       date,
-      time: time || "",
+      time,
       flower,
       qty,
       unit,
       price,
-      amount: qty * price,
+      amount,
       paid: false,
       paidDate: null,
-      rate_time: selectedRate ? selectedRate.time : undefined
+      // This is the key field the backend uses to backfill a pending entry.
+      rate_slot: selectedRate?.rate_slot || null,
+      rateSlot: selectedRate?.rate_slot || null,
+      rate_time: selectedRate?.time || undefined
     };
+
     const saved = await dbAddOrUpdate(entry);
     if(!saved) return;
-    showToast("Entry added", `${name} — ${fmtMoney(qty*price)} recorded.`, "success");
+
+    if(isPending){
+      showToast("Entry added as Pending", `${name}'s entry was saved. Its price will update automatically when ${selectedRate.slotLabel} is saved for this date.`, "success");
+    }else{
+      showToast("Entry added", `${name} — ${fmtMoney(amount)} recorded.`, "success");
+    }
   }
 
   document.getElementById('inpName').value = "";
@@ -6556,10 +6471,7 @@ document.getElementById('btnAdd').addEventListener('click', async ()=>{
   populateRateDropdown(false);
   applyFlowerRate();
   document.getElementById('inpQty').value = "";
-  // Price is managed by the selected flower rate.
-  loadFlowerRates(
-    document.getElementById('inpDate').value || todayStr()
-  );
+  await loadFlowerRates(document.getElementById('inpDate').value || todayStr());
   updateAmountPreview();
 
   render();
@@ -6606,7 +6518,7 @@ async function saveEntryEdit(){
   if(!name||!date||!flower||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<0){showToast('Edit failed','Please enter supplier, date, flower, quantity and price.','error');return;}
   const existing=entries.find(x=>String(x.id)===String(editingEntryId));
   if(!existing) return;
-  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'kg',price,amount:Number((qty*price).toFixed(2))};
+  const updated={...existing,id:editingEntryId,name,date,time:existing.time || currentTimeStr(),flower,qty,unit:existing.unit||'',price,amount:Number((qty*price).toFixed(2))};
   const ok=await dbAddOrUpdate(updated,editingEntryId);
   if(ok){closeEntryEdit();showToast('Entry updated','The ledger row was updated directly.','success');render();}
 }
@@ -6977,11 +6889,9 @@ function render(){
   const summaryBox = document.getElementById('personSummary');
   if(currentFilter && filtered.length > 0){
     const visits = filtered.length;
-    const totalQty = filtered.reduce((s,e)=>s+(Number(e.qty)||0),0);
     const totalAmt = filtered.reduce((s,e)=>s+(Number(e.amount)||0),0);
     const lastDate = filtered.reduce((latest,e)=> (e.date > latest ? e.date : latest), filtered[0].date);
     document.getElementById('psVisits').textContent = visits;
-    document.getElementById('psQty').textContent = totalQty;
     document.getElementById('psAmount').textContent = fmtMoney(totalAmt);
     document.getElementById('psLast').textContent = fmtDate(lastDate);
     summaryBox.classList.add('show');
@@ -7024,9 +6934,9 @@ function render(){
       <td class="mono-cell">${fmtDate(e.date)}</td>
       <td><span class="name-pill" onclick="nameClick('${escapeHtml(e.name).replace(/'/g,"\\'")}")">${escapeHtml(e.name)}</span></td>
       <td>${escapeHtml(e.flower)}</td>
-      <td class="mono-cell">${e.qty} kg</td>
-      <td class="mono-cell">${fmtMoney(e.price)}</td>
-      <td class="amount-cell">${fmtMoney(e.amount)}</td>
+      <td class="mono-cell">${e.qty}</td>
+      <td class="mono-cell">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
+      <td class="amount-cell">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-edit" onclick="editEntry('${e.id}')">Edit</button>
         <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Delete</button>
@@ -7049,8 +6959,8 @@ function render(){
           <th>Date</th>
           <th>Supplier</th>
           <th>Flower</th>
-          <th>Quantity (kg)</th>
-          <th>Price / kg</th>
+          <th>Quantity</th>
+          <th>Price</th>
           <th>Amount</th>
           <th>Edit</th>
         </tr>
@@ -7094,32 +7004,27 @@ function exportExcel(){
       "Date": e.date || "",
       "Supplier": e.name || "",
       "Flower": flowerLabel(e.flower),
-      "Quantity (kg)": Number(e.qty || 0),
-      "Price / kg": Number(e.price || 0),
-      "Amount": Number(e.amount || 0),
-      "Paid": e.paid ? "Yes" : "No",
-      "Paid Date": e.paidDate || ""
+      "Quantity": Number(e.qty || 0),
+      "Price": Number(e.price || 0),
+      "Amount": Number(e.amount || 0)
     }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   worksheet['!cols'] = [
     { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 16 },
-    { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 14 }
+    { wch: 14 }, { wch: 16 }
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Flower Ledger");
 
   // Add a small summary sheet so the Excel file is useful for accounting.
-  const totalQty = toExport.reduce((sum,e)=>sum + Number(e.qty || 0), 0);
   const totalAmount = toExport.reduce((sum,e)=>sum + Number(e.amount || 0), 0);
   const supplierCount = new Set(toExport.map(e => String(e.name || '').trim().toLowerCase()).filter(Boolean)).size;
   const summaryRows = [
     ["S.P.S. மலரகம்", "Flower Ledger"],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
-    ["Suppliers", supplierCount],
-    ["Total quantity (kg)", totalQty],
     ["Total amount (₹)", totalAmount]
   ];
   const summary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -7177,7 +7082,6 @@ async function exportPdf(){
       return da.localeCompare(db);
     });
 
-    const totalQty = sorted.reduce((sum,e)=>sum+Number(e.qty||0),0);
     const totalAmount = sorted.reduce((sum,e)=>sum+Number(e.amount||0),0);
     const supplierNames = new Set(
       sorted
@@ -7185,7 +7089,7 @@ async function exportPdf(){
         .filter(Boolean)
     ).size;
 
-    const scope = `${currentFilter ? `Supplier: ${escapeHtml(sorted[0]?.name || currentFilter)} · ` : ''}Date range: ${getReportScopeLabel()}`;
+    const scope = `Date range: ${getReportScopeLabel()}`;
 
     // A4 landscape ratio in CSS pixels.
     const PAGE_W = 1120;
@@ -7223,10 +7127,6 @@ async function exportPdf(){
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Entries</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${sorted.length}</div>
         </div>
-        <div style="flex:1;background:#EEE8FA;border:1px solid #D8CCE9;border-radius:14px;padding:15px;">
-          <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Suppliers</div>
-          <div style="font-size:23px;font-weight:800;margin-top:5px;">${supplierNames}</div>
-        </div>
         <div style="flex:1;background:#FFF4C8;border:1px solid #EEDB9C;border-radius:14px;padding:15px;">
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Total amount</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${fmtMoney(totalAmount)}</div>
@@ -7237,24 +7137,24 @@ async function exportPdf(){
     const tableHeadHtml = `
       <thead>
         <tr style="background:#FFE6EF;">
+          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;width:52px;">#</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
-          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Supplier</th>
           <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity (kg)</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price / kg</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
+          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
           <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Amount</th>
         </tr>
       </thead>
     `;
 
-    function pdfRowHtml(e){
+    function pdfRowHtml(e, serialNo){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:center;vertical-align:top;font-weight:700;">${serialNo}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;">${fmtDate(e.date)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(e.name||'')}</td>
         <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')} kg</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${e.price == null ? 'Pending' : fmtMoney(e.price)}</td>
+        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${e.amount == null ? 'Pending' : fmtMoney(e.amount)}</td>
       </tr>`;
     }
 
@@ -7281,7 +7181,7 @@ async function exportPdf(){
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;">
         ${tableHeadHtml}
         <tbody>
-          ${sorted.map(pdfRowHtml).join('')}
+          ${sorted.map((e,index)=>pdfRowHtml(e,index + 1)).join('')}
         </tbody>
       </table>
     `;
@@ -7414,9 +7314,7 @@ async function exportPdf(){
         totalTable.innerHTML = `
           <tfoot>
             <tr style="background:#FFF7FA;font-weight:800;">
-              <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')} kg</td>
-              <td style="padding:11px;border:1px solid #E3B0C3;"></td>
+              <td colspan="5" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
               <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
             </tr>
           </tfoot>
@@ -7537,7 +7435,7 @@ document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
 document.getElementById('btnExport').addEventListener('click', ()=>{
   let toExport = getReportEntries();
   if(toExport.length === 0){ showToast("Nothing to export", "No entries match the selected date range.", "error"); return; }
-  const header = ["Date","Supplier","Flower","Quantity (kg)","Price per kg","Amount"];
+  const header = ["Date","Supplier","Flower","Quantity","Price","Amount"];
   const rows = toExport
     .slice()
     .sort((a,b)=> (a.date+ (a.time||"")).localeCompare(b.date+(b.time||"")))
@@ -7597,14 +7495,6 @@ window.addEventListener('load',()=>{
   document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
   document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
 })();
-</script>
-<script>
-const otpInputEl = document.getElementById("signupOtp");
-if (otpInputEl) {
-  otpInputEl.addEventListener("input", () => {
-    otpInputEl.value = otpInputEl.value.replace(/\D/g, "").slice(0, 6);
-  });
-}
 </script>
 </body>
 </html>

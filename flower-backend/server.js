@@ -65,16 +65,21 @@ const googleClient = GOOGLE_CLIENT_ID
 // OTP EMAIL VERIFICATION (Brevo)
 // ============================================================
 //
-// A 6-digit OTP is required exactly once: during password-based
-// signup (POST /api/register -> /api/register/verify-otp), to
-// confirm the person owns the email address before their account
-// is activated. Google signups skip this - Google already verified
-// the email when it issued the ID token - and no login (password or
-// Google) requires an OTP; a correct password, or a valid Google ID
-// token, is sufficient on its own. BREVO_API_KEY and
-// BREVO_SENDER_EMAIL must be set in .env; BREVO_SENDER_EMAIL must be
-// a sender verified in your Brevo account (Settings -> Senders), or
-// sends will fail.
+// A 6-digit OTP is used in two places:
+//   1) password-based signup (POST /api/register ->
+//      /api/register/verify-otp), to confirm the person owns the
+//      email address before their account is activated.
+//   2) password reset (POST /api/reset-password/request-otp ->
+//      /api/reset-password/verify-otp), to confirm the person
+//      requesting the reset owns the account's registered email,
+//      reusing the same otp_code/otp_expires_at columns on `users`.
+//
+// Google signups/logins never need an OTP - Google already verified
+// the email when it issued the ID token - and a correct password on
+// an already-activated account is sufficient to log in on its own.
+// BREVO_API_KEY and BREVO_SENDER_EMAIL must be set in .env;
+// BREVO_SENDER_EMAIL must be a sender verified in your Brevo account
+// (Settings -> Senders), or sends will fail.
 // ============================================================
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
@@ -523,7 +528,11 @@ async function initializeDatabase() {
     // account with no email on file.
     //
     // otp_code / otp_expires_at: the currently-pending one-time
-    // code for that account, if any. Cleared after use.
+    // code for that account, if any. Cleared after use. Reused
+    // for BOTH signup verification and password reset - only one
+    // of those can be pending for a given account at a time,
+    // which is fine since each flow immediately overwrites/clears
+    // this pair with its own fresh code.
     //
     // pending_signups holds accounts that have NOT finished OTP
     // verification yet - both password-based signups and
@@ -1576,60 +1585,42 @@ app.post(
 );
 
 // ============================================================
-// RESET PASSWORD
+// RESET PASSWORD  (step 1 of 2: look up account + send OTP)
+// ============================================================
+//
+// Reuses the otp_code/otp_expires_at columns already on `users` -
+// no schema change needed. Accepts EITHER a username or an email in
+// `identifier`, matching the "Email or Username" field on the
+// reset-password modal. The returned `pendingId` is simply the
+// user's own id as a string; it is meaningless without also
+// providing the correct OTP, so exposing it here is safe.
+//
+// IMPORTANT: this deliberately does NOT reveal whether the account
+// exists. If no matching account (or no email on file) is found,
+// the response still looks like success so the endpoint can't be
+// used to test which usernames/emails are registered. Only a real
+// account with a registered email actually receives a code.
 // ============================================================
 
 app.post(
-  "/api/reset-password",
+  "/api/reset-password/request-otp",
   async (req, res) => {
     try {
-      const username =
+      const identifier =
         String(
+          req.body.identifier ||
           req.body.username ||
-            ""
+          req.body.email ||
+          ""
         )
           .trim()
           .toLowerCase();
 
-      const currentPassword =
-        String(
-          req.body.currentPassword ||
-            ""
-        );
-
-      const newPassword =
-        String(
-          req.body.newPassword ||
-          req.body.password ||
-          ""
-        );
-
-      if (
-        !username ||
-        !newPassword
-      ) {
+      if (!identifier) {
         return res.status(400).json({
           success: false,
           message:
-            "Username and new password are required.",
-        });
-      }
-
-      if (!currentPassword) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Current password is required.",
-        });
-      }
-
-      if (
-        newPassword.length < 6
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "New password must contain at least 6 characters.",
+            "Enter your email or username.",
         });
       }
 
@@ -1640,40 +1631,168 @@ app.post(
             id,
             name,
             username,
-            password_hash
+            email
 
           FROM users
 
-          WHERE LOWER(username)
-                = LOWER($1)
+          WHERE
+            LOWER(username) = LOWER($1)
+            OR LOWER(email) = LOWER($1)
 
           LIMIT 1
           `,
-          [username]
+          [identifier]
         );
 
+      const user = existing.rows[0];
+
+      // Same generic response whether or not the account/email exists,
+      // so this endpoint can't be used to enumerate accounts.
+      const genericResponse = {
+        success: true,
+        message:
+          "If an account with that email or username exists, a verification code has been sent.",
+      };
+
+      if (!user || !user.email) {
+        return res.status(200).json(genericResponse);
+      }
+
+      const otp = generateOtp();
+      const otpExpiresAt = otpExpiryDate();
+
+      await pool.query(
+        `
+        UPDATE users
+
+        SET
+          otp_code = $1,
+          otp_expires_at = $2
+
+        WHERE id = $3
+        `,
+        [otp, otpExpiresAt, user.id]
+      );
+
+      try {
+        await sendOtpEmail(user.email, user.name, otp, "reset");
+      } catch (emailError) {
+        return res.status(502).json({
+          success: false,
+          message:
+            emailError.message || "Could not send verification email.",
+        });
+      }
+
+      return res.status(200).json({
+        ...genericResponse,
+        pendingId: String(user.id),
+        email: user.email,
+      });
+    } catch (error) {
+      console.error(
+        "Reset password request-otp error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Could not start password reset.",
+        error:
+          error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// RESET PASSWORD  (step 2 of 2: verify OTP + set new password)
+// ============================================================
+
+app.post(
+  "/api/reset-password/verify-otp",
+  async (req, res) => {
+    try {
+      const pendingId =
+        String(req.body.pendingId || "").trim();
+
+      const otp =
+        String(req.body.otp || "").trim();
+
+      const newPassword =
+        String(
+          req.body.newPassword ||
+          req.body.password ||
+          ""
+        );
+
+      if (!pendingId || !otp) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Verification code is required.",
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "New password must contain at least 6 characters.",
+        });
+      }
+
+      const userId = Number(pendingId);
+
+      if (!Number.isFinite(userId)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This reset request could not be found. Please start again.",
+        });
+      }
+
+      const existing =
+        await pool.query(
+          `
+          SELECT
+            id,
+            name,
+            username,
+            email,
+            otp_code,
+            otp_expires_at
+
+          FROM users
+
+          WHERE id = $1
+
+          LIMIT 1
+          `,
+          [userId]
+        );
+
+      const user = existing.rows[0];
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This reset request could not be found. Please start again.",
+        });
+      }
+
       if (
-        existing.rows.length ===
-        0
+        !user.otp_code ||
+        user.otp_code !== otp ||
+        !user.otp_expires_at ||
+        new Date(user.otp_expires_at).getTime() < Date.now()
       ) {
         return res.status(401).json({
           success: false,
           message:
-            "Current password is incorrect.",
-        });
-      }
-
-      const currentPasswordOK =
-        await bcrypt.compare(
-          currentPassword,
-          existing.rows[0].password_hash
-        );
-
-      if (!currentPasswordOK) {
-        return res.status(401).json({
-          success: false,
-          message:
-            "Current password is incorrect.",
+            "Incorrect or expired code.",
         });
       }
 
@@ -1689,7 +1808,9 @@ app.post(
           UPDATE users
 
           SET
-            password_hash = $1
+            password_hash = $1,
+            otp_code = NULL,
+            otp_expires_at = NULL
 
           WHERE id = $2
 
@@ -1697,12 +1818,10 @@ app.post(
             id,
             name,
             username,
+            email,
             created_at
           `,
-          [
-            passwordHash,
-            existing.rows[0].id,
-          ]
+          [passwordHash, user.id]
         );
 
       await syncUsersJson();
@@ -1716,7 +1835,7 @@ app.post(
       });
     } catch (error) {
       console.error(
-        "Reset password error:",
+        "Reset password verify-otp error:",
         error
       );
 
@@ -4038,7 +4157,7 @@ async function startServer() {
         );
 
         console.log(
-          "Password reset: ENABLED"
+          "Password reset: OTP-based (request-otp + verify-otp) ENABLED"
         );
 
         console.log(
@@ -4055,7 +4174,7 @@ async function startServer() {
         );
 
         console.log(
-          "OTP email verification (password signup only): " +
+          "OTP email verification (signup + password reset): " +
             (BREVO_API_KEY && BREVO_SENDER_EMAIL
               ? "ENABLED (Brevo)"
               : "disabled (set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env)")
