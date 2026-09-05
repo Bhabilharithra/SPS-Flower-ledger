@@ -50,6 +50,75 @@ const googleClient = GOOGLE_CLIENT_ID
   : null;
 
 // ============================================================
+// OTP EMAIL VERIFICATION (Brevo)
+// ============================================================
+//
+// Every signup (password-based or Google-based) and every login
+// requires a 6-digit OTP emailed to the account's address before
+// a JWT is issued. BREVO_API_KEY and BREVO_SENDER_EMAIL must be
+// set in .env; BREVO_SENDER_EMAIL must be a sender verified in
+// your Brevo account (Settings -> Senders), or sends will fail.
+// ============================================================
+
+const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
+const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "";
+const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "S.P.S. Malaragam Flower Ledger";
+const OTP_TTL_MINUTES = 10;
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function otpExpiryDate() {
+  return new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+}
+
+async function sendOtpEmail(toEmail, toName, otp, purpose) {
+  if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
+    console.error(
+      "BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured in .env - cannot send OTP email"
+    );
+    throw new Error("Email service is not configured on this server.");
+  }
+
+  const subject =
+    purpose === "login"
+      ? "Your sign-in code"
+      : "Your account verification code";
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;">
+      <p>Hi ${toName ? String(toName) : "there"},</p>
+      <p>Your one-time code is:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0;">${otp}</p>
+      <p>This code expires in ${OTP_TTL_MINUTES} minutes. If you did not request this, you can ignore this email.</p>
+      <p style="color:#888;font-size:12px;">S.P.S. மலரகம் — Flower Ledger</p>
+    </div>
+  `;
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "api-key": BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { email: BREVO_SENDER_EMAIL, name: BREVO_SENDER_NAME },
+      to: [{ email: toEmail, name: toName || toEmail }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text().catch(() => "");
+    console.error("Brevo send error:", res.status, errorBody);
+    throw new Error("Could not send verification email.");
+  }
+}
+
+// ============================================================
 // MIDDLEWARE
 // ============================================================
 
@@ -264,6 +333,11 @@ async function syncRatesJson() {
 // ============================================================
 // SYNC USERS JSON
 // ============================================================
+//
+// UPDATE: now includes email + email_verified so the JSON mirror
+// actually reflects OTP/verification state instead of silently
+// omitting it.
+// ============================================================
 
 async function syncUsersJson() {
   const result =
@@ -272,8 +346,10 @@ async function syncUsersJson() {
         id,
         username,
         name,
+        email,
         picture,
         google,
+        email_verified,
         created_at
 
       FROM users
@@ -329,7 +405,15 @@ async function initializeDatabase() {
     await pool.connect();
 
   try {
-    const SCHEMA_VERSION = 2;
+    // UPDATE: bumped 3 -> 4. If an earlier deploy of this file
+    // already recorded version 3 in _schema_migrations BEFORE the
+    // OTP/email/google_sub columns existed, the old check would
+    // have skipped this whole block forever and those columns
+    // would never get created on that database. Bumping forces
+    // the migration chain to run one more time on any existing
+    // database that's missing them. Leave this at 4 after it has
+    // run once.
+    const SCHEMA_VERSION = 4;
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS _schema_migrations (
@@ -401,6 +485,80 @@ async function initializeDatabase() {
       users_google_sub_unique
       ON users(google_sub)
       WHERE google_sub IS NOT NULL;
+    `);
+
+    // ========================================================
+    // OTP EMAIL VERIFICATION SUPPORT
+    // ========================================================
+    //
+    // email: the address OTPs are sent to. Nullable so accounts
+    // created before this feature keep working without one -
+    // see the login route, which skips the OTP step for any
+    // account with no email on file.
+    //
+    // otp_code / otp_expires_at: the currently-pending one-time
+    // code for that account, if any. Cleared after use.
+    //
+    // pending_signups holds accounts that have NOT finished OTP
+    // verification yet - both password-based signups and
+    // Google-based signups (which need a username/password
+    // chosen before the account can be created). A row here is
+    // only ever promoted into `users` once its OTP is verified,
+    // and is deleted either on success or when superseded by a
+    // fresh signup attempt for the same username/email.
+    // ========================================================
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS
+      email TEXT;
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS
+      users_email_unique
+      ON users(LOWER(email))
+      WHERE email IS NOT NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS
+      email_verified BOOLEAN DEFAULT FALSE;
+    `);
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS
+      otp_code TEXT;
+    `);
+
+    await client.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS
+      otp_expires_at TIMESTAMPTZ;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pending_signups (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('password','google')),
+        name TEXT,
+        username TEXT,
+        password_hash TEXT,
+        email TEXT NOT NULL,
+        google_sub TEXT,
+        picture TEXT,
+        otp_code TEXT,
+        otp_expires_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS
+      idx_pending_signups_email
+      ON pending_signups(LOWER(email));
     `);
 
     // ========================================================
@@ -1056,7 +1214,13 @@ app.get(
 );
 
 // ============================================================
-// REGISTER
+// REGISTER  (step 1 of 2: validate + send OTP)
+// ============================================================
+//
+// This does NOT create the account yet. It validates the
+// username/email/password, stashes them in pending_signups
+// along with a fresh OTP, emails the OTP, and waits for
+// POST /api/register/verify-otp to actually create the user.
 // ============================================================
 
 app.post(
@@ -1076,6 +1240,13 @@ app.post(
           .trim()
           .toLowerCase();
 
+      const email =
+        String(
+          req.body.email || ""
+        )
+          .trim()
+          .toLowerCase();
+
       const password =
         String(
           req.body.password ||
@@ -1085,12 +1256,21 @@ app.post(
       if (
         !name ||
         !username ||
-        !password
+        !password ||
+        !email
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "Name, username and password are required.",
+            "Name, username, email and password are required.",
+        });
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Enter a valid email address.",
         });
       }
 
@@ -1114,26 +1294,23 @@ app.post(
         });
       }
 
-      const existing =
+      const existingUser =
         await pool.query(
           `
           SELECT id
           FROM users
-          WHERE LOWER(username)
-                = LOWER($1)
+          WHERE LOWER(username) = LOWER($1)
+             OR LOWER(email) = LOWER($2)
           LIMIT 1
           `,
-          [username]
+          [username, email]
         );
 
-      if (
-        existing.rows.length >
-        0
-      ) {
+      if (existingUser.rows.length > 0) {
         return res.status(409).json({
           success: false,
           message:
-            "Username already exists.",
+            "Username or email already in use.",
         });
       }
 
@@ -1143,50 +1320,47 @@ app.post(
           12
         );
 
-      const result =
-        await pool.query(
-          `
-          INSERT INTO users
-          (
-            name,
-            username,
-            password_hash
-          )
+      const otp = generateOtp();
+      const otpExpiresAt = otpExpiryDate();
+      const pendingId = crypto.randomUUID();
 
-          VALUES
-          (
-            $1,
-            $2,
-            $3
-          )
+      // Superseding: drop any earlier unfinished attempt for the
+      // same username or email so only the latest OTP is valid.
+      await pool.query(
+        `
+        DELETE FROM pending_signups
+        WHERE LOWER(username) = LOWER($1)
+           OR LOWER(email) = LOWER($2)
+        `,
+        [username, email]
+      );
 
-          RETURNING
-            id,
-            name,
-            username,
-            created_at
-          `,
-          [
-            name,
-            username,
-            passwordHash,
-          ]
-        );
+      await pool.query(
+        `
+        INSERT INTO pending_signups
+        (id, kind, name, username, password_hash, email, otp_code, otp_expires_at)
+        VALUES
+        ($1, 'password', $2, $3, $4, $5, $6, $7)
+        `,
+        [pendingId, name, username, passwordHash, email, otp, otpExpiresAt]
+      );
 
-      const user =
-        result.rows[0];
+      try {
+        await sendOtpEmail(email, name, otp, "signup");
+      } catch (emailError) {
+        return res.status(502).json({
+          success: false,
+          message:
+            emailError.message || "Could not send verification email.",
+        });
+      }
 
-      await syncUsersJson();
-
-      const token =
-        createToken(user);
-
-      res.status(201).json({
+      res.status(200).json({
         success: true,
         message:
-          "Account created successfully.",
-        token,
-        user,
+          "A verification code was sent to your email.",
+        pendingId,
+        username,
       });
     } catch (error) {
       console.error(
@@ -1197,7 +1371,125 @@ app.post(
       res.status(500).json({
         success: false,
         message:
-          "Could not create account.",
+          "Could not start account creation.",
+        error:
+          error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// REGISTER  (step 2 of 2: verify OTP, actually create the user)
+// ============================================================
+
+app.post(
+  "/api/register/verify-otp",
+  async (req, res) => {
+    try {
+      const pendingId =
+        String(req.body.pendingId || "").trim();
+
+      const otp =
+        String(req.body.otp || "").trim();
+
+      if (!pendingId || !otp) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Verification code is required.",
+        });
+      }
+
+      const pendingResult = await pool.query(
+        `
+        SELECT *
+        FROM pending_signups
+        WHERE id = $1 AND kind = 'password'
+        LIMIT 1
+        `,
+        [pendingId]
+      );
+
+      const pending = pendingResult.rows[0];
+
+      if (!pending) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This signup request could not be found. Please start again.",
+        });
+      }
+
+      if (
+        !pending.otp_code ||
+        pending.otp_code !== otp ||
+        new Date(pending.otp_expires_at).getTime() < Date.now()
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Incorrect or expired code.",
+        });
+      }
+
+      // Re-check uniqueness in case another account took the
+      // name/email while this OTP was pending.
+      const clash = await pool.query(
+        `
+        SELECT id FROM users
+        WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($2)
+        LIMIT 1
+        `,
+        [pending.username, pending.email]
+      );
+
+      if (clash.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Username or email was taken while your code was pending. Please start again.",
+        });
+      }
+
+      const result = await pool.query(
+        `
+        INSERT INTO users
+        (name, username, password_hash, email, email_verified)
+        VALUES
+        ($1, $2, $3, $4, TRUE)
+        RETURNING id, name, username, email, created_at
+        `,
+        [pending.name, pending.username, pending.password_hash, pending.email]
+      );
+
+      await pool.query(
+        `DELETE FROM pending_signups WHERE id = $1`,
+        [pendingId]
+      );
+
+      const user = result.rows[0];
+      await syncUsersJson();
+
+      const token = createToken(user);
+
+      res.status(201).json({
+        success: true,
+        message:
+          "Account created successfully.",
+        token,
+        user,
+      });
+    } catch (error) {
+      console.error(
+        "Register verify-otp error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Could not verify code.",
         error:
           error.message,
       });
@@ -1398,6 +1690,10 @@ app.post(
         });
       }
 
+      // UPDATE: added `email` to the SELECT. Without it, `user.email`
+      // is always undefined below and every login silently skips the
+      // OTP step regardless of whether the account has an email on
+      // file.
       const result =
         await pool.query(
           `
@@ -1405,6 +1701,7 @@ app.post(
             id,
             name,
             username,
+            email,
             password_hash,
             created_at
 
@@ -1501,21 +1798,56 @@ app.post(
         });
       }
 
-      delete user.password_hash;
-
-      const token =
-        createToken(user);
-
       console.log(
-        `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=SUCCESS`
+        `[LOGIN TIMING] user=${username} db=${tDbDone - loginStart}ms bcrypt=${tBcryptDone - tDbDone}ms total=${Date.now() - loginStart}ms result=PASSWORD_OK`
       );
+
+      // ==========================================================
+      // OTP STEP
+      // ==========================================================
+      //
+      // Accounts created before this feature (or that never set an
+      // email) have no email on file - there is nothing to send an
+      // OTP to, so those accounts skip straight to a normal login.
+      // Every account with an email on file must verify an OTP
+      // before a token is issued.
+      // ==========================================================
+
+      if (!user.email) {
+        delete user.password_hash;
+        const token = createToken(user);
+
+        return res.json({
+          success: true,
+          message: "Login successful.",
+          token,
+          user,
+        });
+      }
+
+      const otp = generateOtp();
+      const otpExpiresAt = otpExpiryDate();
+
+      await pool.query(
+        `UPDATE users SET otp_code = $1, otp_expires_at = $2 WHERE id = $3`,
+        [otp, otpExpiresAt, user.id]
+      );
+
+      try {
+        await sendOtpEmail(user.email, user.name, otp, "login");
+      } catch (emailError) {
+        return res.status(502).json({
+          success: false,
+          message:
+            emailError.message || "Could not send verification email.",
+        });
+      }
 
       res.json({
         success: true,
-        message:
-          "Login successful.",
-        token,
-        user,
+        requiresOtp: true,
+        message: "A verification code was sent to your email.",
+        username: user.username,
       });
     } catch (error) {
       console.log(
@@ -1531,6 +1863,89 @@ app.post(
         success: false,
         message:
           "Login failed.",
+        error:
+          error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// LOGIN  (step 2 of 2: verify OTP, issue token)
+// ============================================================
+
+app.post(
+  "/api/login/verify-otp",
+  async (req, res) => {
+    try {
+      const username =
+        String(req.body.username || "")
+          .trim()
+          .toLowerCase();
+
+      const otp =
+        String(req.body.otp || "").trim();
+
+      if (!username || !otp) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Verification code is required.",
+        });
+      }
+
+      const result = await pool.query(
+        `
+        SELECT id, name, username, email, otp_code, otp_expires_at
+        FROM users
+        WHERE LOWER(username) = LOWER($1)
+        LIMIT 1
+        `,
+        [username]
+      );
+
+      const user = result.rows[0];
+
+      if (
+        !user ||
+        !user.otp_code ||
+        user.otp_code !== otp ||
+        !user.otp_expires_at ||
+        new Date(user.otp_expires_at).getTime() < Date.now()
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Incorrect or expired code.",
+        });
+      }
+
+      await pool.query(
+        `UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = $1`,
+        [user.id]
+      );
+
+      delete user.otp_code;
+      delete user.otp_expires_at;
+
+      const token = createToken(user);
+
+      res.json({
+        success: true,
+        message: "Login successful.",
+        token,
+        user,
+      });
+    } catch (error) {
+      console.error(
+        "Login verify-otp error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Could not verify code.",
         error:
           error.message,
       });
@@ -1662,111 +2077,107 @@ app.post(
         await pool.query(
           `
           SELECT
-            id,
-            name,
-            username,
-            google_sub
+            id, name, username, email, google_sub
 
           FROM users
 
           WHERE
             google_sub = $1
-
-            OR
-            LOWER(username) = LOWER($2)
+            OR LOWER(username) = LOWER($2)
+            OR LOWER(email) = LOWER($2)
 
           LIMIT 1
           `,
           [googleSub, email]
         );
 
-      let user;
-
+      // ==========================================================
+      // EXISTING ACCOUNT -> this is a LOGIN. Send an OTP just like
+      // the password login path does, rather than issuing a token
+      // immediately.
+      // ==========================================================
       if (existing.rows.length > 0) {
-        const result =
-          await pool.query(
-            `
-            UPDATE users
+        const updated = await pool.query(
+          `
+          UPDATE users
+          SET google_sub = $1, google = TRUE, picture = COALESCE($2, picture)
+          WHERE id = $3
+          RETURNING id, name, username, email
+          `,
+          [googleSub, picture, existing.rows[0].id]
+        );
 
-            SET
-              google_sub = $1,
-              google = TRUE,
-              picture = COALESCE($2, picture)
+        const user = updated.rows[0];
+        await syncUsersJson();
 
-            WHERE id = $3
+        if (!user.email) {
+          // Legacy account with no email on file - nothing to OTP.
+          const token = createToken(user);
+          return res.json({
+            success: true,
+            message: "Login successful.",
+            token,
+            user,
+          });
+        }
 
-            RETURNING
-              id,
-              name,
-              username,
-              picture,
-              created_at
-            `,
-            [
-              googleSub,
-              picture,
-              existing.rows[0].id,
-            ]
-          );
+        const otp = generateOtp();
+        const otpExpiresAt = otpExpiryDate();
 
-        user = result.rows[0];
-      } else {
-        const result =
-          await pool.query(
-            `
-            INSERT INTO users
-            (
-              name,
-              username,
-              password_hash,
-              picture,
-              google,
-              google_sub
-            )
+        await pool.query(
+          `UPDATE users SET otp_code = $1, otp_expires_at = $2 WHERE id = $3`,
+          [otp, otpExpiresAt, user.id]
+        );
 
-            VALUES
-            (
-              $1,
-              $2,
-              NULL,
-              $3,
-              TRUE,
-              $4
-            )
+        try {
+          await sendOtpEmail(user.email, user.name, otp, "login");
+        } catch (emailError) {
+          return res.status(502).json({
+            success: false,
+            message: emailError.message || "Could not send verification email.",
+          });
+        }
 
-            RETURNING
-              id,
-              name,
-              username,
-              picture,
-              created_at
-            `,
-            [
-              displayName,
-              email,
-              picture,
-              googleSub,
-            ]
-          );
+        console.log(`[GOOGLE LOGIN] OTP sent - email=${email}`);
 
-        user = result.rows[0];
+        return res.json({
+          success: true,
+          requiresOtp: true,
+          message: "A verification code was sent to your email.",
+          username: user.username,
+        });
       }
 
-      await syncUsersJson();
+      // ==========================================================
+      // NEW ACCOUNT -> needs a username + password before it can be
+      // created. Stash the verified Google identity in
+      // pending_signups and ask the frontend to collect those, via
+      // POST /api/auth/google/complete.
+      // ==========================================================
+      const pendingId = crypto.randomUUID();
 
-      const token =
-        createToken(user);
+      await pool.query(
+        `DELETE FROM pending_signups WHERE google_sub = $1 OR LOWER(email) = LOWER($2)`,
+        [googleSub, email]
+      );
 
-      console.log(
-        `[GOOGLE LOGIN] success - email=${email}`
+      await pool.query(
+        `
+        INSERT INTO pending_signups
+        (id, kind, name, email, google_sub, picture)
+        VALUES
+        ($1, 'google', $2, $3, $4, $5)
+        `,
+        [pendingId, displayName, email, googleSub, picture]
       );
 
       res.json({
         success: true,
-        message:
-          "Login successful.",
-        token,
-        user,
+        needsUsername: true,
+        pendingId,
+        email,
+        name: displayName,
+        picture,
       });
     } catch (error) {
       console.error(
@@ -1780,6 +2191,223 @@ app.post(
           "Google login failed.",
         error:
           error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// GOOGLE SIGN-UP  (step 2 of 3: choose username/password, send OTP)
+// ============================================================
+
+app.post(
+  "/api/auth/google/complete",
+  async (req, res) => {
+    try {
+      const pendingId =
+        String(req.body.pendingId || "").trim();
+
+      const username =
+        String(req.body.username || "")
+          .trim()
+          .toLowerCase();
+
+      const password =
+        String(req.body.password || "");
+
+      if (!pendingId || !username || !password) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Username and password are required.",
+        });
+      }
+
+      if (username.length < 3) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Username must contain at least 3 characters.",
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must contain at least 6 characters.",
+        });
+      }
+
+      const pendingResult = await pool.query(
+        `SELECT * FROM pending_signups WHERE id = $1 AND kind = 'google' LIMIT 1`,
+        [pendingId]
+      );
+
+      const pending = pendingResult.rows[0];
+
+      if (!pending) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This signup request could not be found. Please continue with Google again.",
+        });
+      }
+
+      const existingUser = await pool.query(
+        `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+        [username]
+      );
+
+      if (existingUser.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "That username is already taken. Please choose another.",
+        });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const otp = generateOtp();
+      const otpExpiresAt = otpExpiryDate();
+
+      await pool.query(
+        `
+        UPDATE pending_signups
+        SET username = $1, password_hash = $2, otp_code = $3, otp_expires_at = $4
+        WHERE id = $5
+        `,
+        [username, passwordHash, otp, otpExpiresAt, pendingId]
+      );
+
+      try {
+        await sendOtpEmail(pending.email, pending.name, otp, "signup");
+      } catch (emailError) {
+        return res.status(502).json({
+          success: false,
+          message: emailError.message || "Could not send verification email.",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "A verification code was sent to your email.",
+        pendingId,
+      });
+    } catch (error) {
+      console.error("Google signup complete error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Could not continue account creation.",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// ============================================================
+// GOOGLE SIGN-UP  (step 3 of 3: verify OTP, create the account)
+// ============================================================
+
+app.post(
+  "/api/auth/google/verify",
+  async (req, res) => {
+    try {
+      const pendingId =
+        String(req.body.pendingId || "").trim();
+
+      const otp =
+        String(req.body.otp || "").trim();
+
+      if (!pendingId || !otp) {
+        return res.status(400).json({
+          success: false,
+          message: "Verification code is required.",
+        });
+      }
+
+      const pendingResult = await pool.query(
+        `SELECT * FROM pending_signups WHERE id = $1 AND kind = 'google' LIMIT 1`,
+        [pendingId]
+      );
+
+      const pending = pendingResult.rows[0];
+
+      if (!pending || !pending.username || !pending.password_hash) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This signup request could not be found. Please continue with Google again.",
+        });
+      }
+
+      if (
+        !pending.otp_code ||
+        pending.otp_code !== otp ||
+        new Date(pending.otp_expires_at).getTime() < Date.now()
+      ) {
+        return res.status(401).json({
+          success: false,
+          message: "Incorrect or expired code.",
+        });
+      }
+
+      const clash = await pool.query(
+        `
+        SELECT id FROM users
+        WHERE LOWER(username) = LOWER($1)
+           OR LOWER(email) = LOWER($2)
+           OR google_sub = $3
+        LIMIT 1
+        `,
+        [pending.username, pending.email, pending.google_sub]
+      );
+
+      if (clash.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "That account was already created while your code was pending. Please sign in instead.",
+        });
+      }
+
+      const result = await pool.query(
+        `
+        INSERT INTO users
+        (name, username, password_hash, email, email_verified, picture, google, google_sub)
+        VALUES
+        ($1, $2, $3, $4, TRUE, $5, TRUE, $6)
+        RETURNING id, name, username, email, picture, created_at
+        `,
+        [
+          pending.name,
+          pending.username,
+          pending.password_hash,
+          pending.email,
+          pending.picture,
+          pending.google_sub,
+        ]
+      );
+
+      await pool.query(`DELETE FROM pending_signups WHERE id = $1`, [pendingId]);
+
+      const user = result.rows[0];
+      await syncUsersJson();
+
+      const token = createToken(user);
+
+      res.status(201).json({
+        success: true,
+        message: "Account created successfully.",
+        token,
+        user,
+      });
+    } catch (error) {
+      console.error("Google signup verify error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Could not verify code.",
+        error: error.message,
       });
     }
   }
@@ -1802,18 +2430,144 @@ app.post(
 );
 
 // ============================================================
-// CURRENT USER
+// CURRENT USER / PROFILE
+// ============================================================
+//
+// UPDATE: this used to just echo back req.user (the decoded JWT
+// payload), which only has id/username/name - no email, picture,
+// google flag, or verification status, so the Profile screen could
+// never show a complete picture. It now looks the user up in the
+// database and returns the full row.
 // ============================================================
 
 app.get(
   "/api/me",
   authMiddleware,
   async (req, res) => {
-    res.json({
-      success: true,
-      user:
-        req.user,
-    });
+    try {
+
+      // Admin account from .env
+      if (req.user.id === 0) {
+
+        return res.json({
+          success: true,
+          user: {
+            id: 0,
+            name:
+              process.env.ADMIN_NAME ||
+              "Administrator",
+
+            username:
+              process.env.ADMIN_USERNAME ||
+              "admin",
+
+            email: null,
+
+            picture: null,
+
+            google: false,
+
+            isAdmin: true,
+          },
+        });
+      }
+
+
+      // Get complete user details from database
+      const result =
+        await pool.query(
+          `
+          SELECT
+            id,
+            name,
+            username,
+            email,
+            picture,
+            google,
+            email_verified,
+            created_at
+
+          FROM users
+
+          WHERE id = $1
+
+          LIMIT 1
+          `,
+          [req.user.id]
+        );
+
+
+      if (
+        result.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+          success: false,
+
+          message:
+            "User not found.",
+        });
+      }
+
+
+      const user =
+        result.rows[0];
+
+
+      return res.json({
+        success: true,
+
+        user: {
+          id:
+            user.id,
+
+          name:
+            user.name,
+
+          username:
+            user.username,
+
+          email:
+            user.email,
+
+          picture:
+            user.picture,
+
+          google:
+            user.google === true,
+
+          emailVerified:
+            user.email_verified === true,
+
+          createdAt:
+            user.created_at,
+
+          isAdmin:
+            false,
+        },
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Get profile error:",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Could not load profile.",
+
+        error:
+          error.message,
+
+      });
+
+    }
   }
 );
 
@@ -3540,6 +4294,13 @@ async function startServer() {
         console.log(
           "Google Sign-In (any Google account): " +
             (googleClient ? "ENABLED" : "disabled (set GOOGLE_CLIENT_ID in .env)")
+        );
+
+        console.log(
+          "OTP email verification (signup + login): " +
+            (BREVO_API_KEY && BREVO_SENDER_EMAIL
+              ? "ENABLED (Brevo)"
+              : "disabled (set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env)")
         );
 
         console.log(
