@@ -3491,7 +3491,7 @@ body{
   font-size:18px !important;
   line-height:38px !important;
   text-align:center !important;
-
+  
   display:block !important;
   z-index:100 !important;
   appearance:none !important;
@@ -5059,7 +5059,7 @@ function closeOtpModal(){const m=document.getElementById("otpModal");m.classList
 document.getElementById("btnCancelOtp").addEventListener("click",closeOtpModal);document.getElementById("otpModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeOtpModal();});
 document.getElementById("btnVerifyOtp").addEventListener("click",async()=>{
   const message=document.getElementById("otpMessage");
-  const otp=document.getElementById("signupOtp").value.trim();
+  const otp=document.getElementById("signupOtp").value.replace(/\D/g,"").trim();
   const btn=document.getElementById("btnVerifyOtp");
   message.textContent="";
 
@@ -7597,6 +7597,14 @@ window.addEventListener('load',()=>{
   document.getElementById('inpFlowerSelect')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
   document.getElementById('inpDate')?.addEventListener('change', () => setTimeout(resetRateChoice,0));
 })();
+</script>
+<script>
+const otpInputEl = document.getElementById("signupOtp");
+if (otpInputEl) {
+  otpInputEl.addEventListener("input", () => {
+    otpInputEl.value = otpInputEl.value.replace(/\D/g, "").slice(0, 6);
+  });
+}
 </script>
 </body>
 </html>
