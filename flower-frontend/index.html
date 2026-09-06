@@ -3617,6 +3617,26 @@ canvas{
 .pdf-a4-page table{
   break-inside:auto;
 }
+
+/* IMPORTANT: The normal mobile CSS hides the 4th table column.
+   Quantity is the 4th column, so force it to remain visible in the PDF. */
+.pdf-a4-page table thead th:nth-child(4),
+.pdf-a4-page table tbody td:nth-child(4),
+.pdf-a4-page table tfoot td:nth-child(4){
+  display:table-cell !important;
+  visibility:visible !important;
+}
+
+/* Keep all six PDF columns visible even when responsive CSS is active. */
+.pdf-a4-page table{
+  display:table !important;
+}
+.pdf-a4-page table colgroup col:nth-child(1){width:7% !important;}
+.pdf-a4-page table colgroup col:nth-child(2){width:17% !important;}
+.pdf-a4-page table colgroup col:nth-child(3){width:24% !important;}
+.pdf-a4-page table colgroup col:nth-child(4){width:13% !important;}
+.pdf-a4-page table colgroup col:nth-child(5){width:17% !important;}
+.pdf-a4-page table colgroup col:nth-child(6){width:22% !important;}
 .pdf-a4-page thead{
   display:table-header-group;
 }
