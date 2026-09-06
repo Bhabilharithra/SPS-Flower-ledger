@@ -7616,31 +7616,37 @@ async function exportPdf(){
       </div>
     `;
 
+    // IMPORTANT: Keep exactly the same six-column layout on every PDF page.
+    // Fixed widths make Quantity stay visible and keep the TOTAL row aligned.
     const tableHeadHtml = `
       <colgroup>
-        <col style="width:7%;"><col style="width:18%;"><col style="width:22%;">
-        <col style="width:18%;"><col style="width:17%;"><col style="width:18%;">
+        <col style="width:7%;">
+        <col style="width:17%;">
+        <col style="width:24%;">
+        <col style="width:13%;">
+        <col style="width:17%;">
+        <col style="width:22%;">
       </colgroup>
       <thead>
         <tr style="background:#FFE6EF;">
-          <th style="padding:10px;text-align:center;border:1px solid #E3B0C3;">S.No</th>
-          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Date</th>
-          <th style="padding:10px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Quantity</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Price</th>
-          <th style="padding:10px;text-align:right;border:1px solid #E3B0C3;">Amount</th>
+          <th style="padding:9px 6px;text-align:center;border:1px solid #E3B0C3;white-space:nowrap;">S.No</th>
+          <th style="padding:9px 6px;text-align:left;border:1px solid #E3B0C3;white-space:nowrap;">Date</th>
+          <th style="padding:9px 6px;text-align:left;border:1px solid #E3B0C3;">Flower</th>
+          <th style="padding:9px 6px;text-align:right;border:1px solid #E3B0C3;white-space:nowrap;">Quantity</th>
+          <th style="padding:9px 6px;text-align:right;border:1px solid #E3B0C3;white-space:nowrap;">Price</th>
+          <th style="padding:9px 6px;text-align:right;border:1px solid #E3B0C3;white-space:nowrap;">Amount</th>
         </tr>
       </thead>
     `;
 
     function pdfRowHtml(e, serialNo){
       return `<tr style="break-inside:avoid;page-break-inside:avoid;">
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:center;vertical-align:top;white-space:nowrap;">${serialNo}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;white-space:nowrap;">${fmtDate(e.date)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
-        <td style="padding:9px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;text-align:center;vertical-align:top;white-space:nowrap;">${serialNo}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;vertical-align:top;white-space:nowrap;">${fmtDate(e.date)}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;vertical-align:top;word-break:break-word;">${escapeHtml(flowerLabel(e.flower))}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${Number(e.qty||0).toLocaleString('en-IN')}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;text-align:right;vertical-align:top;white-space:nowrap;">${fmtMoney(e.price)}</td>
+        <td style="padding:9px 6px;border:1px solid #F0D8E2;text-align:right;font-weight:700;vertical-align:top;white-space:nowrap;">${fmtMoney(e.amount)}</td>
       </tr>`;
     }
 
@@ -7746,7 +7752,7 @@ async function exportPdf(){
     // Reserve room on the final page for the TOTAL row and footer.
     // If the last row would push those outside the A4 page, move that row
     // to a new page instead of cutting the table or footer.
-    const FINAL_EXTRA_SPACE = 82;
+    const FINAL_EXTRA_SPACE = 96;
     function groupRowsHeight(group){
       return group.reduce((sum, rowIndex)=>sum + rowHeights[rowIndex], 0);
     }
@@ -7816,10 +7822,11 @@ async function exportPdf(){
         const tfoot = document.createElement('tfoot');
         tfoot.innerHTML = `
           <tr style="background:#FFF7FA;font-weight:800;">
-            <td colspan="3" style="padding:11px;border:1px solid #E3B0C3;text-align:right;">TOTAL</td>
-            <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${totalQty.toLocaleString('en-IN')}</td>
-            <td style="padding:11px;border:1px solid #E3B0C3;"></td>
-            <td style="padding:11px;border:1px solid #E3B0C3;text-align:right;">${fmtMoney(totalAmount)}</td>
+            <!-- Same six cells/columns as the table header: TOTAL spans S.No + Date + Flower -->
+            <td colspan="3" style="padding:11px 6px;border:1px solid #E3B0C3;text-align:right;white-space:nowrap;">TOTAL</td>
+            <td style="padding:11px 6px;border:1px solid #E3B0C3;text-align:right;white-space:nowrap;">${totalQty.toLocaleString('en-IN')}</td>
+            <td style="padding:11px 6px;border:1px solid #E3B0C3;text-align:right;"></td>
+            <td style="padding:11px 6px;border:1px solid #E3B0C3;text-align:right;white-space:nowrap;">${fmtMoney(totalAmount)}</td>
           </tr>
         `;
         table.appendChild(tfoot);
