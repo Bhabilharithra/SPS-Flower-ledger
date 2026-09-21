@@ -7494,33 +7494,65 @@ function exportExcel(){
     return;
   }
 
-  const rows = toExport
+  const sorted = toExport
     .slice()
-    .sort((a,b)=> (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")))
-    .map(e => ({
-      "Date": e.date || "",
-      "Supplier": e.name || "",
-      "Flower": flowerLabel(e.flower),
-      "Quantity": Number(e.qty || 0),
-      "Price": Number(e.price || 0),
-      "Amount": Number(e.amount || 0)
-    }));
+    .sort((a,b)=> (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
 
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const rows = sorted.map(e => ({
+    "Date": e.date || "",
+    "Supplier": e.name || "",
+    "Flower": flowerLabel(e.flower),
+    "Quantity": Number(e.qty || 0),
+    "Price": Number(e.price || 0),
+    "Amount": Number(e.amount || 0)
+  }));
+
+  // Show the searched supplier/customer name and date range at the top of
+  // the sheet, the same way the PDF export shows them on every page.
+  const searchedName = currentFilter && sorted[0] ? sorted[0].name : (currentFilter || '');
+  const supplierLine = currentFilter ? `Supplier: ${searchedName}` : 'Supplier: All suppliers';
+  const dateLine = `Date range: ${getReportScopeLabel()}`;
+
+  const headerRows = [
+    ["S.P.S. மலரகம் — Flower Ledger"],
+    [supplierLine],
+    [dateLine],
+    [`Generated on ${fmtDate(todayStr())}`],
+    []
+  ];
+
+  const worksheet = XLSX.utils.aoa_to_sheet(headerRows);
+  XLSX.utils.sheet_add_json(worksheet, rows, {
+    origin: `A${headerRows.length + 1}`,
+    skipHeader: false
+  });
+
   worksheet['!cols'] = [
     { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 16 },
     { wch: 14 }, { wch: 16 }
+  ];
+
+  // Merge the info rows across all six columns so they read as banners,
+  // not cramped into the first column.
+  worksheet['!merges'] = [
+    { s:{ r:0, c:0 }, e:{ r:0, c:5 } },
+    { s:{ r:1, c:0 }, e:{ r:1, c:5 } },
+    { s:{ r:2, c:0 }, e:{ r:2, c:5 } },
+    { s:{ r:3, c:0 }, e:{ r:3, c:5 } }
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Flower Ledger");
 
   // Add a small summary sheet so the Excel file is useful for accounting.
+  // It repeats the same supplier/date info at the top for consistency.
   const totalQty = toExport.reduce((sum,e)=>sum + Number(e.qty || 0), 0);
   const totalAmount = toExport.reduce((sum,e)=>sum + Number(e.amount || 0), 0);
   const supplierCount = new Set(toExport.map(e => String(e.name || '').trim().toLowerCase()).filter(Boolean)).size;
   const summaryRows = [
     ["S.P.S. மலரகம்", "Flower Ledger"],
+    [supplierLine, ""],
+    [dateLine, ""],
     ["Generated date", todayStr()],
     ["Entries", toExport.length],
     ["Suppliers", supplierCount],
@@ -7590,8 +7622,11 @@ async function exportPdf(){
         .filter(Boolean)
     ).size;
 
-    // Do not print the selected supplier/customer name in the PDF.
-    const scope = `Date range: ${getReportScopeLabel()}`;
+    // Show the searched supplier/customer name in the PDF, when a search is active.
+    const searchedName = currentFilter && sorted[0] ? sorted[0].name : (currentFilter || '');
+    const scope = currentFilter
+      ? `Supplier: ${escapeHtml(searchedName)} &middot; Date range: ${getReportScopeLabel()}`
+      : `Date range: ${getReportScopeLabel()}`;
 
     // A4 portrait ratio in CSS pixels.
     const PAGE_W = 794;
@@ -7633,6 +7668,19 @@ async function exportPdf(){
           <div style="font-size:11px;color:#80596A;text-transform:uppercase;font-weight:700;">Total amount</div>
           <div style="font-size:23px;font-weight:800;margin-top:5px;">${fmtMoney(totalAmount)}</div>
         </div>
+      </div>
+    `;
+
+    // Compact header repeated on every continuation page (page 2+), so the
+    // searched name/filter and date are always visible at the top - not
+    // just on the first page.
+    const continuationHeaderHtml = `
+      <div class="pdf-continuation-header" style="border-bottom:2px solid #E4B0C2;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px;">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#B43C6F;letter-spacing:.06em;text-transform:uppercase;">S.P.S. மலரகம் &middot; Flower Ledger</div>
+          <div style="font-size:13px;font-weight:700;color:#7D234A;margin-top:3px;">${scope}</div>
+        </div>
+        <div style="font-size:11px;color:#8B6978;">Generated on ${fmtDate(todayStr())}</div>
       </div>
     `;
 
@@ -7732,6 +7780,17 @@ async function exportPdf(){
     );
     firstHeaderProbe.remove();
 
+    // Height of the compact repeating header shown on page 2+.
+    const continuationHeaderProbe = document.createElement('div');
+    continuationHeaderProbe.style.cssText = `width:${PAGE_W-PAGE_PAD*2}px;position:absolute;visibility:hidden;`;
+    continuationHeaderProbe.innerHTML = continuationHeaderHtml;
+    pdfRoot.appendChild(continuationHeaderProbe);
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const continuationHeaderHeight = Math.ceil(
+      continuationHeaderProbe.getBoundingClientRect().height
+    );
+    continuationHeaderProbe.remove();
+
     // Leave a little breathing room so the final row never touches
     // the bottom edge of the A4 page.
     const SAFE_GAP = 18;
@@ -7739,7 +7798,7 @@ async function exportPdf(){
     const firstPageRowsSpace =
       contentHeight - firstHeaderHeight - headerHeight - SAFE_GAP - 18;
     const nextPageRowsSpace =
-      contentHeight - headerHeight - SAFE_GAP - 18;
+      contentHeight - continuationHeaderHeight - headerHeight - SAFE_GAP - 18;
 
     // ---------------------------------------------------------
     // Partition rows. A row is NEVER split between pages.
@@ -7811,9 +7870,13 @@ async function exportPdf(){
         position:relative;
       `;
 
-      // Only the first page gets the large shop header and summary.
+      // The first page gets the large shop header and summary; every
+      // later page gets a compact header so the searched name/filter
+      // and date stay visible at the top of every page.
       if(pageIndex === 0){
         page.insertAdjacentHTML('beforeend', pageHeaderHtml);
+      } else {
+        page.insertAdjacentHTML('beforeend', continuationHeaderHtml);
       }
 
       const table = document.createElement('table');
@@ -7922,9 +7985,13 @@ async function exportPdf(){
       );
     }
 
-    // Do not include a supplier/customer name in the PDF file name.
+    // Include the searched supplier/customer name in the PDF file name, when present.
+    const safePdfName = (currentFilter && sorted[0]?.name ? sorted[0].name : 'all_suppliers')
+      .replace(/[^a-zA-Z0-9_-]+/g,'_')
+      .replace(/^_+|_+$/g,'') || 'ledger';
+
     pdf.save(
-      `SPS_Malaragam_Flower_Ledger_${getReportFileSuffix()}.pdf`
+      `SPS_Malaragam_Flower_Ledger_${safePdfName}_${getReportFileSuffix()}.pdf`
     );
 
     showToast(
